@@ -27,7 +27,7 @@ params:
 menu:
   nav:
   - name: About
-    url: about/
+    url: https://github.com/xiahualiu
     weight: 1
   - name: Posts
     url: post/
