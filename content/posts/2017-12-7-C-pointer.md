@@ -2,6 +2,8 @@
 layout: post
 title: C 指针疑难杂谈
 date: 2017-12-7 10:48:30
+category: Hardware
+tag: C
 draft: false
 ---
 
