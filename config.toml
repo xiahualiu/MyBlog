@@ -1,5 +1,3 @@
-baseURL = "https://xiahualiu.github.io/"
+baseURL = "https://xiahualiu.github.io"
 languageCode = "en-us"
 title = "Xiahua"
-theme = "hugo-flex"
-publishDir = "../xiahualiu.github.io/"
