@@ -1,8 +1,7 @@
 ---
 title: "Hello World"
-date: 2019-12-21T15:02:54-05:00
+date: 2019-12-21
 draft: false
-katex: true
 category: test
 tag: test
 ---
