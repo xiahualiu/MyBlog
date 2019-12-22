@@ -4,7 +4,7 @@ date: 2019-07-28
 draft: false
 ---
 
-2019 07 28 Partial Fraction Expansion"rtial fraction expansion (also known as partial fraction decomposition) is a very basic math operation when we want to simplify a problem involving a fraction with polynomial numerator and denominator. We have some methods to handle the fundamental fraction terms like Laplace transform of a simple exponential signal is:
+Partial fraction expansion (also known as partial fraction decomposition) is a very basic math operation when we want to simplify a problem involving a fraction with polynomial numerator and denominator. We have some methods to handle the fundamental fraction terms like Laplace transform of a simple exponential signal is:
 
 <!--more-->
 
