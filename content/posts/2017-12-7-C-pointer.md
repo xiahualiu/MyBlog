@@ -1,7 +1,7 @@
 ---
 layout: post
-title: C 指针疑难杂谈
-date: 2017-12-7T21:37:58+08:00
+title: "C 指针疑难杂谈"
+publishdate: 2017-12-7T21:37:58+08:00
 category: Hardware
 tag: C
 draft: false
