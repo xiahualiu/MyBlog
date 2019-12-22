@@ -1,8 +1,6 @@
 ---
-layout: post
-title: FPGA 通过 I2C 总线与 EEPROM 元件交互实例（一）
-date: 2018-8-9 10:48:30
-category: 单片机&FPGA
+title: FPGA EEPROM Communication
+date: 2018-08-09
 draft: false
 ---
 

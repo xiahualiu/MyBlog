@@ -1,7 +1,6 @@
 ---
-layout: post
-title: 优化程序的性能（CSAPP 读书笔记）
-date: 2018-7-5 10:48:30
+title: Program Low Level Optimization (CSAPP Reading Notes)
+date: 2018-07-05
 draft: false
 ---
 

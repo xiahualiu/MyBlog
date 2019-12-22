@@ -1,8 +1,6 @@
 ---
-layout: post
-title: 一些 Verilog HDL 模块实例
-date: 2018-8-8 10:48:30
-category: 单片机&FPGA
+title: Some Verilog HDL Modules
+date: 2018-08-08
 draft: false
 ---
 

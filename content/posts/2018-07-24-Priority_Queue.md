@@ -1,8 +1,6 @@
 ---
-layout: post
-title: 优先队列（堆）知识点
-date: 2018-7-24 10:48:30
-category: 算法
+title: Priority Queue/Heap
+date: 2018-07-24
 draft: false
 ---
 

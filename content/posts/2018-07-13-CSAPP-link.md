@@ -1,8 +1,6 @@
 ---
-layout: post
-title: 链接（CSAPP 读书笔记）
-date: 2018-7-13 10:48:30
-category: C/C++
+title: Linking (CSAPP Reading Notes)
+date: 2018-07-13
 draft: false
 ---
 
