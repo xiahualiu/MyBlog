@@ -87,11 +87,11 @@ Two modification:
 
 Bidirection search is based on the simple math:
 
-$$2\ast branch^{depth/2} \text{is much less than} branch^{depth}$$
+$$2\ast branch^{depth/2} \quad  \text{is much less than} \quad branch^{depth}$$
 
-Need a test to check whether the frontiers of two searches intersect.
+It needs a test to check whether the frontiers of two searches intersect.
 
-But calculating the predecessors need substantial ingenuity.
+But calculating the predecessors needs substantial ingenuity.
 
 ## Informed (Heuristic) Search
 
