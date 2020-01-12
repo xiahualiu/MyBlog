@@ -6,7 +6,7 @@ draft: false
 
 ## Abstract
 
-This article is my summary of the famous book, Artificial Intelligence: A Modern Approach Chapter 3.
+This article is my personal version summary of the famous book, Artificial Intelligence: A Modern Approach Chapter 3.
 
 ## Tree Search and Graph Search
 
@@ -39,7 +39,7 @@ This method uses a FIFO (first-input-first-output) queue to implement. And is no
 
 DFS can be implement by two ways, one is using a LIFO (last input first output) stack, the other is calling `child()` function recursively.
 
-Natural DFS under tree search condition is incomplete, because the depth is infinite.
+Natural DFS under tree search (not the graph search) condition is incomplete, because the depth is infinite. The DFS itself is not an optimal algrithm.
 
 ##### Advantage of DFS:
 
