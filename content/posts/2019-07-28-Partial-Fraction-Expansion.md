@@ -45,7 +45,7 @@ $$A_1$$
 , multiply F(s) by s.
 
 $$\begin{aligned}
-sF(s)&=s\frac{s+3}{s(s+2)(s+5)} \\ 
+sF(s)&=s\frac{s+3}{s(s+2)(s+5)} \\\\\\ 
 &=A_1+s\frac{A_2}{s+2}+s\frac{A_3}{s+5}
 \end{aligned}$$
 
@@ -54,7 +54,7 @@ and then set
 $$s=0$$.
 
 $$\begin{aligned}
-sF(s)|_{s=0}&=A_1+0\frac{A_2}{0+2}+0\frac{A_3}{0+5}=A_1 \\
+sF(s)|_{s=0}&=A_1+0\frac{A_2}{0+2}+0\frac{A_3}{0+5}=A_1 \\\\\\
 &=\frac{s+3}{s(s+5)}|_{s=0}=\frac{3}{10}
 \end{aligned}$$
 
@@ -128,28 +128,28 @@ This yields a four-by-four system of equations that can be solved for A1 through
 
 
 $$\begin{aligned}
-A_1+A_2+A_4&=0 \\
-9A_1+7A_2+A_3+4A_4 &=0 \\
-24A_1+10A_2+5A_3+4A_4&=1 \\
+A_1+A_2+A_4&=0 \\\\\\
+9A_1+7A_2+A_3+4A_4 &=0 \\\\\\
+24A_1+10A_2+5A_3+4A_4&=1 \\\\\\
 20A_1&=3
 \end{aligned}$$
 
 Or, in the matrix form
 
 $$\begin{bmatrix}
-{1} & {1} & {0} & {1} \\
-{9} & {7} & {1} & {4} \\
-{24} & {10} & {5} & {4} \\
+{1} & {1} & {0} & {1} \\\\\\
+{9} & {7} & {1} & {4} \\\\\\
+{24} & {10} & {5} & {4} \\\\\\
 {20} & {0} & {0} & {0}
 \end{bmatrix}\begin{bmatrix}
-{A_{1}} \\
-{A_{2}} \\ 
-{A_{3}} \\ 
+{A_{1}} \\\\\\
+{A_{2}} \\\\\\
+{A_{3}} \\\\\\
 {A_{4}}
 \end{bmatrix}=\begin{bmatrix}
-{0} \\
-{0} \\
-{1} \\
+{0} \\\\\\
+{0} \\\\\\
+{1} \\\\\\
 {3}
 \end{bmatrix}$$
 
@@ -160,15 +160,15 @@ We can combine the cover-up method to get the coefficients that is distinct then
 Consider the fraction
 
 $$\begin{aligned}
-F(s) &=\frac{s+3}{(s+5)\left(s^{2}+4 s+5\right)}=\frac{s+3}{(s+5)(s+2-j)(s+2+j)} \\
+F(s) &=\frac{s+3}{(s+5)\left(s^{2}+4 s+5\right)}=\frac{s+3}{(s+5)(s+2-j)(s+2+j)} \\\\\\
 &=\frac{A_{1}}{(s+5)}+\frac{A_{2}}{(s+2-j)}+\frac{A_{3}}{(s+2+j)}
 \end{aligned}$$
 
 where
 
 $$\begin{array}{l}
-{A_{1}=(s+5) F(s)|_{s=-5}} \\ 
-{A_{2}=(s+2-j) F(s)|_{s=-2+j}} \\ 
+{A_{1}=(s+5) F(s)|_{s=-5}} \\\\\\
+{A_{2}=(s+2-j) F(s)|_{s=-2+j}} \\\\\\ 
 {A_{3}=(s+2+j) F(s)|_{s=-2+j}=A_{2}^{*}}
 \end{array}$$
 
