@@ -12,7 +12,7 @@ $$F(s)=\frac{1}{a+s}$$
 
 And the by inverse Laplace Transform we know the signal is either 
 
-$e^{-at}u(t)$ or $-e^{-at}u(-t)$
+\(e^{-at}u(t)\) or \(-e^{-at}u(-t)\)
 
 , depending on the transform is left-sided or right-sided.
 
@@ -34,23 +34,23 @@ The simple situation is the one shown above, there is a simple and straightforwa
 
 $$A_1,\ A_2 \text{ and }A_3$$
 
-To find $A_1$, multiply $F(s)$ by $s$.
+To find \(A_1\), multiply \(F(s)\) by \(s\).
 
 $$\begin{aligned}
 sF(s)&=s\frac{s+3}{s(s+2)(s+5)} \cr 
 &=A_1+s\frac{A_2}{s+2}+s\frac{A_3}{s+5}
 \end{aligned}$$
 
-and then set $s=0$.
+and then set \(s=0\).
 
 $$\begin{aligned}
 sF(s)|_{s=0}&=A_1+0\frac{A_2}{0+2}+0\frac{A_3}{0+5}=A_1 \cr
 &=\frac{s+3}{s(s+5)}|_{s=0}=\frac{3}{10}
 \end{aligned}$$
 
-Likewise, we can get $A_2$ by setting $s=-2$, get $A_3$
+Likewise, we can get \(A_2\) by setting \(s=-2\), get \(A_3\)
 
-by setting $s=-5$.
+by setting \(s=-5\).
 
 ## Special Cases of Parial Fraction Expansion
 
@@ -58,7 +58,7 @@ The simple partial fraction expansion can expand fraction into a sum of simpler 
 
 * ***Order of numerator polynomial is not less than that of the denominator.*** Partial fraction expansion can only be performed when the order of the denominator polynomial (the bottom term of the fraction) is greater than the order of the numerator (the top term).  If this condition is not met, we must perform an extra step before continuing with the expansion.
 
-* ***DIstinct Real Roots*** The problem solved above is described as the case of distinct, real roots.   This means that each term only appears once in the denominator, and the root of each term in the denominator is a distinct real number.  In the example above, the roots were at $0$, $-2$ and $-5$.
+* ***DIstinct Real Roots*** The problem solved above is described as the case of distinct, real roots.   This means that each term only appears once in the denominator, and the root of each term in the denominator is a distinct real number.  In the example above, the roots were at \(0\), \(-2\) and \(-5\).
 
 * ***Repeated Real Roots*** Another possibility is a case of repeated roots. For example
 
@@ -92,7 +92,7 @@ The expansion for this case is:
 
 $$F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{(s+2)^2}+\frac{A_4}{s+5}$$
 
-And we can proof the simple method cannot be used since $(s+2)$ appear twice, and we can only get one value by setting $s=-2$.
+And we can proof the simple method cannot be used since \((s+2)\) appear twice, and we can only get one value by setting \(s=-2\).
 
 There are two ways, the most favored by the texbook method uses the relationship
 
@@ -164,4 +164,4 @@ Another way to expand the fraction without resorting to complex numbers is to pe
 
 $$F(s)=\frac{s+3}{(s+5)(s^{2}+4 s+5)}=\frac{A}{s+5}+\frac{B s+C}{s^{2}+4 s+5}$$
 
-Note that the numerator of the second term is no longer a constant, but is instead a first order polynomial. Use cross-multiplication to get A B C.
+Note that the numerator of the second term is no longer a constant, but is instead a first order polynomial. Use cross-multiplication to get \(A\ B\ C\).

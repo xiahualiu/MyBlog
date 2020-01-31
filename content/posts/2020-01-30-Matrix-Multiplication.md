@@ -12,10 +12,10 @@ Matrix calculus is very important in machine learning and control theories. Howe
 
 Differentiating a matrix is same as differentiate all items in matrix respectively.
 
-$$\\.{A}(t)=\begin{bmatrix}
-\\.{A}_{11}(t) & \\cdots $ \\.{A}_{1n}(t) \cr
-\\vdots & \\ddots & \\vdots \cr
-\\.{A}_{n1}(t) & \\cdots & \\.A{nn}(t) \cr
+$$\.{A}(t)=\begin{bmatrix}
+\.{A}_{11}(t) & \cdots $ \.{A}_{1n}(t) \cr
+\vdots & \ddots & \vdots \cr
+\.{A}_{n1}(t) & \cdots & \.A{nn}(t) \cr
 \end{bmatrix}$$
 
 
