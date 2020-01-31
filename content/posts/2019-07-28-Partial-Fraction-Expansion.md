@@ -45,7 +45,7 @@ $$A_1$$
 , multiply F(s) by s.
 
 $$\begin{aligned}
-sF(s)&=s\frac{s+3}{s(s+2)(s+5)} \\\\\\ 
+sF(s)&=s\frac{s+3}{s(s+2)(s+5)} \cr 
 &=A_1+s\frac{A_2}{s+2}+s\frac{A_3}{s+5}
 \end{aligned}$$
 
