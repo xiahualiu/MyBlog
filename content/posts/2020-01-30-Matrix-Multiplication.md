@@ -46,7 +46,7 @@ It is the most simplifed case, remember it returns a vector that's in the same s
 
 Jacobian matrix is the first-order derivative of a **vector function**, a vector function is a function that **receives a vector value and returns a vector value**.
 
-Jacobian matrix is obtained from $$(\nabla \textbf{f})^T$$, they are equivalent.
+Jacobian matrix is obtained from $$(\nabla \textbf{f})^{\top}$$, they are equivalent.
 
 $$\frac{\partial \textbf{y}}{\partial \textbf{x}}=[\frac{\partial \textbf{f}}{\partial x_1} \cdots \frac{\partial \textbf{f}}{\partial x_n}]=\begin{bmatrix}
 \frac{\partial f_1}{\partial x_1}  & \cdots & \frac{\partial f_1}{\partial x_n} \\
@@ -73,7 +73,7 @@ $$\textbf{J}(\nabla \textbf{f})$$:
 
 However, **Hessian matrix is defined with an extra tranpose operation**, so it is actually:
 
-$$\textbf{J}(\nabla \textbf{f})^T$$:
+$$\textbf{J}(\nabla \textbf{f})^{\top}$$:
 
 
 $$\mathbf{H}=\left[\begin{array}{cccc}
@@ -108,7 +108,7 @@ So here we begin!
 
 Define a function:
 
-$$f(\textbf{x})=\textbf{x}^T\textbf{Ax}$$
+$$f(\textbf{x})=\textbf{x}^{\top}\textbf{Ax}$$
 
 This is a scalar function, since $$\textbf{x}$$ is $$m\times 1$$. So the size of the output is:
 
@@ -128,7 +128,7 @@ From wikipedia:
 > In linear algebra, the trace of a square matrix $$A$$ is defined to be the sum of elements on the main diagonal of $$A$$. The trace of a matrix is the sum of its eigenvalues, and it is invariant with respect to a change of basis.
 
 ### Trace laws
-There are two most important laws:
+Here are two most important laws:
 
 #### Transpose law
 $$\operatorname{tr}(\mathbf{A})=\operatorname{tr}\left(\mathbf{A}^{\top}\right)$$
@@ -138,25 +138,25 @@ $$\operatorname{tr}(\mathbf{A B C D})=\operatorname{tr}(\mathbf{B C D A})=\opera
 
 How do we apply the trace trick in our calculation? Well, from the definition of the trace, a trace of a scalar (which can be considered as a $$1\times 1$$ matrix) is itself, so:
 
-$$\operatorname{tr}(\texbf{x}^T\textbf{Ax})=\texbf{x}^T\textbf{Ax}$$
+$$\operatorname{tr}(\textbf{x}^{\top}\textbf{Ax})=\textbf{x}^{\top}\textbf{Ax}$$
 
 Now it is the trick time:
 
 $$\begin{aligned}
-{\rm d}(\textbf{x}^T\textbf{Ax}) &={\rm d}(\operatorname{tr}(\textbf{x}^T\textbf{Ax})) \\
-&=\operatorname{tr}({\rm d}(\textbf{Ax}\textbf{x}^T)) \\
-&=\operatorname{tr}({\rm d}(\textbf{Ax})\textbf{x}^T+{\bf Ax}{\rm d}(\textbf{x}^T)) \\
-&=\operatorname{tr}({\rm d}(\textbf{Ax})\textbf{x}^T)+\operatorname{tr}({\bf Ax}{\rm d}(\textbf{x}^T)) \\
-&=\operatorname{tr}(\textbf{A}({\rm d}\textbf{x})\textbf{x}^T)+\operatorname{tr}\left((({\rm d}\textbf{x})\textbf{x}^T \textbf{A}^T)^T\right) \\
-&=\operatorname{tr}((\textbf{x}^T\textbf{A}({\rm d}\textbf{x})) + \operatorname{tr}(\textbf{x}^T\textbf{A}^T({\rm d}\textbf{x})) \\
-&=\operatorname{tr}(\textbf{x}^T\textbf{A}){\rm d}\textbf{x} + \operatorname{tr}(\textbf{x}^T\textbf{A}^T){\rm d}\textbf{x} \\
-&=\operatorname{tr}\left((\textbf{x}^T\textbf{A}+\textbf{x}^T\textbf{A}^T){\rm d}\textbf{x}\right) \\
-&=(\textbf{x}^T\textbf{A}+\textbf{x}^T\textbf{A}^T){\rm d}\textbf{x}
+{\rm d}(\textbf{x}^{\top}\textbf{Ax}) &={\rm d}(\operatorname{tr}(\textbf{x}^{\top}\textbf{Ax})) \\
+&=\operatorname{tr}({\rm d}(\textbf{Ax}\textbf{x}^{\top})) \\
+&=\operatorname{tr}({\rm d}(\textbf{Ax})\textbf{x}^{\top}+{\bf Ax}{\rm d}(\textbf{x}^{\top})) \\
+&=\operatorname{tr}({\rm d}(\textbf{Ax})\textbf{x}^{\top})+\operatorname{tr}({\bf Ax}{\rm d}(\textbf{x}^{\top})) \\
+&=\operatorname{tr}(\textbf{A}({\rm d}\textbf{x})\textbf{x}^{\top})+\operatorname{tr}\left((({\rm d}\textbf{x})\textbf{x}^{\top} \textbf{A}^{\top})^{\top}\right) \\
+&=\operatorname{tr}((\textbf{x}^{\top}\textbf{A}({\rm d}\textbf{x})) + \operatorname{tr}(\textbf{x}^{\top}\textbf{A}^{\top}({\rm d}\textbf{x})) \\
+&=\operatorname{tr}(\textbf{x}^{\top}\textbf{A}){\rm d}\textbf{x} + \operatorname{tr}(\textbf{x}^{\top}\textbf{A}^{\top}){\rm d}\textbf{x} \\
+&=\operatorname{tr}\left((\textbf{x}^{\top}\textbf{A}+\textbf{x}^{\top}\textbf{A}^{\top}){\rm d}\textbf{x}\right) \\
+&=(\textbf{x}^{\top}\textbf{A}+\textbf{x}^{\top}\textbf{A}^{\top}){\rm d}\textbf{x}
 \end{aligned}$$
 
-We used cyclic permutation law at beginning and at the end twice, and used transpose law only once to transform $${\rm d}\textbf{x}^T$$
+We used cyclic permutation law at beginning and at the end twice, and used transpose law only once to transform $${\rm d}\textbf{x}^{\top}$$
 
-And we can get the result $$\textbf{x}^T\textbf{A}+\textbf{x}^T\textbf{A}^T$$ simply in several steps!
+And we can get the result $$\textbf{x}^{\top}\textbf{A}+\textbf{x}^{\top}\textbf{A}^{\top}$$ simply in several steps!
 
 ## Differetiate an inverse
 
