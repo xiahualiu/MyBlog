@@ -2,6 +2,7 @@
 title: "Matrix Calculus"
 date: 2020-01-30T20:17:54-05:00
 draft: false
+markup: mmark
 ---
 
 Matrix calculus is very important in machine learning and control theories. However there are all kinds of rules making it hard to remember and use. In this post, I summarize some basic rules and an important proof in machine learning theory, which includes the famous "Trace Trick"! This trick is super useful and super hard as well! Haha, this is the reason why we always explore new things, because it is hard!
