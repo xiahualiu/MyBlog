@@ -30,13 +30,13 @@ $$F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{s+5}$$
 
 So we can use the basic Laplace transform pairs to get the signal. But we need a way to determine the values of 
 
-$A_1,\ A_2\text{ and }A_3$
+$A_1,\\ A_2 \\text{ and }A_3$
 
 ## A Simple Partial Fraction Expansion
 
 The simple situation is the one shown above, there is a simple and straightforward method to determining the unknown coefficients
 
-$A_1,\ A_2\text{ and }A_3$
+$A_1,\\ A_2 \\text{ and }A_3$
 
 To find 
 
@@ -58,11 +58,11 @@ sF(s)|_{s=0}&=A_1+0\frac{A_2}{0+2}+0\frac{A_3}{0+5}=A_1 \cr
 &=\frac{s+3}{s(s+5)}|_{s=0}=\frac{3}{10}
 \end{aligned}$$
 
-Likewise, we can get $A_2$ by setting s=-2, get 
+Likewise, we can get $$A_2$$ by setting $$s=-2$$ , get 
 
 $$A_3$$
 
-by setting s=-5.
+by setting $$s=-5$$.
 
 ## Special Cases of Parial Fraction Expansion
 
@@ -70,7 +70,7 @@ The simple partial fraction expansion can expand fraction into a sum of simpler 
 
 * ***Order of numerator polynomial is not less than that of the denominator.*** Partial fraction expansion can only be performed when the order of the denominator polynomial (the bottom term of the fraction) is greater than the order of the numerator (the top term).  If this condition is not met, we must perform an extra step before continuing with the expansion.
 
-* ***DIstinct Real Roots*** The problem solved above is described as the case of distinct, real roots.   This means that each term only appears once in the denominator, and the root of each term in the denominator is a distinct real number.  In the example above, the roots were at 0, -2 and -5.
+* ***DIstinct Real Roots*** The problem solved above is described as the case of distinct, real roots.   This means that each term only appears once in the denominator, and the root of each term in the denominator is a distinct real number.  In the example above, the roots were at $$0$$, $$-2$$ and $$-5$$.
 
 * ***Repeated Real Roots*** Another possibility is a case of repeated roots. For example
 
@@ -104,7 +104,7 @@ The expansion for this case is:
 
 $$F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{(s+2)^2}+\frac{A_4}{s+5}$$
 
-And we can proof the simple method cannot be used since $(s+2)$ appear twice, and we can only get one value by setting $s=-2$.
+And we can proof the simple method cannot be used since $(s+2)$ appear twice, and we can only get one value by setting $$s=-2$$.
 
 There are two ways, the most favored by the texbook method uses the relationship
 
