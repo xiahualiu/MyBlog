@@ -184,8 +184,9 @@ $$f(\mu, \Sigma)=\frac{1}{(2\pi)^{\frac{pN}{2}}|\Sigma|^{\frac{N}{2}}}\exp{\left
 
 In order to simplify the problem, plus due to the fact that the multivariate guassian distribution belongs to the exponential distribution family. Instead straight differentiating the likelihood function, it is better to calculate the logarithmic differentiation of the function.
 
-$$L(\mu, \Sigma)=\ln f(\mu, \Sigma)=\sum_{i=1}^{N}-\frac{1}{2}(X_i-\mu)^{\top}\Sigma^{-1}(X_i-\mu)-\frac{pN}{2}\ln 2\pi - \frac{N}{2}\ln|\Sigma|$$
-
+$$\begin{aligned}
+& L(\mu, \Sigma)=\ln f(\mu, \Sigma)= \\
+& \sum_{i=1}^{N}-\frac{1}{2}(X_i-\mu)^{\top}\Sigma^{-1}(X_i-\mu)-\frac{pN}{2}\ln 2\pi - \frac{N}{2}\ln|\Sigma|\end{aligned}$$
 ##### Find the MLE for the the mean 
 
 Find $$\mu$$ first, then $$\Sigma$$, calculate the first-order partial derivative of $$L(\mu, \Sigma)$$ w.r.t $$\mu$$.
@@ -227,6 +228,9 @@ The last term on the first line was obtained by first using the cyclic permutaio
 
 $$\frac{1}{2} \sum_{n}\left(x_{n}-\mu\right)^{\top} \Sigma^{-1}\left(x_{n}-\mu\right)=\frac{1}{2} \sum_{i=1}^{N} \operatorname{tr}\left[\left(X_{i}-\hat{\mu}\right)\left(X_{i}-\hat{\mu}\right)^{\top} \Sigma^{-1}\right]$$
 
-Then using the extra law.
+Then the extra law was used.
 
-$$\frac{\partial}{\partial\Sigma^{-1}}(\frac{1}{2} \sum_{i=1}^{N} \operatorname{tr}\left[\left(X_{i}-\hat{\mu}\right)\left(X_{i}-\hat{\mu}\right)^{\top} \Sigma^{-1}\right])=\frac{1}{2}\sum_{i=1}^{N}(X_i-\hat{\mu})(X_i-\hat{\mu})^{\top}$$
+$$\begin{aligned}
+& \frac{\partial}{\partial\Sigma^{-1}}(\frac{1}{2} \sum_{i=1}^{N} \operatorname{tr}\left[\left(X_{i}-\hat{\mu}\right)\left(X_{i}-\hat{\mu}\right)^{\top} \Sigma^{-1}\right]) \\
+= & \frac{1}{2}\sum_{i=1}^{N}(X_i-\hat{\mu})(X_i-\hat{\mu})^{\top}
+\end{aligned}$$
