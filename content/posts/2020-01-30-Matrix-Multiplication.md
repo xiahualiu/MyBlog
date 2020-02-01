@@ -166,7 +166,7 @@ This law will be used once in the next section.
 
 ## Multivariate Guassian Distribution Maximum Likelihood Estimate
 
-So in the end, I want to calculate the MLE for a multivariate guassian distribution model with all the things discussed in this post, I hope you can enjoy it as much as I do!
+In the end, I want to show you how to calculate the MLE for a multivariate guassian distribution model with all the stuff discussed in this post, I really hope you can enjoy it as much as I do!
 
 #### Problem:
 
@@ -178,7 +178,7 @@ Find the MLE for $$\mu\ \Sigma$$.
 
 #### Solution:
 
-Define the likelihood function $$L$$,:
+Define the likelihood function $$L$$:
 
 $$f(\mu, \Sigma)=\frac{1}{(2\pi)^{\frac{pN}{2}}|\Sigma|^{\frac{N}{2}}}\exp{\left\{\sum_{i=1}^{N}-\frac{1}{2}(X_i-\mu)^{\top}\Sigma^{-1}(X_i-\mu)\right\}}$$
 
@@ -186,11 +186,11 @@ In order to simplify the problem, plus due to the fact that the multivariate gua
 
 $$L(\mu, \Sigma)=\ln f(\mu, \Sigma)=\sum_{i=1}^{N}-\frac{1}{2}(X_i-\mu)^{\top}\Sigma^{-1}(X_i-\mu)-\frac{pN}{2}\ln 2\pi - \frac{N}{2}\ln|\Sigma|$$
 
-##### Find the MLE for $$\mu$$
+##### Find the MLE for the the mean 
 
 Find $$\mu$$ first, then $$\Sigma$$, calculate the first-order partial derivative of $$L(\mu, \Sigma)$$ w.r.t $$\mu$$.
 
-$$\frac{\partial L(\mu, \Sigma)}{\parial \mu} = \sum_{i=1}^n - \partial \frac{1}{2}(X_i-\mu)^{\top}\Sigma^{-1}(X_i-\mu) /\partial \mu $$
+$$\frac{\partial L(\mu, \Sigma)}{\partial \mu} = \sum_{i=1}^n - \partial \frac{1}{2}(X_i-\mu)^{\top}\Sigma^{-1}(X_i-\mu) /\partial \mu $$
 
 And if we regard $$(X_i-\mu)$$ as $$\textbf{x}$$ in the former section, the partial derivative on the right side is simply:
 
@@ -202,9 +202,9 @@ $$\begin{aligned}
 \Sigma^{-1}\Sigma&=(\Sigma\Sigma^{-1})^{\top} \\
 \Sigma^{-1}\Sigma&=(\Sigma^{-1})^{\top}\Sigma^{\top} \\
 \Sigma^{-1}&=(\Sigma^{-1})^{\top}
-\end{aligned}$
+\end{aligned}$$
 
-The partial derivative w.r.t $$\mu$$ in the end:
+The partial derivative w.r.t $$\mu$$ in the conclusion:
 
 $$\frac{\partial L(\mu, \Sigma)}{\partial \mu} =\sum_{i=1}^n(X_i-\mu)^{\top}\Sigma^{-1}$$
 
@@ -212,9 +212,9 @@ Find its critical point, i.e. the mean of all samples:
 
 $$\hat{\mu}=\frac{1}{N}\sum_{i=1}^{N}X_i$$
 
-##### Find $$\Sigma$$
+##### Find the MLE for the covariance matrix
 
-Since we get $$\hat{\mu}$$, and apparently the $$\mu$$ estimate does not rely on $$\Sigma$$, these two parameters are independent. We can safely subsititute all $$\mu$$ with $$\hat{\mu}$$.
+Since we get $$\hat{\mu}$$, and apparently the $$\mu$$ estimate does not rely on $$\Sigma$$, these two parameters are independent. We can safely substitute all $$\mu$$ with $$\hat{\mu}$$.
 
 $$\begin{aligned}
 \frac{\partial L(\hat{\mu}, \Sigma)}{\partial \Sigma^{-1}}&=\partial\left(-\frac{N}{2}\ln|\Sigma|\right)/\partial\Sigma^{-1}-\frac{1}{2}\sum_{i=1}^{N}(X_i-\hat{\mu})(X_i-\hat{\mu})^{\top} \\
@@ -230,4 +230,3 @@ $$\frac{1}{2} \sum_{n}\left(x_{n}-\mu\right)^{\top} \Sigma^{-1}\left(x_{n}-\mu\r
 Then using the extra law.
 
 $$\frac{\partial}{\partial\Sigma^{-1}}(\frac{1}{2} \sum_{i=1}^{N} \operatorname{tr}\left[\left(X_{i}-\hat{\mu}\right)\left(X_{i}-\hat{\mu}\right)^{\top} \Sigma^{-1}\right])=\frac{1}{2}\sum_{i=1}^{N}(X_i-\hat{\mu})(X_i-\hat{\mu})^{\top}$$
-
