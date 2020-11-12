@@ -1,76 +1,82 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="写出一个不管在任何情况下都能够正确运行的程序是作为一个程序员的基本技能，在此之上，作为一个程序员，也应该写出一个清晰而简洁的代码，这样做不仅仅是为了自己能够在调试的时候看懂代码，也是为了在未来检查代码和今后需要修改代码的时候，其他人能哦过读懂和理解自己的代码。">
   
-  
-  <title>
-    
-    Program Low Level Optimization (CSAPP Reading Notes) | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>Program Low Level Optimization (CSAPP Reading Notes) | Xiahua</title>
   <link rel="canonical" href="/posts/2018-07-05-optimize-your-c-code/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2018-07-05-optimize-your-c-code/" rel="bookmark">Program Low Level Optimization (CSAPP Reading Notes)</a>
   </h2>
   
-  <time datetime="2018-07-05T00:00:00Z">
-    5 July, 2018
-  </time>
+    <time datetime="2018-07-05T00:00:00Z">5 July, 2018</time>
   
 </header>
-
-  <p>写出一个不管在任何情况下都能够正确运行的程序是作为一个程序员的基本技能，在此之上，作为一个程序员，也应该写出一个清晰而简洁的代码，这样做不仅仅是为了自己能够在调试的时候看懂代码，也是为了在未来检查代码和今后需要修改代码的时候，其他人能哦过读懂和理解自己的代码。</p>
+    <p>写出一个不管在任何情况下都能够正确运行的程序是作为一个程序员的基本技能，在此之上，作为一个程序员，也应该写出一个清晰而简洁的代码，这样做不仅仅是为了自己能够在调试的时候看懂代码，也是为了在未来检查代码和今后需要修改代码的时候，其他人能哦过读懂和理解自己的代码。</p>
 <p>但是在数据量日益增大今天，很多情况下，程序运行的速度也成为了一个重要的考虑因素。如果一个程序要实时的处理视频和网络包，一个运行很慢的程序就不能够满足使用的要求。而对于一个计算任务非常大的程序，例如需要执行数日或数周的程序，其速度提升 20% 也能够造成巨大的影响，本文的目的在于探讨使用不同的类型的程序优化技术，使得程序优化的更快。</p>
 <p>编写高效的程序需要做到以下几点：</p>
 <ol>
@@ -584,33 +590,35 @@ acc 在 %xmm0 中，data + i 在 %rdx 中，data + length 在 %rax 中
 <p>不要过分关心可预测的分支。</p>
 <p><strong>书写适合用条件传送实现的代码。</strong></p>
 <h2 id="理解内存性能">理解内存性能</h2>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>

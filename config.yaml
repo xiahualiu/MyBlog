@@ -1,7 +1,7 @@
-# baseURL: https://xiahualiu.github.io
-title : Xiahua
-theme : hugo-flex
-# publishDir = "../xiahualiu.github.io"
+baseURL: https://xiahualiu.github.io
+title: Xiahua
+theme: hugo-flex
+publishDir: "../xiahualiu.github.io"
 
 params:
   color: teal           # Any color in CSS syntax

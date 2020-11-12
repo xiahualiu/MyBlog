@@ -589,129 +589,83 @@
       <pubDate>Sun, 28 Jul 2019 00:00:00 +0000</pubDate>
       <guid>/posts/2019-07-28-partial-fraction-expansion/</guid>
       <description>&lt;p&gt;Partial fraction expansion (also known as partial fraction decomposition) is a very basic math operation when we want to simplify a problem involving a fraction with polynomial numerator and denominator. We have some methods to handle the fundamental fraction terms like Laplace transform of a simple exponential signal is:&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{1}{a+s}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;And the by inverse Laplace Transform we know the signal is either &lt;span  class=&#34;math&#34;&gt;\(e^{-at}u(t)\)&lt;/span&gt; or &lt;span  class=&#34;math&#34;&gt;\(-e^{-at}u(-t)\)&lt;/span&gt;.&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{1}{a+s}$$&lt;/p&gt;
+&lt;p&gt;And the by inverse Laplace Transform we know the signal is either $$e^{-at}u(t)$$ or $$-e^{-at}u(-t)$$.&lt;/p&gt;
 &lt;p&gt;, depending on the transform is left-sided or right-sided.&lt;/p&gt;
-
 &lt;p&gt;But in a more complicated situation, while we are facing the transform like&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{s+3}{s^3+7s^2+10s}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{s+3}{s^3+7s^2+10s}$$&lt;/p&gt;
 &lt;p&gt;We want to decompose the fraction into a sum of simple fractions:&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{s+5}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{s+5}$$&lt;/p&gt;
 &lt;p&gt;So we can use the basic Laplace transform pairs to get the signal. But we need a way to determine the values of&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[A_1,\ A_2 \text{ and }A_3\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$A_1,\ A_2 \text{ and }A_3$$&lt;/p&gt;
 &lt;h2 id=&#34;a-simple-partial-fraction-expansion&#34;&gt;A Simple Partial Fraction Expansion&lt;/h2&gt;
-
 &lt;p&gt;The simple situation is the one shown above, there is a simple and straightforward method to determining the unknown coefficients&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[A_1,\ A_2 \text{ and }A_3\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;To find &lt;span  class=&#34;math&#34;&gt;\(A_1\)&lt;/span&gt;, multiply &lt;span  class=&#34;math&#34;&gt;\(F(s)\)&lt;/span&gt; by &lt;span  class=&#34;math&#34;&gt;\(s\)&lt;/span&gt;.&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[\begin{aligned}
-sF(s)&amp;=s\frac{s+3}{s(s+2)(s+5)} \cr 
-&amp;=A_1+s\frac{A_2}{s+2}+s\frac{A_3}{s+5}
-\end{aligned}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;and then set &lt;span  class=&#34;math&#34;&gt;\(s=0\)&lt;/span&gt;.&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[\begin{aligned}
-sF(s)|_{s=0}&amp;=A_1+0\frac{A_2}{0+2}+0\frac{A_3}{0+5}=A_1 \cr
-&amp;=\frac{s+3}{s(s+5)}|_{s=0}=\frac{3}{10}
-\end{aligned}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;Likewise, we can get &lt;span  class=&#34;math&#34;&gt;\(A_2\)&lt;/span&gt; by setting &lt;span  class=&#34;math&#34;&gt;\(s=-2\)&lt;/span&gt;, get &lt;span  class=&#34;math&#34;&gt;\(A_3\)&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;by setting &lt;span  class=&#34;math&#34;&gt;\(s=-5\)&lt;/span&gt;.&lt;/p&gt;
-
+&lt;p&gt;$$A_1,\ A_2 \text{ and }A_3$$&lt;/p&gt;
+&lt;p&gt;To find $$A_1$$, multiply $$F(s)$$ by $$s$$.&lt;/p&gt;
+&lt;p&gt;$$\begin{aligned}
+sF(s)&amp;amp;=s\frac{s+3}{s(s+2)(s+5)} \cr
+&amp;amp;=A_1+s\frac{A_2}{s+2}+s\frac{A_3}{s+5}
+\end{aligned}$$&lt;/p&gt;
+&lt;p&gt;and then set $$s=0$$.&lt;/p&gt;
+&lt;p&gt;$$\begin{aligned}
+sF(s)|&lt;em&gt;{s=0}&amp;amp;=A_1+0\frac{A_2}{0+2}+0\frac{A_3}{0+5}=A_1 \cr
+&amp;amp;=\frac{s+3}{s(s+5)}|&lt;/em&gt;{s=0}=\frac{3}{10}
+\end{aligned}$$&lt;/p&gt;
+&lt;p&gt;Likewise, we can get $$A_2$$ by setting $$s=-2$$, get $$A_3$$&lt;/p&gt;
+&lt;p&gt;by setting $$s=-5$$.&lt;/p&gt;
 &lt;h2 id=&#34;special-cases-of-parial-fraction-expansion&#34;&gt;Special Cases of Parial Fraction Expansion&lt;/h2&gt;
-
 &lt;p&gt;The simple partial fraction expansion can expand fraction into a sum of simpler fractions. However, ther are many situations where the expansion is not so simple.&lt;/p&gt;
-
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;em&gt;Order of numerator polynomial is not less than that of the denominator.&lt;/em&gt;&lt;/strong&gt; Partial fraction expansion can only be performed when the order of the denominator polynomial (the bottom term of the fraction) is greater than the order of the numerator (the top term).  If this condition is not met, we must perform an extra step before continuing with the expansion.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;em&gt;DIstinct Real Roots&lt;/em&gt;&lt;/strong&gt; The problem solved above is described as the case of distinct, real roots. This means that each term only appears once in the denominator, and the root of each term in the denominator is a distinct real number.  In the example above, the roots were at &lt;span  class=&#34;math&#34;&gt;\(0\)&lt;/span&gt;, &lt;span  class=&#34;math&#34;&gt;\(-2\)&lt;/span&gt; and &lt;span  class=&#34;math&#34;&gt;\(-5\)&lt;/span&gt;.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;em&gt;Repeated Real Roots&lt;/em&gt;&lt;/strong&gt; Another possibility is a case of repeated roots. For example&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Order of numerator polynomial is not less than that of the denominator.&lt;/strong&gt;&lt;/em&gt; Partial fraction expansion can only be performed when the order of the denominator polynomial (the bottom term of the fraction) is greater than the order of the numerator (the top term).  If this condition is not met, we must perform an extra step before continuing with the expansion.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;DIstinct Real Roots&lt;/strong&gt;&lt;/em&gt; The problem solved above is described as the case of distinct, real roots. This means that each term only appears once in the denominator, and the root of each term in the denominator is a distinct real number.  In the example above, the roots were at $$0$$, $$-2$$ and $$-5$$.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Repeated Real Roots&lt;/strong&gt;&lt;/em&gt; Another possibility is a case of repeated roots. For example&lt;/p&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{s+3}{s(s+2)^2(s+5)}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{s+3}{s(s+2)^2(s+5)}$$&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;&lt;em&gt;Complex Roots&lt;/em&gt;&lt;/strong&gt; If the denominator cannot be reduced to a product of real roots. For example&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;&lt;strong&gt;Complex Roots&lt;/strong&gt;&lt;/em&gt; If the denominator cannot be reduced to a product of real roots. For example&lt;/li&gt;
 &lt;/ul&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{s+3}{(s+5)(s^2+4s+5)}=\frac{s+3}{(s+5)(s+2+j)(s+2-j)}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{s+3}{(s+5)(s^2+4s+5)}=\frac{s+3}{(s+5)(s+2+j)(s+2-j)}$$&lt;/p&gt;
 &lt;h4 id=&#34;order-of-numerator-polynomial-is-not-less-than-that-of-the-denominator&#34;&gt;Order of numerator polynomial is not less than that of the denominator&lt;/h4&gt;
-
 &lt;p&gt;We can use long division to eliminate the high-order terms on the numerater.&lt;/p&gt;
-
 &lt;h4 id=&#34;distinct-real-roots&#34;&gt;Distinct Real Roots&lt;/h4&gt;
-
 &lt;p&gt;Like the example done above, In general&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{A_1}{s+a_1}+\frac{A_2}{s+a_2}+\cdot\cdot\cdot+\frac{A_n}{s+a_n}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[A_i=(s+a_i)F(s)|_{s=-a_i}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;When calculation is done by hand, it is easily to use the &amp;quot;cover-up&amp;quot; method.&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{A_1}{s+a_1}+\frac{A_2}{s+a_2}+\cdot\cdot\cdot+\frac{A_n}{s+a_n}$$&lt;/p&gt;
+&lt;p&gt;$$A_i=(s+a_i)F(s)|_{s=-a_i}$$&lt;/p&gt;
+&lt;p&gt;When calculation is done by hand, it is easily to use the &amp;ldquo;cover-up&amp;rdquo; method.&lt;/p&gt;
 &lt;h4 id=&#34;repeated-real-roots&#34;&gt;Repeated Real Roots&lt;/h4&gt;
-
 &lt;p&gt;For example, consider the fraction:&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{s+3}{s(s+2)^2(s+5)}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{s+3}{s(s+2)^2(s+5)}$$&lt;/p&gt;
 &lt;p&gt;The expansion for this case is:&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{(s+2)^2}+\frac{A_4}{s+5}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;And we can proof the simple method cannot be used since $(s+2)$ appear twice, and we can only get one value by setting &lt;span  class=&#34;math&#34;&gt;\(s=-2\)&lt;/span&gt;.&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{(s+2)^2}+\frac{A_4}{s+5}$$&lt;/p&gt;
+&lt;p&gt;And we can proof the simple method cannot be used since $(s+2)$ appear twice, and we can only get one value by setting $$s=-2$$.&lt;/p&gt;
 &lt;p&gt;There are two ways, the most favored by the texbook method uses the relationship&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[A_2=\left[\frac{d}{ds}(s+2)^2F(s)\right]_{s=-2}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$A_2=\left[\frac{d}{ds}(s+2)^2F(s)\right]_{s=-2}$$&lt;/p&gt;
 &lt;p&gt;so&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[A_2=\left.\frac{s(s+5)-(s+3)(2s+5)}{(s(s+5))^2}\right|_{s=-2}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$A_2=\left.\frac{s(s+5)-(s+3)(2s+5)}{(s(s+5))^2}\right|_{s=-2}$$&lt;/p&gt;
 &lt;p&gt;While this method is elegant (and can be extended to multiply repeated roots), the differentiation of the ratio of polynomials is prone to errors.&lt;/p&gt;
-
 &lt;h5 id=&#34;example-cross-multiplication&#34;&gt;Example: Cross Multiplication&lt;/h5&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{s+3}{s(s+2)^2(s+5)}=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{(s+2)^2}+\frac{A_4}{s+5}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[s+3=(s+2)^2(s+5)A_1+s(s+2)(s+5)A_2+s(s+5)A_3+s(s+2^2)A_4\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[s+3=(A_1+A_2+A_4)s^3+(9A_1+7A_2+A_3+4A_4)s^2+(24A_1+10A_2+5A_3+4A_4)s+20A_1 \]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$F(s)=\frac{s+3}{s(s+2)^2(s+5)}=\frac{A_1}{s}+\frac{A_2}{s+2}+\frac{A_3}{(s+2)^2}+\frac{A_4}{s+5}$$&lt;/p&gt;
+&lt;p&gt;$$s+3=(s+2)^2(s+5)A_1+s(s+2)(s+5)A_2+s(s+5)A_3+s(s+2^2)A_4$$&lt;/p&gt;
+&lt;p&gt;$$s+3=(A_1+A_2+A_4)s^3+(9A_1+7A_2+A_3+4A_4)s^2+(24A_1+10A_2+5A_3+4A_4)s+20A_1 $$&lt;/p&gt;
 &lt;p&gt;This yields a four-by-four system of equations that can be solved for A1 through A4.&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[\begin{aligned}
-A_1+A_2+A_4&amp;=0 \cr
-9A_1+7A_2+A_3+4A_4 &amp;=0 \cr
-24A_1+10A_2+5A_3+4A_4&amp;=1 \cr
-20A_1&amp;=3
-\end{aligned}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$\begin{aligned}
+A_1+A_2+A_4&amp;amp;=0 \cr
+9A_1+7A_2+A_3+4A_4 &amp;amp;=0 \cr
+24A_1+10A_2+5A_3+4A_4&amp;amp;=1 \cr
+20A_1&amp;amp;=3
+\end{aligned}$$&lt;/p&gt;
 &lt;p&gt;Or, in the matrix form&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[\begin{bmatrix}
-{1} &amp; {1} &amp; {0} &amp; {1} \cr
-{9} &amp; {7} &amp; {1} &amp; {4} \cr
-{24} &amp; {10} &amp; {5} &amp; {4} \cr
-{20} &amp; {0} &amp; {0} &amp; {0}
+&lt;p&gt;$$\begin{bmatrix}
+{1} &amp;amp; {1} &amp;amp; {0} &amp;amp; {1} \cr
+{9} &amp;amp; {7} &amp;amp; {1} &amp;amp; {4} \cr
+{24} &amp;amp; {10} &amp;amp; {5} &amp;amp; {4} \cr
+{20} &amp;amp; {0} &amp;amp; {0} &amp;amp; {0}
 \end{bmatrix}\begin{bmatrix}
 {A_{1}} \cr
 {A_{2}} \cr
@@ -722,32 +676,23 @@ A_1+A_2+A_4&amp;=0 \cr
 {0} \cr
 {1} \cr
 {3}
-\end{bmatrix}\]&lt;/span&gt;&lt;/p&gt;
-
+\end{bmatrix}$$&lt;/p&gt;
 &lt;p&gt;We can combine the cover-up method to get the coefficients that is distinct then use cross multiplication to get the coefficients that corresponds to the repeated roots.&lt;/p&gt;
-
 &lt;h3 id=&#34;complex-roots&#34;&gt;Complex Roots&lt;/h3&gt;
-
 &lt;p&gt;Consider the fraction&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[\begin{aligned}
-F(s) &amp;=\frac{s+3}{(s+5)\left(s^{2}+4 s+5\right)}=\frac{s+3}{(s+5)(s+2-j)(s+2+j)} \cr
-&amp;=\frac{A_{1}}{(s+5)}+\frac{A_{2}}{(s+2-j)}+\frac{A_{3}}{(s+2+j)}
-\end{aligned}\]&lt;/span&gt;&lt;/p&gt;
-
+&lt;p&gt;$$\begin{aligned}
+F(s) &amp;amp;=\frac{s+3}{(s+5)\left(s^{2}+4 s+5\right)}=\frac{s+3}{(s+5)(s+2-j)(s+2+j)} \cr
+&amp;amp;=\frac{A_{1}}{(s+5)}+\frac{A_{2}}{(s+2-j)}+\frac{A_{3}}{(s+2+j)}
+\end{aligned}$$&lt;/p&gt;
 &lt;p&gt;where&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[\begin{array}{l}
+&lt;p&gt;$$\begin{array}{l}
 {A_{1}=(s+5) F(s)|_{s=-5}} \cr
 {A_{2}=(s+2-j) F(s)|_{s=-2+j}} \cr
 {A_{3}=(s+2+j) F(s)|_{s=-2+j}=A_{2}^{*}}
-\end{array}\]&lt;/span&gt;&lt;/p&gt;
-
+\end{array}$$&lt;/p&gt;
 &lt;p&gt;Another way to expand the fraction without resorting to complex numbers is to perform the expansion as follows.&lt;/p&gt;
-
-&lt;p&gt;&lt;span  class=&#34;math&#34;&gt;\[F(s)=\frac{s+3}{(s+5)(s^{2}+4 s+5)}=\frac{A}{s+5}+\frac{B s+C}{s^{2}+4 s+5}\]&lt;/span&gt;&lt;/p&gt;
-
-&lt;p&gt;Note that the numerator of the second term is no longer a constant, but is instead a first order polynomial. Use cross-multiplication to get &lt;span  class=&#34;math&#34;&gt;\(A\ B\ C\)&lt;/span&gt;.&lt;/p&gt;</description>
+&lt;p&gt;$$F(s)=\frac{s+3}{(s+5)(s^{2}+4 s+5)}=\frac{A}{s+5}+\frac{B s+C}{s^{2}+4 s+5}$$&lt;/p&gt;
+&lt;p&gt;Note that the numerator of the second term is no longer a constant, but is instead a first order polynomial. Use cross-multiplication to get $$A\ B\ C$$.&lt;/p&gt;</description>
     </item>
     <item>
       <title>How is Linear Feedback Shift Register(LFSR) used on Cyclic Redundancy Check(CRC)</title>

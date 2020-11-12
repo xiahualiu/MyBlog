@@ -1,76 +1,87 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="Well, it sounds old but for me, the true understanding of dynamic programming actually happended after I finished reading the book:
+
+Optimal Control Theory: An Introduction by Donald E. Kirk
+
+However, the book used an example that is too complicated for a beginner to understand (I think, for me it is.). So I wrote this article to help those who want to take a peek in the basics of dynamic programming, I will try my best to make it easy and you will see that dynamic programming is quite simple and intuitive.
+Revised: After finishing the canonical book AI: A Modern Approach, I felt I was fooled by the former book, dynamic programming is as simple as BFS or DFS.">
   
-  
-  <title>
-    
-    A Dynamic Programming Tuturial | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>A Dynamic Programming Tuturial | Xiahua</title>
   <link rel="canonical" href="/posts/2019-12-23-dp/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2019-12-23-dp/" rel="bookmark">A Dynamic Programming Tuturial</a>
   </h2>
   
-  <time datetime="2019-12-23T17:59:10-05:00">
-    23 December, 2019
-  </time>
+    <time datetime="2019-12-23T17:59:10-05:00">23 December, 2019</time>
   
 </header>
-
-  <p>Well, it sounds old but for me, the true understanding of dynamic programming actually happended after I finished reading the book:</p>
+    <p>Well, it sounds old but for me, the true understanding of dynamic programming actually happended after I finished reading the book:</p>
 <blockquote>
 <p>Optimal Control Theory: An Introduction by Donald E. Kirk</p>
 </blockquote>
@@ -133,33 +144,35 @@
 <h2 id="some-comments">Some comments</h2>
 <p>To be honest, dynamic programming is not a very complicated method, it just systematically records all the solutions for the subproblems then increases the length to the original problem.</p>
 <p>DP essentially, we start with the smallest cases of the subproblem, becase when we find all optimal solutions to every possible subproblems, we can use the DP iteration to find optimal solutions to a bigger subproblem, then do this again and again we will reach the original problem.</p>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>

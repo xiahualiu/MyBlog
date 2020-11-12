@@ -1,76 +1,82 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="Paging tables are the mechanism through which the operating system controls what memory address means. They allow xv6 to multiplex the address spaces of different processes onto a single physical memory, and to protect the memories of different processes. The level of indirection provided by page tables allows many neat tricks. xv6 uses page tables primarily to multiplex address spaces and to protect memory.">
   
-  
-  <title>
-    
-    xv6 Basics - Page Tables | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>xv6 Basics - Page Tables | Xiahua</title>
   <link rel="canonical" href="/posts/2019-02-06-xv6-paging-table/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2019-02-06-xv6-paging-table/" rel="bookmark">xv6 Basics - Page Tables</a>
   </h2>
   
-  <time datetime="2019-02-06T00:00:00Z">
-    6 February, 2019
-  </time>
+    <time datetime="2019-02-06T00:00:00Z">6 February, 2019</time>
   
 </header>
-
-  <p><strong>Paging tables are the mechanism through which the operating system controls what memory address means.</strong> They allow xv6 to multiplex the address spaces of different processes onto a single physical memory, and to protect the memories of different processes. The level of indirection provided by page tables allows many neat tricks. xv6 uses page tables primarily to multiplex address spaces and to protect memory.</p>
+    <p><strong>Paging tables are the mechanism through which the operating system controls what memory address means.</strong> They allow xv6 to multiplex the address spaces of different processes onto a single physical memory, and to protect the memories of different processes. The level of indirection provided by page tables allows many neat tricks. xv6 uses page tables primarily to multiplex address spaces and to protect memory.</p>
 <p>It also uses a few simple page-table tricks:</p>
 <ul>
 <li>Mapping the same memory (the kernel) in several address spaces.</li>
@@ -345,33 +351,35 @@ from the file.</p>
 <p>On machines with lots of memory it might make sense to use the x86’s 4-megabytes ‘‘super pages.’’ Small pages make sense when physical memory is small, to allow allocation and page-out to disk with fine granularity. For example, if a program uses only 8 kilobytes of memory, giving it a 4 megabytes physical page is wasteful. Larger pages make sense on machines with lots of RAM, and may reduce overhead for page-table manipulation. Xv6 uses super pages in one place: the initial page table. The array initialization sets two of the 1024 PDEs, at indices zero and 512 (<code>KERNBASE&gt;&gt;PDXSHIFT</code>), leaving the other PDEs zero. Xv6 sets the PTE_PS bit in these two PDEs to mark them as super pages. The kernel also tells the paging hardware to allow super pages by setting the <code>CR_PSE</code> bit (Page Size Extension) in <code>%cr4</code>.</p>
 <p>Xv6 should determine the actual RAM configuration, instead of assuming 224 MB. On the x86, there are at least three common algorithms: the first is to probe the physical address space looking for regions that behave like memory, preserving the values written to them; the second is to read the number of kilobytes of memory out of a known 16-bit location in the PC’s non-volatile RAM; and the third is to look in BIOS memory for a memory layout table left as part of the multiprocessor tables. Reading the memory layout table is complicated.</p>
 <p>Memory allocation was a hot topic a long time ago, the basic problems being efficient use of limited memory and preparing for unknown future requests; see Knuth. Today people care more about speed than space-efficiency. In addition, a more elaborate kernel would likely allocate many different sizes of small blocks, rather than (as in xv6) just 4096-byte blocks; a real kernel allocator would need to handle small allocations as well as large ones.</p>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>

@@ -1,76 +1,82 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="本文将会就在 FPGA 中如何实现加法器与乘法器进行一个简单的介绍，并且在后面提供了一些优化的方法。">
   
-  
-  <title>
-    
-    Adder and Multiplier in FPGA | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>Adder and Multiplier in FPGA | Xiahua</title>
   <link rel="canonical" href="/posts/2018-08-07-claa/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2018-08-07-claa/" rel="bookmark">Adder and Multiplier in FPGA</a>
   </h2>
   
-  <time datetime="2018-08-07T10:48:30Z">
-    7 August, 2018
-  </time>
+    <time datetime="2018-08-07T10:48:30Z">7 August, 2018</time>
   
 </header>
-
-  <p>本文将会就在 FPGA 中如何实现加法器与乘法器进行一个简单的介绍，并且在后面提供了一些优化的方法。</p>
+    <p>本文将会就在 FPGA 中如何实现加法器与乘法器进行一个简单的介绍，并且在后面提供了一些优化的方法。</p>
 <h2 id="加法器">加法器</h2>
 <p>加法器在《数字电路》课程中大家都有学过，在课程中提到两种加法电路，也即 <strong>半加器</strong> 和 <strong>全加器</strong>。半加器没有进位输入有进位输出，而全加器既具有进位输入也有进位输出。全加器的端口有 5 个，分别为 $X，Y，C_{i-1}，S，C_i$。$X$，$Y$ 是两个加数，$S_i$ 表示和，$C_{i-1}$ 为来自低位的进位，$C_i$ 为向高位的进位。从真值表中我们很容易写出以下的逻辑表达式：</p>
 <table>
@@ -214,33 +220,35 @@ $$</p>
 <span style="color:#66d9ef">endmodule</span>
 </code></pre></div><p>乘法器和加法器的实现是根据用户的选择和约束文件决定的，在某些情况下，综合器还会实现流水线结构，以满足用户对于运算速度的需求。本文只是简单介绍了两种加法器和两种乘法器的结构，在实际的使用中，还是需要根据实际的需求在 FPGA 库和 ASIC 库中选择合适的加法器和乘法器结构。</p>
 <p>Verilog 和 VHDL 只是描述性语言，也就是代码不能直接翻译成为电路结构，综合器会在库中寻找对应的模型，将代码实例化。这与其他的计算机语言有些不同，因为相同的内容可以被翻译成为不同的电路结构，而我们可以控制。</p>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>

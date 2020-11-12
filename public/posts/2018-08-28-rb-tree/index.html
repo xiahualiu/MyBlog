@@ -1,76 +1,82 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="红黑树的数据结构已经被研究了多年，最为最广泛应用的数据结构之一，因为其具有优良的特性，即自平衡性，所以无论在最坏或者是最好的输出中，红黑树的高度都十分稳定（红黑树可以能确保树的最长路径不大于两倍的最短路径的长度）。">
   
-  
-  <title>
-    
-    RB-Tree - Reading STL Source Code | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>RB-Tree - Reading STL Source Code | Xiahua</title>
   <link rel="canonical" href="/posts/2018-08-28-rb-tree/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2018-08-28-rb-tree/" rel="bookmark">RB-Tree - Reading STL Source Code</a>
   </h2>
   
-  <time datetime="2018-08-28T00:00:00Z">
-    28 August, 2018
-  </time>
+    <time datetime="2018-08-28T00:00:00Z">28 August, 2018</time>
   
 </header>
-
-  <p>红黑树的数据结构已经被研究了多年，最为最广泛应用的数据结构之一，因为其具有优良的特性，即自平衡性，所以无论在最坏或者是最好的输出中，红黑树的高度都十分稳定（<strong>红黑树可以能确保树的最长路径不大于两倍的最短路径的长度</strong>）。</p>
+    <p>红黑树的数据结构已经被研究了多年，最为最广泛应用的数据结构之一，因为其具有优良的特性，即自平衡性，所以无论在最坏或者是最好的输出中，红黑树的高度都十分稳定（<strong>红黑树可以能确保树的最长路径不大于两倍的最短路径的长度</strong>）。</p>
 <p>但是相对的，红黑树的操作也较为复杂，本文将会从 <strong>2-3 树出发</strong>，介绍 2-3 树到红黑树的演化，最后介绍目前 STL 模型中的红黑树模型实现，详细介绍红黑树的发展历程（红黑树算法还在不断地完善中，本文只是简要地叙述模型）。</p>
 <p>另外本文在未来还会补充 AA 树等其他的红黑树变种，但是更新看心情咯（当场去世）。AVL 树的内容我也会等未来慢慢添加进去的，不过 AVL 树没有红黑树应用广泛，而且实现方法其实和红黑树基本一样，所以就简单叙述了。</p>
 <p>首先说明一下，树和哈希表的对比，哈希表的读取插入性能强于树，但是哈希表在面对持续输入未知数据的情况下，无法做到每个键值都是唯一的，而且哈希表需要更大的空间来存放，所以树在针对动态数据的情况下，还是十分重要的。而对于已知的静态数据来说，通过不同的算法实现哈希表还是更为高效的。</p>
@@ -131,33 +137,35 @@
 	Value value_field;
 };
 </code></pre></div>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>

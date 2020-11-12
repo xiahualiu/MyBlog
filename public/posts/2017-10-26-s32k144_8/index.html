@@ -1,76 +1,83 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="本章的内容是关于 Cortex M4F 内核中的 SysTick 时钟的运用，这是一个非常有用的模块，可以实现高精度的延时和快速中断的功能，但是这个内核功能在 MCU OEM 厂商的 Reference Manual 中一般都没有给出具体的实现方法，今天我们针对内核来进行分析。
+SysTick 在参考手册中提到的就是有关中断优先级的那一章，SysTick 类似于 LPIT 计时器，但是直接使用的是内核的时钟进行计数，中断优先级在内核中是最低的，但是相对于外围是高的。这个模块的使用主要集中在 4 个寄存器内。">
   
-  
-  <title>
-    
-    S32K144EVB Notes 8 Systick | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>S32K144EVB Notes 8 Systick | Xiahua</title>
   <link rel="canonical" href="/posts/2017-10-26-s32k144_8/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2017-10-26-s32k144_8/" rel="bookmark">S32K144EVB Notes 8 Systick</a>
   </h2>
   
-  <time datetime="2017-10-26T00:00:00Z">
-    26 October, 2017
-  </time>
+    <time datetime="2017-10-26T00:00:00Z">26 October, 2017</time>
   
 </header>
-
-  <p>本章的内容是关于 Cortex M4F 内核中的 SysTick 时钟的运用，这是一个非常有用的模块，可以实现高精度的延时和快速中断的功能，但是这个内核功能在 MCU OEM 厂商的 Reference Manual 中一般都没有给出具体的实现方法，今天我们针对内核来进行分析。</p>
+    <p>本章的内容是关于 Cortex M4F 内核中的 SysTick 时钟的运用，这是一个非常有用的模块，可以实现高精度的延时和快速中断的功能，但是这个内核功能在 MCU OEM 厂商的 Reference Manual 中一般都没有给出具体的实现方法，今天我们针对内核来进行分析。</p>
 <p>SysTick 在参考手册中提到的就是有关中断优先级的那一章，SysTick 类似于 LPIT 计时器，但是直接使用的是内核的时钟进行计数，中断优先级在内核中是最低的，但是相对于外围是高的。这个模块的使用主要集中在 4 个寄存器内。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/** S32_SysTick - Register Layout Typedef */</span>
 <span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
@@ -189,33 +196,35 @@ uint32_t Systok <span style="color:#f92672">=</span> <span style="color:#ae81ff"
 </span><span style="color:#75715e"></span>    Systok<span style="color:#f92672">--</span>;
 }
 </code></pre></div>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>

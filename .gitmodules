@@ -1,0 +1,3 @@
+[submodule "themes/hugo-flex"]
+	path = themes/hugo-flex
+	url = git@github.com:xiahualiu/hugo-flex.git

@@ -1,76 +1,82 @@
 <!DOCTYPE html>
 <html lang="">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="Hugo 0.78.0-DEV" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
   
+    <meta name="description" content="In the last post, we discussed about the C code part of the boot loader, namely bootmain.c. It read 4096 bytes data from the beginning of the disk second sector into the physical address 0x10000 then parsed the elf file header by a struct elf, read specified fields of struct elf in order to validate elf file and acquire information about the program table. After that our boot loader fetched every corresponding elf body segment (e.g. .text .data) defined by each entry in the program header table and placed them in the written physical address p_addr By the end of boot loader it called p-&gt;entry which is the entry of the elf file, proceeding to the next program, which is main.">
   
-  
-  <title>
-    
-    xv6 Chapter 3 - Turning on Paging | Xiahua
-    
-  </title>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.78.0-DEV" />
+  <title>xv6 Chapter 3 - Turning on Paging | Xiahua</title>
   <link rel="canonical" href="/posts/2019-01-29-paging/">
+
+
   
+
+
+
+
+
+
+
+
   
-  
-  
-  
-  
+    
   
   
   <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
-  
-  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
 
-    
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script>
+
+  
 </head>
+
 <body>
   <nav class="u-background">
   <div class="u-wrapper">
     <ul class="Banner">
       <li class="Banner-item Banner-item--title">
-        <a class="Banner-link u-clickable" href="">Xiahua</a>
+        <a class="Banner-link u-clickable" href="/">Xiahua</a>
       </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/https:/github.com/xiahualiu">About</a>
+        </li>
       
-      <li class="Banner-item">
-        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
-      </li>
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="/index.xml">RSS</a>
+        </li>
       
     </ul>
   </div>
 </nav>
-
   <main>
     <div class="u-wrapper">
       <div class="u-padding">
         
 
-<article>
-  <header class="Heading">
+  <article>
+    <header class="Heading">
   <h2 class="Heading-title">
     <a class="Heading-link u-clickable" href="/posts/2019-01-29-paging/" rel="bookmark">xv6 Chapter 3 - Turning on Paging</a>
   </h2>
   
-  <time datetime="2019-01-29T00:00:00Z">
-    29 January, 2019
-  </time>
+    <time datetime="2019-01-29T00:00:00Z">29 January, 2019</time>
   
 </header>
-
-  <p>In the last post, we discussed about the C code part of the boot loader, namely <code>bootmain.c</code>. It read 4096 bytes data from the beginning of the disk second sector into the physical address <code>0x10000</code> then parsed the elf file header by a <code>struct elf</code>, read specified fields of <code>struct elf</code> in order to validate elf file and acquire information about the program table. After that our boot loader fetched every corresponding elf body segment (e.g. .text .data) defined by each entry in the program header table and placed them in the written physical address <code>p_addr</code> By the end of boot loader it called <code>p-&gt;entry</code> which is the entry of the elf file, proceeding to the next program, which is <code>main</code>.</p>
+    <p>In the last post, we discussed about the C code part of the boot loader, namely <code>bootmain.c</code>. It read 4096 bytes data from the beginning of the disk second sector into the physical address <code>0x10000</code> then parsed the elf file header by a <code>struct elf</code>, read specified fields of <code>struct elf</code> in order to validate elf file and acquire information about the program table. After that our boot loader fetched every corresponding elf body segment (e.g. .text .data) defined by each entry in the program header table and placed them in the written physical address <code>p_addr</code> By the end of boot loader it called <code>p-&gt;entry</code> which is the entry of the elf file, proceeding to the next program, which is <code>main</code>.</p>
 <p>The most difficult part of the boot loader is knowing how to parse the elf file structure. I assumed the reader was familiar with the virtual memory layout for a typical executable program, including what <code>.text</code> <code>.data</code> <code>.bss</code> etc. are and where they locate at. If you cannot really catch that please refer to <em>CSAPP</em> or other books. Back to the topic, an elf contains useful information that is necessary for an elf loader so our boot loader has actually performed a simple loading process in few lines.</p>
 <p>Here to remind you of the action sequence of the boot, we did not directly come from the very beginning to our boot loader program, because the machine need a tiny program (512 bytes), which was automatically imported from first sector on the disk since powered-up, that fact means the BIOS probably has the similar boot loader like bootmain.c, however this sneaky boot loader is stored in the mother-board’s rom other than disks and we cannot touch this pre-prepared boot loader.</p>
 <p>When the BIOS boot loader finished its duty, it gave the power to our 512-byte boot program, our tiny boot program contains code that tweaked our cpu settings and the boot loader. In a word the solidified BIOS boot loader loaded our boot program, there are two boot programs in different places and work in sequence. Make sure you are clear before continue.</p>
@@ -172,33 +178,35 @@ pde_t entrypgdir[NPDENTRIES] <span style="color:#f92672">=</span> {
 <h1 id="conclusion">Conclusion</h1>
 <p>In this chapter, we talked about the process of turning on paging in xv6, the code implementation can be found in entry.S file. The code is pretty simple but has a lot important things in how to handle details of the P2V transition including indirect jump, and the PTE 0.</p>
 <p>In the next post we will discuss the details of the creating the first process in xv6.</p>
+    
+
+
+  
+
   
 
 
 
 
 
-
-
+    
   
 
-
-
-</article>
+  </article>
 
 
       </div>
     </div>
   </main>
   
-<footer class="Footer">
-  <div class="u-wrapper">
-    <div class="u-padding">
-      Enjoy yourself! All contents are under CC0-1.0 license!
+  <footer class="Footer">
+    <div class="u-wrapper">
+      <div class="u-padding">
+        Enjoy yourself! All contents are under CC0-1.0 license!
+      </div>
     </div>
-  </div>
-</footer>
-
+  </footer>
 
 </body>
+
 </html>
