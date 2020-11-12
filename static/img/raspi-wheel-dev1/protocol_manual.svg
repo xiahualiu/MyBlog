@@ -1,0 +1,936 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="protocol_manual.svg"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2560"
+     inkscape:window-height="1372"
+     id="namedview1249"
+     showgrid="false"
+     inkscape:zoom="2"
+     inkscape:cx="322.91197"
+     inkscape:cy="726.29713"
+     inkscape:window-x="0"
+     inkscape:window-y="36"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg8" />
+  <defs
+     id="defs2" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer2" />
+  <text
+     id="text14"
+     y="28.040827"
+     x="16.519894"
+     style="font-style:normal;font-weight:normal;font-size:10.58329964px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="28.040827"
+       x="16.519894"
+       id="tspan12">Communication Protocol Manual</tspan></text>
+  <rect
+     y="0.1651722"
+     x="0.1651722"
+     height="296.66965"
+     width="209.66965"
+     id="rect16"
+     style="fill:none;fill-rule:evenodd;stroke:none;stroke-width:0.33034399;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <text
+     id="text844"
+     y="53.752399"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:4.93888998px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93888998px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="53.752399"
+       x="19.727493"
+       id="tspan842">Protocol Type: Single/One Wire <tspan
+   id="tspan846"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Bold'">UART</tspan></tspan></text>
+  <text
+     id="text844-8"
+     y="63.752396"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="63.752396"
+       x="19.727493"
+       id="tspan842-5">Bit Order: Least Significant Bit First (LSB-First)</tspan></text>
+  <text
+     id="text844-8-1"
+     y="73.752403"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="73.752403"
+       x="19.727493"
+       id="tspan842-5-6">Baud Rate: 38400</tspan></text>
+  <text
+     id="text844-8-1-4"
+     y="83.752403"
+     x="20.048231"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="83.752403"
+       x="20.048231"
+       id="tspan842-5-6-8">Voltage Level: 5.0V</tspan></text>
+  <text
+     id="text907"
+     y="38"
+     x="188.0764"
+     style="font-style:normal;font-weight:normal;font-size:4.23332977px;line-height:1.25;font-family:sans-serif;text-align:end;text-anchor:end;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23332977px;font-family:serif;-inkscape-font-specification:serif;text-align:end;text-anchor:end;stroke-width:0.26458299"
+       y="38"
+       x="188.0764"
+       id="tspan905">------Rev 0.2 Pride ES Controller</tspan><tspan
+       id="tspan1417"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23332977px;font-family:serif;-inkscape-font-specification:serif;text-align:end;text-anchor:end;stroke-width:0.26458299"
+       y="43.291664"
+       x="188.0764">Auther: Xiahua Liu</tspan></text>
+  <text
+     id="text977"
+     y="123.99999"
+     x="134"
+     style="font-style:normal;font-weight:normal;font-size:10.58329964px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="stroke-width:0.26458299"
+       y="123.99999"
+       x="134"
+       id="tspan975" /></text>
+  <g
+     id="g1008"
+     transform="translate(0.19169306,-4.165351)">
+    <circle
+       style="fill:none;fill-opacity:1;stroke:#0a0a00;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       id="path931"
+       cx="124"
+       cy="107.15877"
+       r="3" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.93888998px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+       x="134.72749"
+       y="109"
+       id="text968"><tspan
+         id="tspan966"
+         x="134.72749"
+         y="109"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93888998px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299">Black: GND  0V</tspan></text>
+  </g>
+  <g
+     id="g1063"
+     transform="translate(0.19169306,-8.3994113)">
+    <circle
+       style="fill:none;fill-opacity:1;stroke:#a21000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       id="path931-6"
+       cx="124"
+       cy="123.39282"
+       r="3" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+       x="134.72749"
+       y="124.7524"
+       id="text844-8-1-4-9"><tspan
+         id="tspan842-5-6-8-7"
+         x="134.72749"
+         y="124.7524"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299">Red: V<tspan
+   style="font-size:64.99999762%;baseline-shift:sub"
+   id="tspan1051">SS</tspan> +24V</tspan></text>
+  </g>
+  <g
+     id="g1031"
+     transform="translate(0.19169306,-3.0332051)">
+    <ellipse
+       style="fill:none;fill-opacity:1;stroke:#c8c8c8;stroke-width:1.99998999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       id="path931-8"
+       cx="122.99999"
+       cy="95.026627"
+       rx="2"
+       ry="2.000005" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+       x="134.97589"
+       y="96.673729"
+       id="text844-8-1-4-5"><tspan
+         id="tspan842-5-6-8-2"
+         x="134.97589"
+         y="96.673729"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299">White: TX/RX</tspan></text>
+  </g>
+  <g
+     id="g1069"
+     transform="translate(0.19169306,-0.39939604)">
+    <circle
+       style="fill:none;fill-opacity:1;stroke:#e6c800;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       id="path931-6-7"
+       cx="123"
+       cy="82.392822"
+       r="2" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+       x="135.05547"
+       y="83.752403"
+       id="text844-8-1-4-6"><tspan
+         id="tspan842-5-6-8-70"
+         x="135.05547"
+         y="83.752403"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299">Yellow: Unused</tspan></text>
+  </g>
+  <text
+     id="text1093"
+     y="138.18831"
+     x="19.571775"
+     style="font-style:normal;font-weight:normal;font-size:7.76110983px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76110983px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="138.18831"
+       x="19.571775"
+       id="tspan1091">Power on Procedure:</tspan></text>
+  <text
+     id="text1099"
+     y="151.11807"
+     x="19.975883"
+     style="font-style:normal;font-weight:normal;font-size:4.93888998px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:4.93888998px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.26458299"
+       y="151.11807"
+       x="19.975883"
+       id="tspan1097">TX</tspan><tspan
+       id="tspan1101"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:4.93888998px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.26458299"
+       y="157.29169"
+       x="19.975883">RX</tspan></text>
+  <path
+     inkscape:connector-curvature="0"
+     id="path882"
+     d="M 30,157.44168 H 40.3"
+     style="fill:none;stroke:#000000;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path884"
+     d="m 40.15,157.29168 v -10"
+     style="fill:none;stroke:#000000;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path886"
+     d="m 39.999999,147.44168 h 20.3"
+     style="fill:none;stroke:#000000;stroke-width:0.299999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path884-5"
+     d="m 60.15,157.29168 v -10"
+     style="fill:none;stroke:#000000;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path886-4"
+     d="M 80,147.44168 H 90.3"
+     style="fill:none;stroke:#000000;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path886-4-0"
+     d="m 130,147.44167 h 51"
+     style="fill:none;stroke:#000000;stroke-width:0.29912201;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <text
+     id="text1093-0"
+     y="179.92786"
+     x="19.348188"
+     style="font-style:normal;font-weight:normal;font-size:7.76109982px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76109982px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="179.92786"
+       x="19.348188"
+       id="tspan1091-6">Standard Messaging: (Every 5ms interval)</tspan></text>
+  <path
+     inkscape:connector-curvature="0"
+     id="path886-2"
+     d="M 20,189.18125 H 30.3"
+     style="fill:none;stroke:#000000;stroke-width:0.29999799;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path884-5-5"
+     d="m 30.150002,199.03125 v -10"
+     style="fill:none;stroke:#000000;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <text
+     id="text1115-1-81"
+     y="187.6394"
+     x="51.5686"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="187.6394"
+       x="51.5686"
+       id="tspan1113-0-3">Controller Send</tspan></text>
+  <path
+     inkscape:connector-curvature="0"
+     id="path886-4-6"
+     d="m 90,189.18124 h 10.3"
+     style="fill:none;stroke:#000000;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <text
+     id="text1115-1-81-9"
+     y="187.6394"
+     x="36.101665"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="187.6394"
+       x="36.101665"
+       id="tspan1113-0-3-6">Header</tspan></text>
+  <path
+     inkscape:connector-curvature="0"
+     id="path886-4-6-6"
+     d="m 170,189.18124 h 11"
+     style="fill:none;stroke:#000000;stroke-width:0.310027;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <text
+     id="text1115-1-81-9-2"
+     y="187.6394"
+     x="106.10166"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="187.6394"
+       x="106.10166"
+       id="tspan1113-0-3-6-6">Header</tspan></text>
+  <text
+     id="text1115-1-81-1"
+     y="187.6394"
+     x="129.67848"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="187.6394"
+       x="129.67848"
+       id="tspan1113-0-3-8">VCU Send</tspan></text>
+  <text
+     id="text844-2"
+     y="207.78365"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:2.82222009px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1227"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222009px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="207.78365"
+       x="19.727493">Headers are the identifiers of the message frames.  <tspan
+   id="tspan1251"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">4A 01</tspan> for messages sent from the controller, <tspan
+   id="tspan1263"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">FE 54</tspan> for messages</tspan><tspan
+       id="tspan1249"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222009px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="211.31142"
+       x="19.727493">sent from the VCU.</tspan></text>
+  <text
+     id="text844-2-1"
+     y="222.69682"
+     x="19.844282"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1249-5"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="222.69682"
+       x="19.844282"><tspan
+   id="tspan1308"
+   style="font-size:4.93888998px">SP:</tspan> Speed Level Setting. Type: Unsigned Char   Range: <tspan
+   id="tspan1312"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">0x00</tspan> (slowest) to <tspan
+   id="tspan1324"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">0x0E</tspan> (fastest).</tspan></text>
+  <text
+     id="text844-2-1-0"
+     y="227.63171"
+     x="19.585209"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1249-5-6"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="227.63171"
+       x="19.585209"><tspan
+   id="tspan1308-4"
+   style="font-size:4.93889999px;stroke-width:0.26458299">FB:</tspan> Go forward/backward. Type: Signed Char   Range: <tspan
+   id="tspan1312-6"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299">0x9C</tspan> (backward -100) to <tspan
+   id="tspan1324-2"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299">0x64</tspan> (forward +100).</tspan></text>
+  <text
+     id="text844-2-1-0-5"
+     y="232.63171"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1249-5-6-8"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="232.63171"
+       x="19.727493"><tspan
+   id="tspan1308-4-6"
+   style="font-size:4.93889999px;stroke-width:0.26458299">LR:</tspan> Go left/right. Type: Signed Char    Range: <tspan
+   id="tspan1312-6-2"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299">0x9C</tspan> (left -100) to <tspan
+   id="tspan1324-2-8"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299">0x64</tspan> (right +100).</tspan></text>
+  <text
+     id="text844-2-1-0-5-3"
+     y="237.63171"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1249-5-6-8-6"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="237.63171"
+       x="19.727493"><tspan
+   id="tspan1308-4-6-7"
+   style="font-size:4.93889999px;stroke-width:0.26458299">EB:</tspan> Error Byte. Type: Raw Byte   Known Bytes:    <tspan
+   id="tspan191"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">0x82 </tspan>Error  |  <tspan
+   id="tspan1223"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">0x02 </tspan>Ready to Go. </tspan></text>
+  <text
+     id="text844-2-1-0-5-3-3"
+     y="242.63171"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1249-5-6-8-6-0"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="242.63171"
+       x="19.727493"><tspan
+   id="tspan1308-4-6-7-9"
+   style="font-size:4.93889999px;stroke-width:0.26458299">BC:</tspan> Battery Charge. Type: Unsigned Char   Range: Unknown.   </tspan></text>
+  <text
+     id="text844-2-1-0-5-3-3-9"
+     y="247.69682"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1298"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="247.69682"
+       x="19.727493"><tspan
+   id="tspan1308-4-6-7-9-2"
+   style="font-size:4.93889999px;stroke-width:0.26458299">UN:</tspan> Unknown Byte Type: Unknown   Range: Unknown.   </tspan></text>
+  <text
+     id="text844-2-1-0-5-3-3-9-2"
+     y="252.69682"
+     x="19.72267"
+     style="font-style:normal;font-weight:normal;font-size:2.8222301px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       id="tspan1298-7"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.8222301px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="252.69682"
+       x="19.72267"><tspan
+   id="tspan1308-4-6-7-9-2-9"
+   style="font-size:4.93889999px;stroke-width:0.26458299">CS:</tspan> Check Sum Byte Type: Raw Byte   Range: <tspan
+   id="tspan1325"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono Bold';fill:#6e0000;fill-opacity:1">0x00-0xFF</tspan>   </tspan></text>
+  <text
+     id="text844-8-1-3"
+     y="262.78369"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="262.78369"
+       x="19.727493"
+       id="tspan842-5-6-6">Check Sum Byte Calculation Rule: </tspan></text>
+  <text
+     id="text844-8-1-3-9"
+     y="268.17551"
+     x="29.841526"
+     style="font-style:normal;font-weight:normal;font-size:2.82222009px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222009px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="268.17551"
+       x="29.841526"
+       id="tspan842-5-6-6-8">1. Transform all preceeding bytes into signed char type.</tspan><tspan
+       id="tspan1395"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222009px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="271.70328"
+       x="29.841526">2. Sum all signed chars.</tspan><tspan
+       id="tspan1397"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222009px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="275.23105"
+       x="29.841526">3. Do a bitwise negation (~) on the sum to get <tspan
+   id="tspan1411"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Bold'">CS</tspan>. </tspan></text>
+  <text
+     id="text1415"
+     y="275.03128"
+     x="96"
+     style="font-style:normal;font-weight:normal;font-size:10.58329964px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="stroke-width:0.26458299"
+       y="275.03128"
+       x="96"
+       id="tspan1413"> </tspan></text>
+  <text
+     id="text844-8-1-4-67"
+     y="93.752403"
+     x="20.048231"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="93.752403"
+       x="20.048231"
+       id="tspan842-5-6-8-5">Data Bits: 8</tspan></text>
+  <text
+     id="text844-8-1-4-67-3"
+     y="103.66559"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="103.66559"
+       x="19.727493"
+       id="tspan842-5-6-8-5-5">Parity Check: Even</tspan></text>
+  <text
+     id="text844-8-1-4-67-3-3"
+     y="113.7524"
+     x="19.727493"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="113.7524"
+       x="19.727493"
+       id="tspan842-5-6-8-5-5-6">Stop Bit: 1</tspan></text>
+  <rect
+     y="147.44168"
+     x="60.150005"
+     height="10"
+     width="10"
+     id="rect903"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="147.44168"
+     x="70.150002"
+     height="10"
+     width="10"
+     id="rect903-0"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="147.44168"
+     x="90.150009"
+     height="10"
+     width="10"
+     id="rect903-0-9"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="147.44168"
+     x="100.15001"
+     height="10"
+     width="10"
+     id="rect903-0-9-5"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="147.44168"
+     x="110.15001"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-1"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="147.44168"
+     x="120.15"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-1-9"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18124"
+     x="30.150002"
+     height="10"
+     width="10"
+     id="rect903-2"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18124"
+     x="40.150002"
+     height="10"
+     width="10"
+     id="rect903-0-8"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="50.150002"
+     height="10"
+     width="10"
+     id="rect903-0-8-5"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="60.150002"
+     height="10"
+     width="10"
+     id="rect903-0-8-5-4"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="70.150002"
+     height="10"
+     width="10"
+     id="rect903-0-8-5-4-0"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="80.150002"
+     height="10"
+     width="10"
+     id="rect903-0-8-5-4-0-0"
+     style="fill:#8ae6e1;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="100.15"
+     height="10"
+     width="10"
+     id="rect903-0-9-9"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="110.15"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-8"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="130.14999"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-1-9-2"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="120.15"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-1-7"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="140.14999"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-8-8"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="150.14999"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-1-7-2"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <rect
+     y="189.18123"
+     x="160.14998"
+     height="10"
+     width="10"
+     id="rect903-0-9-5-1-9-2-9"
+     style="fill:#ff9258;fill-opacity:1;stroke:#000000;stroke-width:0.30000001;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  <text
+     id="text1115"
+     y="153.06218"
+     x="45.638641"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="153.06218"
+       x="45.638641"
+       id="tspan1113">~100ms</tspan></text>
+  <text
+     id="text1115-2"
+     y="153.21217"
+     x="80.960587"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="153.21217"
+       x="80.960587"
+       id="tspan1113-1">~600us</tspan></text>
+  <text
+     id="text1107-5-2-4-2-5"
+     y="152.76024"
+     x="151.29337"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="152.76024"
+       x="151.29337"
+       id="tspan1105-9-2-8-8-1">...</tspan></text>
+  <text
+     id="text1115-1"
+     y="145.89986"
+     x="61.568604"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="145.89986"
+       x="61.568604"
+       id="tspan1113-0">Controller Send</tspan></text>
+  <text
+     id="text1107"
+     y="154.2395"
+     x="62.063198"
+     style="font-style:normal;font-weight:normal;font-size:4.93888998px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93888998px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="154.2395"
+       x="62.063198"
+       id="tspan1105">52</tspan></text>
+  <text
+     id="text1107-5"
+     y="154.24191"
+     x="71.686981"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="154.24191"
+       x="71.686981"
+       id="tspan1105-9">AD</tspan></text>
+  <text
+     id="text1107-5-2"
+     y="154.27448"
+     x="92.05114"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="154.27448"
+       x="92.05114"
+       id="tspan1105-9-2">72</tspan></text>
+  <text
+     id="text1107-5-2-4"
+     y="154.2395"
+     x="101.89921"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="154.2395"
+       x="101.89921"
+       id="tspan1105-9-2-8">10</tspan></text>
+  <text
+     id="text1107-5-2-4-2"
+     y="154.2395"
+     x="112.00773"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="154.2395"
+       x="112.00773"
+       id="tspan1105-9-2-8-8">00</tspan></text>
+  <text
+     id="text1107-5-2-4-2-3"
+     y="154.24191"
+     x="121.61946"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';stroke-width:0.26458299"
+       y="154.24191"
+       x="121.61946"
+       id="tspan1105-9-2-8-8-6">7D</tspan></text>
+  <text
+     id="text1115-1-8"
+     y="145.89986"
+     x="104.6785"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="145.89986"
+       x="104.6785"
+       id="tspan1113-0-5">VCU Send</tspan></text>
+  <text
+     id="text1107-1"
+     y="195.98148"
+     x="31.788269"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#6e0000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.98148"
+       x="31.788269"
+       id="tspan1105-1">4A</tspan></text>
+  <text
+     id="text1107-5-0"
+     y="195.97906"
+     x="42.071629"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#6e0000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.97906"
+       x="42.071629"
+       id="tspan1105-9-3">01</tspan></text>
+  <text
+     id="text1107-5-0-6"
+     y="195.97905"
+     x="52.014957"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.97905"
+       x="52.014957"
+       id="tspan1105-9-3-6">SP</tspan></text>
+  <text
+     id="text1107-5-0-6-4"
+     y="195.98146"
+     x="61.965519"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.98146"
+       x="61.965519"
+       id="tspan1105-9-3-6-6">FB</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2"
+     y="195.98146"
+     x="71.888351"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.98146"
+       x="71.888351"
+       id="tspan1105-9-3-6-6-6">LR</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-7"
+     y="195.97905"
+     x="81.854591"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.97905"
+       x="81.854591"
+       id="tspan1105-9-3-6-6-6-5">CS</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-7-3"
+     y="195.98146"
+     x="102.08248"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#6e0000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.98146"
+       x="102.08248"
+       id="tspan1105-9-3-6-6-6-5-6">FE</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-7-3-7"
+     y="195.9465"
+     x="111.95467"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#6e0000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.9465"
+       x="111.95467"
+       id="tspan1105-9-3-6-6-6-5-6-5">54</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-3"
+     y="195.98146"
+     x="121.82565"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.98146"
+       x="121.82565"
+       id="tspan1105-9-3-6-6-6-56">EB</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-7-3-7-2"
+     y="195.97905"
+     x="132.03545"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#6e0000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#6e0000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.97905"
+       x="132.03545"
+       id="tspan1105-9-3-6-6-6-5-6-5-9">A0</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-3-1"
+     y="195.97905"
+     x="141.66768"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.97905"
+       x="141.66768"
+       id="tspan1105-9-3-6-6-6-56-2">BC</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-3-1-7"
+     y="195.9465"
+     x="151.52179"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.9465"
+       x="151.52179"
+       id="tspan1105-9-3-6-6-6-56-2-0">UN</tspan></text>
+  <text
+     id="text1107-5-0-6-4-2-7-9"
+     y="195.97905"
+     x="161.85457"
+     style="font-style:normal;font-weight:normal;font-size:4.93889999px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889999px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#000000;fill-opacity:1;stroke-width:0.26458299"
+       y="195.97905"
+       x="161.85457"
+       id="tspan1105-9-3-6-6-6-5-3">CS</tspan></text>
+  <text
+     id="text1115-2-0"
+     y="194.95172"
+     x="90.960587"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="194.95172"
+       x="90.960587"
+       id="tspan1113-1-6">~600us</tspan></text>
+  <text
+     id="text1115-2-0-7"
+     y="194.93779"
+     x="21.985331"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="194.93779"
+       x="21.985331"
+       id="tspan1113-1-6-9">~5ms</tspan></text>
+  <text
+     id="text1115-2-0-7-2"
+     y="194.93777"
+     x="171.98534"
+     style="font-style:normal;font-weight:normal;font-size:2.11666989px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458299"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666989px;font-family:serif;-inkscape-font-specification:serif;stroke-width:0.26458299"
+       y="194.93777"
+       x="171.98534"
+       id="tspan1113-1-6-9-0">~5ms</tspan></text>
+</svg>
