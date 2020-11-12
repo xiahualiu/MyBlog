@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    使用 VS Code 编辑并预览 LaTeX 文件 | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2020-02-11-tex-on-vscode/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2020-02-11-tex-on-vscode/" rel="bookmark">使用 VS Code 编辑并预览 LaTeX 文件</a>
+  </h2>
+  
+  <time datetime="2020-02-11T13:17:03-05:00">
+    11 February, 2020
+  </time>
+  
+</header>
+
+  <p>今天这篇博文会介绍如何使用 Visual Studio Code 来编辑和预览 LaTeX 论文。</p>
+<h2 id="前置需求">前置需求</h2>
+<p>在进入教程之前，首先要确认你安装了如下的程序：</p>
+<ul>
+<li>TeXlive 2019</li>
+<li>Visual Studio Code</li>
+</ul>
+<p>可以通过以下 CMD 命令确认以上程序已经安装，（按 Win+R 组合键唤起运行窗口输入 cmd 即可打开命令行界面）</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">xelatex -v
+</code></pre></div><p>如果显示 <code>not recognized</code> 或者找不到，就代表你没有安装好 TeXlive，怎么安装 TeXlive 不在这里介绍了。</p>
+<h2 id="第一步">第一步</h2>
+<p>确保了你安装好了这两个软件后就可以进入下一步了。</p>
+<p>第一步我们要打开安装后的 VS Code，在左侧的侧边栏选择插件选项，就是小爬虫下面哪一个选项，四个小方块，然后在插件搜索栏里面输入 latex。</p>
+<p>安装第一个名字为 &ldquo;LaTeX Workshop&rdquo; 的插件，安装完成后按照指示 &ldquo;Reload&rdquo; 就可以了。</p>
+<h2 id="第二步">第二步</h2>
+<p>确认了第一步完成后，在插件栏里面能够找到新安装的 &ldquo;LaTeX Workshop&rdquo; 插件就可以了。</p>
+<p>直到现在我们就可以利用这个插件来进行英文论文的书写了，但是还不能编译中文 tex 文件。为了能够顺利的编译中文，我们需要修改默认编译链使用 XeLaTeX 编译器。</p>
+<p>下一步比较麻烦，首先打开任意一个文件夹，然后点击文件路径栏，在栏里面输入：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">%APPDATA%\Code\User\
+</code></pre></div><p>然后回车，跳转到设置文件夹，找到 <code>settings.json</code> 文件 (如果没有就自己创建一个)，使用我们安装的 VS Code 打开，然后用以下的内容覆盖：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+    <span style="color:#f92672">&#34;latex-workshop.latex.tools&#34;</span>: [
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;xelatex-no-pdf&#34;</span>,
+            <span style="color:#f92672">&#34;command&#34;</span>: <span style="color:#e6db74">&#34;xelatex&#34;</span>,
+            <span style="color:#f92672">&#34;args&#34;</span>: [
+                <span style="color:#e6db74">&#34;-no-pdf&#34;</span>,
+                <span style="color:#e6db74">&#34;-interaction=nonstopmode&#34;</span>,
+                <span style="color:#e6db74">&#34;-file-line-error&#34;</span>,
+                <span style="color:#e6db74">&#34;%DOC%&#34;</span>
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;xelatex-pdf&#34;</span>,
+            <span style="color:#f92672">&#34;command&#34;</span>: <span style="color:#e6db74">&#34;xelatex&#34;</span>,
+            <span style="color:#f92672">&#34;args&#34;</span>: [
+                <span style="color:#e6db74">&#34;-synctex=1&#34;</span>,
+                <span style="color:#e6db74">&#34;-interaction=nonstopmode&#34;</span>,
+                <span style="color:#e6db74">&#34;-file-line-error&#34;</span>,
+                <span style="color:#e6db74">&#34;%DOC%&#34;</span>
+            ]
+
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;latexmk&#34;</span>,
+            <span style="color:#f92672">&#34;command&#34;</span>: <span style="color:#e6db74">&#34;latexmk&#34;</span>,
+            <span style="color:#f92672">&#34;args&#34;</span>: [
+              <span style="color:#e6db74">&#34;-synctex=1&#34;</span>,
+              <span style="color:#e6db74">&#34;-interaction=nonstopmode&#34;</span>,
+              <span style="color:#e6db74">&#34;-file-line-error&#34;</span>,
+              <span style="color:#e6db74">&#34;-pdf&#34;</span>,
+              <span style="color:#e6db74">&#34;-outdir=%OUTDIR%&#34;</span>,
+              <span style="color:#e6db74">&#34;%DOC%&#34;</span>
+            ],
+            <span style="color:#f92672">&#34;env&#34;</span>: {}
+          },
+          {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;pdflatex&#34;</span>,
+            <span style="color:#f92672">&#34;command&#34;</span>: <span style="color:#e6db74">&#34;pdflatex&#34;</span>,
+            <span style="color:#f92672">&#34;args&#34;</span>: [
+              <span style="color:#e6db74">&#34;-synctex=1&#34;</span>,
+              <span style="color:#e6db74">&#34;-interaction=nonstopmode&#34;</span>,
+              <span style="color:#e6db74">&#34;-file-line-error&#34;</span>,
+              <span style="color:#e6db74">&#34;%DOC%&#34;</span>
+            ],
+            <span style="color:#f92672">&#34;env&#34;</span>: {}
+          },
+          {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;bibtex&#34;</span>,
+            <span style="color:#f92672">&#34;command&#34;</span>: <span style="color:#e6db74">&#34;bibtex&#34;</span>,
+            <span style="color:#f92672">&#34;args&#34;</span>: [
+              <span style="color:#e6db74">&#34;%DOCFILE%&#34;</span>
+            ],
+            <span style="color:#f92672">&#34;env&#34;</span>: {}
+          }
+    ],
+    <span style="color:#f92672">&#34;latex-workshop.latex.recipes&#34;</span>:[
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;xelatex-single-run&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;xelatex-pdf&#34;</span>,
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;xelatex ➞ bibtex ➞ xelatex × 2&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;xelatex-no-pdf&#34;</span>,
+                <span style="color:#e6db74">&#34;bibtex&#34;</span>,
+                <span style="color:#e6db74">&#34;xelatex-no-pdf&#34;</span>,
+                <span style="color:#e6db74">&#34;xelatex-pdf&#34;</span>
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;latexmk 🔃&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;latexmk&#34;</span>
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;latexmk (latexmkrc)&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;latexmk_rconly&#34;</span>
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;latexmk (lualatex)&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;lualatexmk&#34;</span>
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;pdflatex ➞ bibtex ➞ pdflatex × 2&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;pdflatex&#34;</span>,
+                <span style="color:#e6db74">&#34;bibtex&#34;</span>,
+                <span style="color:#e6db74">&#34;pdflatex&#34;</span>,
+                <span style="color:#e6db74">&#34;pdflatex&#34;</span>
+            ]
+        },
+        {
+            <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;Compile Rnw files&#34;</span>,
+            <span style="color:#f92672">&#34;tools&#34;</span>: [
+                <span style="color:#e6db74">&#34;rnw2pdf&#34;</span>
+            ]
+        }
+    ]
+}
+</code></pre></div><p>有点长哈，是我自己写的，一定要把这个原封不动的写入 <code>settings.json</code> 文件。拷贝覆盖了之后，保存，重启 VS Code 就可以了。</p>
+<p>至此我们已经完成了所有的设置，下一步就是使用啦！</p>
+<h2 id="第三步">第三步</h2>
+<p>Visual Studio Code 是一款十分强大的通用编辑器，基本上所有的的文件类型都可以编辑，而且本身由微软出品，更新十分快，非常稳定，是 Windows 平台首选的编辑器。</p>
+<p>我们首先要选择打开文件夹，然后选择论文的根目录，这样我们就可以在左边的文件浏览器看到所有的文件啦，选择 <code>*.tex</code> 结尾的文件打开，左边的侧边栏就会多出一个 TeX 选项，这就是我们新安装的插件啦。进入这个选项可以看到很多相关的命令，其中默认的编译链可以适用于中文论文的编译。选择 &ldquo;View LaTeX PDF - View in VSCode tab&rdquo; 就可在侧边栏预览 PDF 啦，注意只有编译一遍才有预览界面哦。</p>
+<h3 id="如何编译">如何编译</h3>
+<p>选择 &ldquo;Build LaTeX project&rdquo; 进入，再点击下面含有 &ldquo;xelatex&rdquo; 的配方就可以啦，一共有两个，第一个是当你保存时自动进行的 &ldquo;xelatex-single-run&rdquo; 只编译一遍，但是不会更新 bibtex 的内容，另一个是完整的编译过程&quot;xelatex-&gt;bibtex-&gt;xelatex x 2&quot;，我们需要<strong>在第一次打开</strong>项目的时候选择这个进行一遍完整编译，它会更新 bib 的内容，但是太慢。另外当你更新了 bib 文件的时候也要用这个完整的编译链完成引用的更新哦，不然会出错的。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

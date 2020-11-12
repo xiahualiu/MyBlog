@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 1 GPIO | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-09-28-s32k144_1/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-09-28-s32k144_1/" rel="bookmark">S32K144EVB Notes 1 GPIO</a>
+  </h2>
+  
+  <time datetime="2017-09-28T00:00:00Z">
+    28 September, 2017
+  </time>
+  
+</header>
+
+  <h1 id="前言">前言</h1>
+<p>本文主要介绍了本人在学习使用 <a href="https://www.nxp.com/cn/products/microcontrollers-and-processors/arm-processors/s32-arm-processors-microcontrollers/32-bit-automotive-general-purpose-microcontrollers:S32K#overviewExpand?cid=ps_cn_baidu_cpc_B_AUTO_S32K_Phrase_bd20170620002">S32K144EVB</a>中遇到的问题和解决办法，由于本芯片是 <a href="https://www.nxp.com/">NXP</a>(原 freescale) 生产的基于 ARM M4F 内核的32位芯片，主要适用对象是汽车 。目前在网络上该芯片还没有相关的中文学习资料，到笔者写本文目前，网络上能够找到的资料只有开发板的电路图和 Reference Manual 和该芯片配套的 IDE 内置头文件以及给出的 cookbook 例程，笔者也是在一步步摸索学习，故本文为一个记录性质的文章。</p>
+<ul>
+<li><em>本文阅读需要 C 语言基础和一些简单的单片机知识，笔者在之前曾经开发过51单片机和 freescale 公司的 HC08GP32 单片机，故可能会跳过一些基础说明。</em></li>
+<li><em>由于该芯片的 Manual 文件长达 1929 页，全读完肯定要浪费很多时间，为了节约时间，我就针对例程中给出的部分内容查询手册相关内容，进行分析。</em></li>
+<li><em>本文针对 S32K144EVB-Q100X 开发板，但基本原理都是相同的。</em></li>
+</ul>
+<h1 id="hello-world">Hello World</h1>
+<h2 id="1-本例程主要包含以下部分的操作">1. 本例程主要包含以下部分的操作：</h2>
+<ul>
+<li>配置 GPIO</li>
+<li>根据按键状态输出 LED 灯信号</li>
+</ul>
+<h2 id="2-使用到的电路图">2. 使用到的电路图：</h2>
+<p><img src="/img/2017-09-28-S32K144_1/helloworld1.png" alt="Hello World block diagram"></p>
+<h2 id="3-第一个例程的代码如下">3. 第一个例程的代码如下：</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34; /* include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define PTD0 0 </span><span style="color:#75715e">/* Port PTD0, bit 0: FRDM EVB output to blue LED */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define PTC12 12 </span><span style="color:#75715e">/* Port PTC12, bit 12: FRDM EVB input from BTN0 [SW2] */</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">WDOG_disable</span> (<span style="color:#66d9ef">void</span>){
+WDOG<span style="color:#f92672">-&gt;</span>CNT<span style="color:#f92672">=</span><span style="color:#ae81ff">0xD928C520</span>; <span style="color:#75715e">/*Unlock watchdog*/</span>
+WDOG<span style="color:#f92672">-&gt;</span>TOVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0x0000FFFF</span>; <span style="color:#75715e">/*Maximum timeout value*/</span>
+WDOG<span style="color:#f92672">-&gt;</span>CS <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00002100</span>; <span style="color:#75715e">/*Disable watchdog*/</span>
+}
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>) {
+<span style="color:#66d9ef">int</span> counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+WDOG_disable();
+<span style="color:#75715e">/* Enable clocks to peripherals (PORT modules) */</span>
+PCC<span style="color:#f92672">-&gt;</span> PCCn[PCC_PORTC_INDEX] <span style="color:#f92672">=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clock to PORT C */</span>
+PCC<span style="color:#f92672">-&gt;</span> PCCn[PCC_PORTD_INDEX] <span style="color:#f92672">=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clock to PORT D */</span>
+<span style="color:#75715e">/* Configure port C12 as GPIO input (BTN 0 [SW2] on EVB) */</span>
+PTC<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">&amp;=</span> <span style="color:#f92672">~</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTC12); <span style="color:#75715e">/* Port C12: Data Direction= input (default) */</span>
+PORTC<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">12</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000110</span>; <span style="color:#75715e">/* Port C12: MUX = GPIO, input filter enabled */</span>
+<span style="color:#75715e">/* Configure port D0 as GPIO output (LED on EVB) */</span>
+PTD<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0; <span style="color:#75715e">/* Port D0: Data Direction= output */</span>
+PORTD<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000100</span>; <span style="color:#75715e">/* Port D0: MUX = GPIO */</span>
+<span style="color:#66d9ef">for</span>(;;) {
+<span style="color:#66d9ef">if</span> (PTC<span style="color:#f92672">-&gt;</span>PDIR <span style="color:#f92672">&amp;</span> (<span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTC12)) { <span style="color:#75715e">/* If Pad Data Input = 1 (BTN0 [SW2] pushed) */</span>
+PTD<span style="color:#f92672">-&gt;</span> PCOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0; <span style="color:#75715e">/* Clear Output on port D0 (LED on) */</span>
+}
+<span style="color:#66d9ef">else</span> { <span style="color:#75715e">/* If BTN0 was not pushed */</span>
+PTD<span style="color:#f92672">-&gt;</span> PSOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0; <span style="color:#75715e">/* Set Output on port D0 (LED off) */</span>
+}
+counter<span style="color:#f92672">++</span>;
+}
+</code></pre></div><h2 id="4-代码详解">4. 代码详解</h2>
+<p>主要关注 main() 内部</p>
+<pre><code>PCC-&gt; PCCn[PCC_PORTC_INDEX] = PCC_PCCn_CGC_MASK; /* Enable clock to PORT C */
+PCC-&gt; PCCn[PCC_PORTD_INDEX] = PCC_PCCn_CGC_MASK; /* Enable clock to PORT D */
+</code></pre><p>这两句话使用的 <code>PCC</code> 等变量名都是在头文件 <code>&quot;S32K144.h&quot;</code> 中定义的：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/** PCC - Size of Registers Arrays */</span>
+<span style="color:#75715e">#define PCC_PCCn_COUNT 116u
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/** PCC - Register Layout Typedef */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
+  __IO uint32_t PCCn[PCC_PCCn_COUNT];   <span style="color:#75715e">/**&lt; PCC Reserved Register 0..PCC CMP0 Register, array offset: 0x0, array step: 0x4 */</span>
+} PCC_Type, <span style="color:#f92672">*</span>PCC_MemMapPtr;
+
+<span style="color:#75715e">/** Peripheral PCC base address */</span>
+<span style="color:#75715e">#define PCC_BASE (0x40065000u)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PCC base pointer */</span>
+<span style="color:#75715e">#define PCC ((PCC_Type *)PCC_BASE)
+</span></code></pre></div><p><code>PCC</code> 是一个指向固定地址的 <code>PCC_Type</code>结构体指针，他的固定地址是 <code>(0x40065000u)</code> 它对应的 <code>PCC_Type</code> 结构拥有一个116个无符号整型变量的数组 <code>PCCn</code></p>
+<p>根据注释内容判断，这个指针的主要作用是用来改变 PCC (Peripheral Clock Controller)控制器内部寄存器的值（下称 PCC ），PCC 控制有关外部时钟频率相关的设置。<br>
+查询了 Reference Manual 后得知，PCC 有三个功能：</p>
+<ol>
+<li>时钟界面开闭控制 CGC (Clock Gating Controller)</li>
+<li>*功能性时钟源选择控制（如果对应模块有时钟源）</li>
+<li>*功能性时钟分频值控制（如果对应模块有分频器）</li>
+</ol>
+<p>在这个地方，我们仅仅用到第一个功能，也就是时钟界面开关功能。在本文文末，我将给出 PCC 的内存地图。
+PCC 模块给芯片上面每一个外围模块都设置了独自的 PCC 内部寄存器地址，用于控制以上的三个功能，PCC 内的每一个寄存器都有一个时钟界面开闭位 (CGC)。</p>
+<p><strong>在每一个模块使用前，必须打开该模块的CGC (CGC = 1)，才能使用该模块</strong></p>
+<p>如何打开？首先是寻址，在头文件 <code>&quot;S32K144.h&quot;</code> 中已经将 PCC 控制器的各个寄存器地址全部用宏定义了：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/* PCC index offsets */</span>
+...
+<span style="color:#75715e">#define PCC_PORTA_INDEX 73
+</span><span style="color:#75715e">#define PCC_PORTB_INDEX 74
+</span><span style="color:#75715e">#define PCC_PORTC_INDEX 75
+</span><span style="color:#75715e">#define PCC_PORTD_INDEX 76
+</span><span style="color:#75715e">#define PCC_PORTE_INDEX 77
+</span><span style="color:#75715e"></span>...
+</code></pre></div><p>可以看到 GPIO A/B/C/D/E 对应的地址。将其赋值为 <code>PCC_PCCn_CGC_MASK</code> 即可打开 CGC。<code>PCC_PCCn_CGC_MASK</code> 在头文件中定义为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define PCC_PCCn_CGC_MASK 0x40000000u
+</span></code></pre></div><p>后面的 GPIO 端口方向控制类似 PCC 的控制，在这里使用了一个 PTC 和 PTD 指针，指向两个固定地址的结构体 <code>GPIO_Type</code>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/** GPIO - Register Layout Typedef */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
+  __IO uint32_t PDOR;   <span style="color:#75715e">/**&lt; Port Data Output Register, offset: 0x0 */</span>
+  __O  uint32_t PSOR;   <span style="color:#75715e">/**&lt; Port Set Output Register, offset: 0x4 */</span>
+  __O  uint32_t PCOR;   <span style="color:#75715e">/**&lt; Port Clear Output Register, offset: 0x8 */</span>
+  __O  uint32_t PTOR;   <span style="color:#75715e">/**&lt; Port Toggle Output Register, offset: 0xC */</span>
+  __I  uint32_t PDIR;   <span style="color:#75715e">/**&lt; Port Data Input Register, offset: 0x10 */</span>
+  __IO uint32_t PDDR;   <span style="color:#75715e">/**&lt; Port Data Direction Register, offset: 0x14 */</span>
+  __IO uint32_t PIDR;   <span style="color:#75715e">/**&lt; Port Input Disable Register, offset: 0x18 */</span>
+} GPIO_Type, <span style="color:#f92672">*</span>GPIO_MemMapPtr;
+
+<span style="color:#75715e">/** Peripheral PTC base address */</span>
+<span style="color:#75715e">#define PTC_BASE (0x400FF080u)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PTC base pointer */</span>
+<span style="color:#75715e">#define PTC ((GPIO_Type *)PTC_BASE)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PTD base address */</span>
+<span style="color:#75715e">#define PTD_BASE (0x400FF0C0u)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PTD base pointer */</span>
+<span style="color:#75715e">#define PTD ((GPIO_Type *)PTD_BASE)
+</span></code></pre></div><h3 id="gpio-的控制器">GPIO 的控制器：</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Width<!-- raw HTML omitted -->(in bits)</th>
+<th style="text-align:left">Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Port Data Output Register (PDOR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">RW</td>
+</tr>
+<tr>
+<td style="text-align:center">Port Set Output Register (PSOR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">W</td>
+</tr>
+<tr>
+<td style="text-align:center">Port Clear Output Register (PCOR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">W</td>
+</tr>
+<tr>
+<td style="text-align:center">Port Toggle Output Register (PTOR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">W</td>
+</tr>
+<tr>
+<td style="text-align:center">Port Data Input Register (PDIR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">R</td>
+</tr>
+<tr>
+<td style="text-align:center">Port Data Direction Register (PDDR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">RW</td>
+</tr>
+<tr>
+<td style="text-align:center">Port Input Disable Register (PIDR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:left">RW</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-data-output-register-pdor">Port Data Output Register (PDOR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PDO</td>
+<td style="text-align:left"><strong>Port Data Output</strong> <!-- raw HTML omitted -->输出管脚的值，对应逻辑值</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-set-output-register-psor">Port Set Output Register (PSOR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PTSO</td>
+<td style="text-align:left"><strong>Port Set Output</strong> <!-- raw HTML omitted -->将指定管脚的值置 1<!-- raw HTML omitted -->读取恒为零</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-clear-output-register-pcor">Port Clear Output Register (PCOR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PTCO</td>
+<td style="text-align:left"><strong>Port Clear Output</strong> <!-- raw HTML omitted -->将指定管脚的值置 0<!-- raw HTML omitted -->读取恒为零</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-toggle-output-register-ptor">Port Toggle Output Register (PTOR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PTTO</td>
+<td style="text-align:left"><strong>Port Toggle Output</strong> <!-- raw HTML omitted -->将指定管脚的值反转<!-- raw HTML omitted -->读取恒为零</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-data-input-register-pdir">Port Data Input Register (PDIR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PDI</td>
+<td style="text-align:left"><strong>Port Data Input</strong> <!-- raw HTML omitted -->读取指定管脚的值</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-data-direction-register-pddr">Port Data Direction Register (PDDR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PDD</td>
+<td style="text-align:left"><strong>Port Data Direction</strong> <!-- raw HTML omitted -->0 Input<!-- raw HTML omitted -->1 Output</td>
+</tr>
+</tbody>
+</table>
+<h4 id="port-input-disable-register-pidr">Port Input Disable Register (PIDR)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">PID</td>
+<td style="text-align:left"><strong>Port Input Disable</strong> <!-- raw HTML omitted -->0 管脚正常输入<!-- raw HTML omitted -->1 管脚不能输入</td>
+</tr>
+</tbody>
+</table>
+<h3 id="端口功能控制-port-controller-register">端口功能控制 PORT Controller Register</h3>
+<p>我做个比喻，在 ARM 中，各个管脚就像是一个个等待工作的银行柜台窗口，可以存钱，也可以取钱，也可以借贷款，也可以办理理财业务，银行不能一个业务开一个窗口，所以每个窗口必须可以做很多事情，ARM 也是这样，在有限的管脚上，需要进行中断，PWM，GPIO，UART串口，SPI，I2C，CAN 信息交流功能，所以<strong>有些</strong>管脚有很多功能可以选择，我们要使用某个功能就要自己进行设置，设置的地方呢就在 <strong>PCR(Pin Controller Register)</strong> 这个寄存器里面。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/** PORT - Register Layout Typedef */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
+  __IO uint32_t PCR[PORT_PCR_COUNT];    <span style="color:#75715e">/**&lt; Pin Control Register n, array offset: 0x0, array step: 0x4 */</span>
+  __O  uint32_t GPCLR;  <span style="color:#75715e">/**&lt; Global Pin Control Low Register, offset: 0x80 */</span>
+  __O  uint32_t GPCHR;  <span style="color:#75715e">/**&lt; Global Pin Control High Register, offset: 0x84 */</span>
+       uint8_t RESERVED_0[<span style="color:#ae81ff">24</span>];
+  __IO uint32_t ISFR;   <span style="color:#75715e">/**&lt; Interrupt Status Flag Register, offset: 0xA0 */</span>
+       uint8_t RESERVED_1[<span style="color:#ae81ff">28</span>];
+  __IO uint32_t DFER;   <span style="color:#75715e">/**&lt; Digital Filter Enable Register, offset: 0xC0 */</span>
+  __IO uint32_t DFCR;   <span style="color:#75715e">/**&lt; Digital Filter Clock Register, offset: 0xC4 */</span>
+  __IO uint32_t DFWR;   <span style="color:#75715e">/**&lt; Digital Filter Width Register, offset: 0xC8 */</span>
+} PORT_Type, <span style="color:#f92672">*</span>PORT_MemMapPtr;
+
+<span style="color:#75715e">/** Peripheral PORTC base address */</span>
+<span style="color:#75715e">#define PORTC_BASE (0x4004B000u)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PORTC base pointer */</span>
+<span style="color:#75715e">#define PORTC ((PORT_Type *)PORTC_BASE)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PORTD base address */</span>
+<span style="color:#75715e">#define PORTD_BASE (0x4004C000u)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral PORTD base pointer */</span>
+<span style="color:#75715e">#define PORTD ((PORT_Type *)PORTD_BASE)
+</span></code></pre></div><p>同样每个 PCR 都有 32 位，与之前不同的是，这 32 位仅仅设置了一个管脚，而不是 32 个个，这 32 位的功能如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">24</td>
+<td style="text-align:center">ISF</td>
+<td style="text-align:left"><strong>Interrupt Status Flag</strong> <!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0<!-- raw HTML omitted --> 管脚未检测中断<!-- raw HTML omitted --><!-- raw HTML omitted -->1<!-- raw HTML omitted --> 管脚检测到中断</td>
+</tr>
+<tr>
+<td style="text-align:center">19-16</td>
+<td style="text-align:center">IRQC</td>
+<td style="text-align:left"><strong>Interrupt Configuration</strong> 对应管脚的设置如下<!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0000<!-- raw HTML omitted --> ISF 关闭<!-- raw HTML omitted --><!-- raw HTML omitted -->0001<!-- raw HTML omitted --> ISF标志 和 DMA 请求，产生在上升沿<!-- raw HTML omitted --><!-- raw HTML omitted -->0010<!-- raw HTML omitted --> ISF标志 和 DMA 请求，产生在下降沿<!-- raw HTML omitted --><!-- raw HTML omitted -->0011<!-- raw HTML omitted --> ISF标志 和 DMA 请求，既在上升沿也在下降沿产生<!-- raw HTML omitted --><!-- raw HTML omitted -->0100<!-- raw HTML omitted --> 保留<!-- raw HTML omitted --><!-- raw HTML omitted -->0101<!-- raw HTML omitted --> 保留<!-- raw HTML omitted --><!-- raw HTML omitted -->0110<!-- raw HTML omitted --> 保留<!-- raw HTML omitted --><!-- raw HTML omitted -->0111<!-- raw HTML omitted --> 保留<!-- raw HTML omitted --><!-- raw HTML omitted -->1000<!-- raw HTML omitted --> ISF 标志和中断，产生于逻辑 0<!-- raw HTML omitted --><!-- raw HTML omitted -->1001<!-- raw HTML omitted --> ISF 标志和中断，产生于上升沿<!-- raw HTML omitted --><!-- raw HTML omitted -->1010<!-- raw HTML omitted --> ISF 标志和中断，产生于下降沿<!-- raw HTML omitted --><!-- raw HTML omitted -->1100<!-- raw HTML omitted --> ISF 标志和中断，产生于两个沿<!-- raw HTML omitted --><!-- raw HTML omitted -->1100<!-- raw HTML omitted --> ISF 标志和中断，产生于逻辑 1<!-- raw HTML omitted --><!-- raw HTML omitted -->1101<!-- raw HTML omitted --> 保留<!-- raw HTML omitted --><!-- raw HTML omitted -->1110<!-- raw HTML omitted --> 保留<!-- raw HTML omitted --><!-- raw HTML omitted -->1111<!-- raw HTML omitted --> 保留</td>
+</tr>
+<tr>
+<td style="text-align:center">15</td>
+<td style="text-align:center">LK</td>
+<td style="text-align:left"><strong>Lock Register</strong> <!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0<!-- raw HTML omitted --> PCR 寄存器 0 到 15 位值不锁定<!-- raw HTML omitted --><!-- raw HTML omitted -->1<!-- raw HTML omitted --> PCR 寄存器 0 - 15 位值锁定，直到下次重新启动才能够更改</td>
+</tr>
+<tr>
+<td style="text-align:center">10-8</td>
+<td style="text-align:center">MUX</td>
+<td style="text-align:left"><strong>Pin Mux Control</strong> 管脚复用控制<!-- raw HTML omitted --><!-- raw HTML omitted -->不是所有的管脚都支持管脚复用，若支持，则可以有以下的设置：<!-- raw HTML omitted --><!-- raw HTML omitted -->000<!-- raw HTML omitted --> 关闭管脚复用<!-- raw HTML omitted --><!-- raw HTML omitted -->001<!-- raw HTML omitted --> 功能 1 ，GPIO<!-- raw HTML omitted --><!-- raw HTML omitted -->010<!-- raw HTML omitted --> 功能 2 ，芯片特定功能<!-- raw HTML omitted --><!-- raw HTML omitted -->011<!-- raw HTML omitted --> 功能 3 ，芯片特定功能<!-- raw HTML omitted --><!-- raw HTML omitted -->100<!-- raw HTML omitted --> 功能 4 ，芯片特定功能<!-- raw HTML omitted --><!-- raw HTML omitted -->101<!-- raw HTML omitted --> 功能 5 ，芯片特定功能<!-- raw HTML omitted --><!-- raw HTML omitted -->110<!-- raw HTML omitted --> 功能 6 ，芯片特定功能<!-- raw HTML omitted --><!-- raw HTML omitted -->111<!-- raw HTML omitted --> 功能 7 ，芯片特定功能</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">DSE</td>
+<td style="text-align:left"><strong>Drive Strength Enable</strong> DSE 驱动力加强设置，此位在各种复用模式下都有效<!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0<!-- raw HTML omitted --> 低驱动力模式，如果管脚处于输出模式<!-- raw HTML omitted --><!-- raw HTML omitted -->1<!-- raw HTML omitted --> 高驱动力模式，如果管脚处于输出模式</td>
+</tr>
+<tr>
+<td style="text-align:center">4</td>
+<td style="text-align:center">PFE</td>
+<td style="text-align:left"><strong>Passive Filter Enable</strong> 被动滤波功能，此位在各复用状态下都有效<!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0<!-- raw HTML omitted --> 关闭被动滤波<!-- raw HTML omitted --><!-- raw HTML omitted -->1<!-- raw HTML omitted --> 开启被动滤波，工作在输入状态下，详情参考滤波说明</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">PE</td>
+<td style="text-align:left"><strong>Pull Enable</strong> PE 使能上下拉电阻<!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0<!-- raw HTML omitted --> 无内部上下拉电阻<!-- raw HTML omitted --><!-- raw HTML omitted -->1<!-- raw HTML omitted --> 有上下拉电阻</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">PS</td>
+<td style="text-align:left"><strong>Pull Select</strong> PE 选择上下拉电阻<!-- raw HTML omitted --><!-- raw HTML omitted --><!-- raw HTML omitted -->0<!-- raw HTML omitted --> 有上拉电阻<!-- raw HTML omitted --><!-- raw HTML omitted -->1<!-- raw HTML omitted --> 有下拉电阻</td>
+</tr>
+</tbody>
+</table>
+<h1 id="总结">总结</h1>
+<p>如果要使用某个 GPIO 端口，需要的准备工作是：</p>
+<ol>
+<li>使用 PCC 指针打开对应的 PCCn[] 对应的CGC ，PCCn是 PCC 所指向的结构体内部的数组，固定地址，包含一共有116个 uint32 类型寄存器，将对应的寄存器赋值为 <code>PCC_PCCn_CGC_MASK</code> 即可打开 CGC = 1 。</li>
+<li>设置 GPIO 的控制器中的 PDDR 寄存器，用于调整输入/输出方向。此寄存器在一个类型为 <code>GPIO_Type</code> 的结构中，一共有 5 个固定地址的结构，使用 PTA/PTB/PTC/PTD/PTE 访问。</li>
+<li>设置 PORT.PCR 控制器，关闭中断，MUX 设置成为 <strong>001</strong>，是否开启被动滤波。使用 PORTA/PORTB/PORTC/PORTD/PORTE 访问。</li>
+<li>读取对应的 PDIR （输入），或者给 PDOR 赋值 （输出）。使用 PTA/PTB/PTC/PTD/PTE 访问。</li>
+</ol>
+<hr>
+<h1 id="附录pcc-各个寄存器地图">附录：PCC 各个寄存器地图</h1>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">偏移地址</th>
+<th style="text-align:left">寄存器名称</th>
+<th style="text-align:center">长度/位 (bit)</th>
+<th style="text-align:center">权限</th>
+<th style="text-align:left">重启默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">80h</td>
+<td style="text-align:left">PCC FTFC Register (PCC_FTFC)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">C000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">84h</td>
+<td style="text-align:left">PCC DMAMUX Register (PCC_DMAMUX)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">90h</td>
+<td style="text-align:left">PCC FlexCAN0 Register (PCC_FlexCAN0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">94h</td>
+<td style="text-align:left">PCC FlexCAN1 Register (PCC_FlexCAN1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">98h</td>
+<td style="text-align:left">PCC FTM3 Register (PCC_FTM3)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">9Ch</td>
+<td style="text-align:left">PCC ADC1 Register (PCC_ADC1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">ACh</td>
+<td style="text-align:left">PCC FlexCAN2 Register (PCC_FlexCAN2)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">B0h</td>
+<td style="text-align:left">PCC LPSPI0 Register (PCC_LPSPI0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">B4h</td>
+<td style="text-align:left">PCC LPSPI1 Register (PCC_LPSPI1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">B8h</td>
+<td style="text-align:left">PCC LPSPI2 Register (PCC_LPSPI2)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">C4h</td>
+<td style="text-align:left">PCC PDB1 Register (PCC_PDB1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">C8h</td>
+<td style="text-align:left">PCC CRC Register (PCC_CRC)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">D8h</td>
+<td style="text-align:left">PCC PDB0 Register (PCC_PDB0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">DCh</td>
+<td style="text-align:left">PCC LPIT Register (PCC_LPIT)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">E0h</td>
+<td style="text-align:left">PCC FTM0 Register (PCC_FTM0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">E4h</td>
+<td style="text-align:left">PCC FTM1 Register (PCC_FTM1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">E8h</td>
+<td style="text-align:left">PCC FTM2 Register (PCC_FTM2)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">ECh</td>
+<td style="text-align:left">PCC ADC0 Register (PCC_ADC0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">F4h</td>
+<td style="text-align:left">PCC RTC Register (PCC_RTC)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">100h</td>
+<td style="text-align:left">PCC LPTMR0 Register (PCC_LPTMR0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">124h</td>
+<td style="text-align:left">PCC PORTA Register (PCC_PORTA)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">128h</td>
+<td style="text-align:left">PCC PORTB Register (PCC_PORTB)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">12Ch</td>
+<td style="text-align:left">PCC PORTC Register (PCC_PORTC)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">130h</td>
+<td style="text-align:left">PCC PORTD Register (PCC_PORTD)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">134h</td>
+<td style="text-align:left">PCC PORTE Register (PCC_PORTE)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">150h</td>
+<td style="text-align:left">PCC SAI0 Register (PCC_SAI0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">154h</td>
+<td style="text-align:left">PCC SAI1 Register (PCC_SAI1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">168h</td>
+<td style="text-align:left">PCC FlexIO Register (PCC_FlexIO)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">184h</td>
+<td style="text-align:left">PCC EWM Register (PCC_EWM)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">198h</td>
+<td style="text-align:left">PCC LPI2C0 Register (PCC_LPI2C0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">19Ch</td>
+<td style="text-align:left">PCC LPI2C1 Register (PCC_LPI2C1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1A8h</td>
+<td style="text-align:left">PCC LPUART0 Register (PCC_LPUART0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1ACh</td>
+<td style="text-align:left">PCC LPUART1 Register (PCC_LPUART1)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1B0h</td>
+<td style="text-align:left">PCC LPUART2 Register (PCC_LPUART2)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1B8h</td>
+<td style="text-align:left">PCC FTM4 Register (PCC_FTM4)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1BCh</td>
+<td style="text-align:left">PCC FTM5 Register (PCC_FTM5)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1C0h</td>
+<td style="text-align:left">PCC FTM6 Register (PCC_FTM6)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1C4h</td>
+<td style="text-align:left">PCC FTM7 Register (PCC_FTM7)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1CCh</td>
+<td style="text-align:left">PCC CMP0 Register (PCC_CMP0)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1D8h</td>
+<td style="text-align:left">PCC QSPI Register (PCC_QSPI)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+<tr>
+<td style="text-align:center">1E4h</td>
+<td style="text-align:left">PCC ENET Register (PCC_ENET)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+<td style="text-align:left">8000_0000h</td>
+</tr>
+</tbody>
+</table>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

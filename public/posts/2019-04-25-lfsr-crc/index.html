@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    How is Linear Feedback Shift Register(LFSR) used on Cyclic Redundancy Check(CRC) | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-04-25-lfsr-crc/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-04-25-lfsr-crc/" rel="bookmark">How is Linear Feedback Shift Register(LFSR) used on Cyclic Redundancy Check(CRC)</a>
+  </h2>
+  
+  <time datetime="2019-04-26T00:00:00Z">
+    26 April, 2019
+  </time>
+  
+</header>
+
+  <p>Nowadays, cyclic redundancy check (CRC) is widely used on various fields, including data transmission or data integraty check, e.g UART or CAN bus. For many new hardware beginning learners, CRC appears to be a complexed mathematical blackbox which produces a serial of seemingly gibberish binary numbers. But it indeed is a very reliable mechanics which extracts the feature of the data and simple to understand and implement.</p>
+<p>First I want to introduce a thing to you, that is LFSR, Linear Feedback Shift Register. LFSR circuit looks just like below:</p>
+<p><img src="/img/2019-4-25-LFSR-CRC/lfsr.png" alt="A 4-bit LFSR"></p>
+<p>If we put D3 D2 D1 D0 in a row, we can have a 4-bit value and every time when the clock edge occurs, the value is renewed by itself with the feedback channel. If only the g0 and g4 were open, LFSR itself transforms into a normal loop shift register.</p>
+<p>The intersting part is that we can acutally define a division calculation rule to describe this iterative process. I do not really understand how it works but it simply works anyway.</p>
+<p>In the case above, if the last value was $M(x)$ and the new value is $R(x)$. We define the polynomial $M(x)=d_3x^3+d_2x^2+d_1x+d_0$ and $d_3,d_2,d_1,d_0\in{1,0}$, $G(x)=g_4x^4+g_3x^3+g_2x^2+g_1x+g_0$ The $x$ in the polynomial has no value and can be ragarded as a symbol to indicate which $d_x$ digit is. And:</p>
+<p>$$
+R(x)=M(x)\mod G(x)
+$$</p>
+<p>How can it be divided? Let us put hands on a simple example:</p>
+<p>If the last ${d_3,d_2,d_1,d_0}={1,1,1,1}$ and the feedback gates ${g_4,g_3,g_2,g_1,g_0}={1,1,0,0,1}$. We can get new ${d_3,d_2,d_1,d_0}={1,1,1,0}$ by writing down the signal flow on the paper, and let us use the above rule:</p>
+<p>$$
+R(x)=x \times (x^3+x^2+x+1)\mod(x^4+x^3+1)
+$$</p>
+<p><img src="/img/2019-4-25-LFSR-CRC/cal1.jpg" alt=""></p>
+<p>The rule is simple, we only use the power of $x$ to times the divider and we get a result that has at most $x^3$. The substration procedure is acutally $\oplus$ which is also named XOR. We can now use binary digits to substitute the x. <strong>If you have any academic interest in the algebra part, it is called <em>Galois Field</em> and we are currently use <em>GF(2)</em></strong>.</p>
+<p>Let us continue on the calculation.</p>
+<p>Now we have $x^2+x+1$, which is ${d_3,d_2,d_1,d_0}={1,1,1,0}$ and the next several states are:</p>
+<p><img src="/img/2019-4-25-LFSR-CRC/cal2.jpg" alt=""></p>
+<p>And by doing so, we get a serial of numbers that loop in circle which length is $x^4 -1$, the only number did not show is $0000$, you can imagine that $0000$ cannot drive these gates so it will always be $0000$. That serial numbers are tested to be a 4-bit pseudo-random number. the initial value is the seed of the random numbers, so we can use LFSR to create random number sequence very easily.</p>
+<p>But also, the gate values are not used without consideration, the gate polynomial has to be a primitive polynomial which means it cannot be a result of other two polynomials. You can refer to a primitive polynomial table to do so. (Google it, of course there is no link here.)</p>
+<p>But there is a very minutely chance that the modulo is all zeroes for example we make gates ${1,0,1,0}$ and the seed is ${0,1,0,1}$. That is how we do CRC.</p>
+<p>All the calculation illustrated above, we did not have an input, this equals to we input a zero every step. Assumed we have a serial of binary data ${1,0,1,1,0,1,0,0,0,&hellip;}$, the length is 1024, and we push them in a 4-bit LFSR one by one, in the end we can get a modulo shorter than 5 bits. And here comes the tricky part, by adding this modulo to the end of the data (the modulo is acutally CRC data), the data now becomes 1028 bits, and also an exact division of the gate polynomial means eventually the LFSR will output all zeroes if we input this data serial.</p>
+<p>We see that LFSR has a random feature, that means if the data is changed somewhere in the serial, only 1 in 15 chance that we can divide it with LFSR exactly, and this is because we only use 4-bit LFSR, if we use a 32-bit LFSR instead, the error chance becomes extremely little.</p>
+<p>And we can also see that LFSR consumes very little gates and works very fast, we connect it to the shifter register of the transmitter and the receiver, so CRC process can work meanwhile the data is transmitted, so it is widely used in CRC.</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

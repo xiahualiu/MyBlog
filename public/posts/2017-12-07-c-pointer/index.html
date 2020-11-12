@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    Deep Understanding of C pointers | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-12-07-c-pointer/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-12-07-c-pointer/" rel="bookmark">Deep Understanding of C pointers</a>
+  </h2>
+  
+  <time datetime="2017-12-07T00:00:00Z">
+    7 December, 2017
+  </time>
+  
+</header>
+
+  <p>在 C 语言中，要说什么概念最难理解，那指针当仁不让处于第一的位置，初学者对于指针是叫苦不堪，即使是熟练地程序员在写程序的时候，复杂的指针也会使程序的可读性大大降低。</p>
+<p>但是指针又是 C 语言的一个特点，使用指针可以使编程更加容易。而且有些任务，譬如动态内存分配，如 <code>malloc</code> <code>calloc</code> <code>realloc</code> 函数的使用又必须依赖指针，所以如果想要成为一个熟练的 C 程序员，理解熟练使用指针是非常必要的。</p>
+<h2 id="什么是指针">什么是指针</h2>
+<p>首先，在程序运行中，变量都是存在计算机的内存中的。指针是一种变量，它的值是<strong>另外一个变量的地址</strong>，也就是直接的内存地址，在 32 位系统中，指针的大小为 4 字节（在远古时期的远指针，近指针，巨指针，等不参加讨论），很好理解，一个字节长度为 8 bits，4 bytes = 32 bits，如果在最新的 64 位系统中编译并且运行的话，指针会变成 8 字节的长度，因为对应的地址位宽增加了。</p>
+<p>运行以下的内容就可以发现, 打印的是 8 个 16 进制的字符，也就是 4 个字节。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span> () {
+
+   <span style="color:#66d9ef">int</span>  var1;
+   <span style="color:#66d9ef">char</span> var2[<span style="color:#ae81ff">10</span>];
+
+   printf(<span style="color:#e6db74">&#34;Address of var1 variable: %x</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">&amp;</span>var1  );
+   printf(<span style="color:#e6db74">&#34;Address of var2 variable: %x</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">&amp;</span>var2  );
+
+   <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>运行结果：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$gcc -o main *.c
+$main
+Address of var1 variable: 9f98435c
+Address of var2 variable: 9f984352
+</code></pre></div><p>在上边的例子中，<code>var1</code> 就是一个指针，它内部存有一个 <code>int</code> 型变量的地址， 而 <code>var2</code> 存着一个 <code>char[10]</code> 数组的地址。在平常描述中，通常使用『<strong>指向</strong>』这个动词来描述指针与对应变量的关系，我们可以说 <code>var1</code> 指针指向某个（因为还未定义哪个） <code>int</code> 型的变量。通过这个例子的打印结果我们可以看到，不管指针指向什么类型的变量，它的本身长度，始终都是固定的值，在本例中为 4bytes，不同指针唯一的不同就是指针变量内部存的值的不同，也即是指针所对应的地址不同。</p>
+<h2 id="如何使用指针">如何使用指针</h2>
+<p><strong>指针的操作符很少，只有 <code>&amp;</code> <code>*</code> 两种。</strong></p>
+<ul>
+<li><code>&amp;</code> 是引用符号，对一个普通的变量，数组，结构，等类型使用可以取得其地址。</li>
+<li><code>*</code> 是解除引用符号，对于指针使用可以返回其指向的值。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span> () {
+   <span style="color:#66d9ef">int</span>  var <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>;   <span style="color:#75715e">/* 整形变量声明定义 */</span>
+   <span style="color:#66d9ef">int</span>  <span style="color:#f92672">*</span>ip;        <span style="color:#75715e">/* 指针声明 */</span>
+   ip <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>var;  <span style="color:#75715e">/* 将 var 变量的值赋给 ip*/</span>
+
+   printf(<span style="color:#e6db74">&#34;var 的地址是: %x</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">&amp;</span>var  );
+   printf(<span style="color:#e6db74">&#34;ip 中储存的地址是: %x</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ip );
+   printf(<span style="color:#e6db74">&#34;原本 *ip 的值是: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">*</span>ip );
+   printf(<span style="color:#e6db74">&#34;原本 var 的值是: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, var );
+
+   <span style="color:#f92672">*</span>ip<span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+
+   printf(<span style="color:#e6db74">&#34;*ip 现在的值是: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">*</span>ip );
+   printf(<span style="color:#e6db74">&#34;var 现在的值是: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, var );
+   <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>运行结果:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$gcc -o main *.c
+$main
+var 的地址是: f977beb4
+ip 中储存的地址是: f977beb4
+原本 *ip 的值是: <span style="color:#ae81ff">20</span>
+原本 var 的值是: <span style="color:#ae81ff">20</span>
+*ip 现在的值是: <span style="color:#ae81ff">10</span>
+var 现在的值是: <span style="color:#ae81ff">10</span>
+</code></pre></div><p>可以看到，当我修改 <code>*ip</code> 的值的时候， <code>var</code> 整形变量的值也发生了变化，这是因为我们是通过 <code>ip</code> 这个指针修改的，程序通过这个指针中的地址找到了对应的内存（var 所在），然后将这段内存修改成为了 10 ，这个过程相当于直接修改了在内存中 <code>var</code> 对应的值。</p>
+<p><strong>请不要直接将变量的值直接赋值给指针本身！</strong></p>
+<p>错误用法：<code>ip = (int)10;</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">warning: assignment makes pointer from integer without a cast <span style="color:#f92672">[</span>-Wint-conversion<span style="color:#f92672">]</span>
+    ip<span style="color:#f92672">=(</span>int<span style="color:#f92672">)</span>10;
+      ^
+</code></pre></div><p>指针变量的类型和一般的变量不同，直接这样赋值会导致编译错误，而且这种操作毫无意义。</p>
+<p>指针是可以赋给另外一个指针的，这样两个指针指向了同一个地方，但是这种一个地址对应两个指针的操作在某种意义上是比较危险的，因为这样对应的值很有可能被误修改，或者内存被释放后导致<a href="https://zh.wikipedia.org/wiki/%E8%BF%B7%E9%80%94%E6%8C%87%E9%92%88">迷途指针</a>。</p>
+<h2 id="null-指针">NULL 指针</h2>
+<p>又名<strong>空指针</strong>，指针内的值为 NULL，指针还没有分配指向的实体，NULL 指针会出现在指针的声明时，也就是我们第一个例子中的两个指针，只声明了对应的类型，没有实际赋予其地址，又称没有被初始化。</p>
+<p>空指针中的值是 4 个字节的 0，而在计算机系统结构中，0 地址的内存一般情况下是被保留给操作系统运行的，里面已经有了一些操作系统运行中所需要的值，所以利用 NULL 指针修改对应的内存的话，后果可想而知。</p>
+<p>解决空指针的办法就是在指针声明后，进行赋值，将指针变成一个指向固定地址的变量。</p>
+<h2 id="指针运算">指针运算</h2>
+<p>指针的运算符有以下几种：</p>
+<ul>
+<li><code>++</code></li>
+<li><code>--</code></li>
+<li><code>+</code></li>
+<li><code>-</code></li>
+</ul>
+<p>我们主要就 +/- 运算进行讲解，因为 ++/&ndash; 不就是 +1/-1 么。</p>
+<p>如果我们定义了一个指针指向一个 int 型变量（4 字节长度），请在脑中构思这个创建指针和定义的过程，然后我们对这个指针加 1。</p>
+<p>实际上，指针内部的地址并不是简单的加 1，而是加了 4，也就是在内存中移动到了 4 个字节后的下一个 int 变量。</p>
+<p>这个特性使得我们不用去注意一些非常底层的概念，最普遍的使用地点就是在一串同类数据中切换数据，也就是在数组中使用指针。</p>
+<p>在使用这个的过程中，请保证自己不会将指针移动到未声明的内存空间中，譬如上述单个 int 变量的指针偏移，否则将有大几率损坏其他变量数据。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> MAX <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span> () {
+
+   <span style="color:#66d9ef">int</span>  var[] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">100</span>, <span style="color:#ae81ff">200</span>};
+   <span style="color:#66d9ef">int</span>  i, <span style="color:#f92672">*</span>ptr;
+    
+   ptr <span style="color:#f92672">=</span> var;
+
+   <span style="color:#66d9ef">for</span> ( i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> MAX; i<span style="color:#f92672">++</span>) {
+
+      printf(<span style="color:#e6db74">&#34;var[%d] 地址 = %x</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, i, ptr );
+      printf(<span style="color:#e6db74">&#34;var[%d] 值 = %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, i, <span style="color:#f92672">*</span>ptr );
+
+      ptr <span style="color:#f92672">=</span> ptr<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>;      <span style="color:#75715e">//等于 ptr++
+</span><span style="color:#75715e"></span>   }
+	
+   <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>运行结果:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$gcc -o main *.c
+$main
+var<span style="color:#f92672">[</span>0<span style="color:#f92672">]</span> 地址 <span style="color:#f92672">=</span> 220fe454
+var<span style="color:#f92672">[</span>0<span style="color:#f92672">]</span> 值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>
+var<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span> 地址 <span style="color:#f92672">=</span> 220fe458
+var<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span> 值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>
+var<span style="color:#f92672">[</span>2<span style="color:#f92672">]</span> 地址 <span style="color:#f92672">=</span> 220fe45c
+var<span style="color:#f92672">[</span>2<span style="color:#f92672">]</span> 值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">200</span>
+</code></pre></div><p>可以看到地址每次增加的值是 4。在这个例子中，如果你仔细读代码则会发现，我们使用了如下的代码</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">   ptr <span style="color:#f92672">=</span> var;
+</code></pre></div><p>而在编译运行的过程中并没有错误产生，这是应为它本身就没有错误，在 c 语言中，数组的名字会被当做一个指针处理，其中的 var 可以被看做 <code>int * const var_name = &amp;var[0];</code> 中的 <code>var_name</code>，也就是说，数组名其实是一个指针，而它对应的地址就是 var[0] 的地址。</p>
+<p>由于这是一个常量指针，其特点是指针内的地址不可以变动，也就意味着这个指针不能够指向其他的 int 变量了。也就是:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> var_name <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>var[<span style="color:#ae81ff">0</span>];
+var_name <span style="color:#f92672">=</span> (<span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>)<span style="color:#ae81ff">10</span>;
+</code></pre></div><p>是错误的:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">error: assignment of read-only variable ‘var_name’
+    var_name <span style="color:#f92672">=</span> <span style="color:#f92672">(</span>int *<span style="color:#f92672">)</span>10;
+             ^
+</code></pre></div><p>我试了直接给 var = 另外的指针，但是显示错误不是这个，显示的是 <code>error: assignment to expression with array type</code> ，但是原理是一样的。</p>
+<p>还有一种数组，叫做字符数组，其主要形式是以下形式：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">char</span> ch[<span style="color:#ae81ff">20</span>]<span style="color:#f92672">=</span>{<span style="color:#e6db74">&#34;hello world&#34;</span>};
+</code></pre></div><p>这句话，定义了一个具有 20 个元素的数组，元素的类型为 char 型，也就是字符型，数组的第一个元素是 h，第二个是 e，数组被依次填入&quot;hello world\0&quot;，其中 <code>\0</code> 为终止符。</p>
+<p>在 C 语言中，&ldquo;hello world&rdquo; 这样的字符串其实本质是一个指针，指向字符串开头的地址。在赋值或者打印的时候，C 语言会使用这个指针自动的将字符串从头读取到终止符。</p>
+<p>从下边这个例子来解释：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> MAX <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span> () {
+
+   <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>ptr<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;Hello world&#34;</span>;
+   printf(<span style="color:#e6db74">&#34;%s&#34;</span>,ptr);
+
+   <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>运行结果是打印了 Hello world，在这个地方，我们直接用字符串给一个指针赋值了，但是编译器并没有报错。</p>
+<h2 id="二级指针">二级指针</h2>
+<p>因为指针是一个变量，故其在内存中也有一个储存的地址，而这个地址可以赋值给另外一个指针。当一个指针指向另外一个指针的时候，此指针就是二级指针。</p>
+<p>二级指针的声明如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#f92672">**</span>var;
+</code></pre></div><p>如果你觉得之前的内容很简单，指针现在的恐怖之处才体现出来，对于二级指针的解除引用 <code>*</code> 一次之后还是指针，只有解除两次之后才能成为真正的指向的数值变量。</p>
+<h2 id="函数指针">函数指针</h2>
+<p>在 C 语言中，函数指针一直就是一个很神奇的东西，因为它有很多违反常规的设定，函数其实和变量一样，都储存在内存中，只不过这部分内存存的是一些命令而不是值，函数名就像是数组名一样对应着它的入口地址，所以我们可以用一个指针指向函数，这样指针就能代表函数了。</p>
+<p>函数指针和普通指针不同的是，函数指针声明的是函数的<strong>返回值</strong>和<strong>参数</strong>，而不是仅仅变量类型。</p>
+<p>譬如：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> (<span style="color:#f92672">*</span>p)(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>);
+</code></pre></div><p>声明了这个指针指向的是一个函数，该函数具有 int 返回值和 const char * （在 C 中遇到它，99% 对应字符串）的参数。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">string_print</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>s){
+    printf(<span style="color:#e6db74">&#34;%s&#34;</span>,s);
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(){
+
+    <span style="color:#66d9ef">int</span> a;
+    <span style="color:#66d9ef">int</span> (<span style="color:#f92672">*</span>p)(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>);
+    
+    p<span style="color:#f92672">=&amp;</span>string_print;
+
+    a<span style="color:#f92672">=</span>string_print(<span style="color:#e6db74">&#34;WINNER WINNER CHIKEN DINNER!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+    a<span style="color:#f92672">=</span>p(<span style="color:#e6db74">&#34;WINNER WINNER CHIKEN DINNER!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>运行结果：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$gcc -o main *.c
+$main
+WINNER WINNER CHIKEN DINNER!
+WINNER WINNER CHIKEN DINNER!
+</code></pre></div><p>看，这个指针指向函数后，用指针名就可以直接调用这个函数，如果有很多函数，我们就可以在运行的时候动态的调用不同的函数了。</p>
+<p>如果你眼睛够尖，或者你认真看了我上面的所有内容的话，会发现一个问题，我这个地方给指针赋值用的是:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    p<span style="color:#f92672">=&amp;</span>string_print;
+</code></pre></div><p>函数名不就是地址么？再取地址不就是二级指针了么？你想的不错，这个地方其实说明了一个问题，如果函数名是地址的话，我们调用就要用 <code>*</code> 来解除引用后才能声明和定义函数，但是 C 为了使大家使用方便就去掉了函数调用定义时加 <code>*</code> 的过程，也就是说使用函数名其实就已经是解除引用后的地址了，这样说可能看起来比较难受，其实，<code>p=&amp;string_print;</code> 和 <code>p=string_print;</code> 这两句话在这里是完全一样的，哈哈，不信你试试，输出结果完全一样，编译也不会报错。也就是说函数名既可以看做是一个实际的实体，也可以看做是一个地址，但是在定义以及声明函数的时候，不能定义函数名前面加 <code>*</code>，因为这样就变成函数指针了。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> (<span style="color:#f92672">*</span>string_print)(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>s){
+    printf(<span style="color:#e6db74">&#34;%s&#34;</span>,s);
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>是错误的，无法通过编译，因为这样的 <code>string_print</code> 就是函数指针了哦。</p>
+<h2 id="指针结合">指针结合</h2>
+<p>到此为止，一般的指针类型都已经介绍完毕了，但是这仅仅是指针的基础知识，有时候我们需要的是一些更加复杂的指针类型，譬如我想让 <code>p</code> 是一个指向数组的指针，在数组中的元素均为指向 <code>int</code> 的指针。那这个指针该怎么声明呢？</p>
+<p>我们介绍了函数指针，在上个章节，有人会发现我在声明指针时，用小括号圈起来了指针（<code>int (*p)(const char *);</code>）,可能你会想为什么要多次一举的加上一个括号呢，这个地方就牵涉到了指针中运算符的优先级的问题。（这个括号是必须的，没有就不是函数指针了，而是返回指针的函数了）</p>
+<p>在学习指针结合的开始，我们要首先了解 C 语言中的运算符的结合优先级，指针结合的优先级使用 C 语言中规定的运算符优先级。</p>
+<p>参阅<a href="http://zh.cppreference.com/w/cpp/language/operator_precedence">C++ 运算符优先级</a>。</p>
+<p>大概浏览一下就可以咯，下面让我们先从简单的类型开始慢慢分析吧:</p>
+<ol>
+<li><code>int ptr;</code> 这是一个普通的整型变量。</li>
+<li><code>int *ptr;</code> 从 ptr 处开始，先与 * 结合，说明 ptr 是一个指针，然后再与 int 结合，说明指针所指向的内容的类型为 int 型。所以 ptr 是一个返回整型数据的指针。</li>
+<li><code>int ptr[3];</code>  从 ptr 处开始，先与 [] 结合，说明 ptr 是一个数组，然后与 int 结合，说明数组里面的元素类型是整型的，所以 ptr 是一个由整型数据组成的数组。</li>
+<li><code>int *ptr[3];</code> 从 ptr 开始，左边是 * 运算，右边是 [] 运算，由于 [] 运算符的优先级比 * 高，所以先与 [] 结合，说明 ptr 是一个数组，然后再与 * 结合，说明数组元素的类型是指针类型，最后与 int 结合，说明指针所指向的内容的类型是整型数据。
+所以 ptr 是一个<strong>整型数据的指针</strong>所组成的<strong>数组</strong>。</li>
+<li><code>int (*ptr)[3];</code> 从 ptr 开始，首先与 * 结合，() 是为了提高 * 相对于 [] 的优先级，所以 ptr 是一个指针，然后与 [] 结合，说明 ptr 是指针，指向的内容是一个数组，最后与 int 结合，说明数组里的元素是整型的。
+所以 ptr 是一个<strong>指向由整型数据组成的数组</strong>的<strong>指针</strong>。</li>
+<li><code>int **ptr;</code> 从 ptr 开始，先与 * 结合，说是 ptr 是一个指针，然后再与 * 结合，说明指针所指向的元素是指针，然后再与 int 结合，说明该指针所指向的元素是整型数据。</li>
+<li><code>int ptr(int);</code> 从 ptr 处起，先与 () 结合，说明 ptr 是一个函数，然后进入 () 里分析，说明该函数有一个整型变量的参数，然后再与外面的 int 结合，说明函数的返回值是一个整型数据。</li>
+<li><code>int (*ptr)(int);</code> 从 ptr 处开始，先与指针结合，说明 ptr 是一个指针，然后与 () 结合，说明指针指向的是一个函数，然后再与 () 里的 int 结合，说明函数有一个 int 型的参数，再与最外层的 int 结合,说明函数的返回类型是整型。
+所以 ptr 是一个指向<strong>有一个整型参数且返回类型为整型的函数</strong>的指针。</li>
+<li><code>int *ptr(int);</code> 从 ptr 处开始，先与 () 结合，说明 ptr 是一个函数，然后与 * 结合，说明函数返回值是一个指针，然后再与 int 结合，说明函数返回指针指向 int。
+所以 ptr 是一个<strong>有一个整型参数且返回类型为指向整型的指针</strong>的<strong>函数</strong>。</li>
+<li><code>int *(*ptr(int))[3];</code> 难度 MAX，从 ptr 开始，先与 () 结合，说明 ptr 是一个函数,然后进入 () 里面，与 int 结合，说明函数有一个整型变量参数，然后再与外面的 * 结合，说明函数返回的是一个指针（参考上边的第9条），然后到最外面一层，先与 [] 结合，说明返回的指针指向的是一个数组，然后再与 * 结合，说明数组里的元素是指针，然后再与 int 结合，说明指针指向的内容是整型数据。
+所以 ptr 是一个指向<strong>参数为一个 int 且返回一个指向由整型指针变量组成的数组的指针变量</strong>的<strong>函数</strong>。</li>
+</ol>
+<p>上列中的 <strong>4. 5.</strong> 是很多考试的考点，其中 <code>int *ptr[3];</code> 中 ptr 有个称号叫做 <strong>指针数组</strong> ，<code>int (*ptr)[3];</code> 中 ptr 有个称号叫做 <strong>数组指针</strong>，连名字都几乎一模一样，新手大多头疼这两个的判断，其实按照上述的方法来处理指针结合的话，两种类型的区别还是很好判断的。</p>
+<p>数组指针，是一个指向数组的指针，注意这里的指针不等同与数组名指针，这个指针指向的，是一个整体数组，而数组名指针指向的是数组中的元素。数组指针加 1 后，会跨过整个数组长度总和，而数组名加 1 只会增加一个元素的长度。举个例子就是：数组指针是班号，加 1 后移动到下个班，数组名是班级内的学号，加 1 后移动到下个学生。</p>
+<p><img src="/img/2017-12-7-C-pointer/ap&amp;pa.png" alt="ap&pa.png"></p>
+<p>其中 p 为普通函数名指针，ptr 为数组指针。
+我们可以看到数组指针可以跳过一整个行数组，用途在哪里最普遍？二维数组中。</p>
+<p>指针数组不用多介绍了，就是个普通数组，里面装的全是指针而已。</p>
+<h2 id="常量指针--指针常量">常量指针 &amp; 指针常量</h2>
+<p>我们在介绍数组名是指针的时候用到了一个指针类型，叫做“指针常量”，也就是 <code>int * const var_name = &amp;var[0];</code> 中的指针，这种指针内部的地址不能变动，只能在声明的时候定义一次，也就是不能指向别的变量了。<strong>指针本身是一个常量</strong>就称作<strong>指针常量</strong>我们称，数组名就是一种指针常量。字符串，也是一种指针常量。</p>
+<p>还有一种指针，它本身不是常量，但它指向的是常量，大家想一想，这个指针的声明该怎么写？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> c<span style="color:#f92672">=</span><span style="color:#ae81ff">10</span>;
+<span style="color:#66d9ef">int</span> <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span>ptr<span style="color:#f92672">=&amp;</span>c;
+</code></pre></div><p>或者：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> c<span style="color:#f92672">=</span><span style="color:#ae81ff">10</span>;
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>ptr<span style="color:#f92672">=&amp;</span>c;
+</code></pre></div><p>是一样的。但是要清楚一点，这个常量的定义，是指不能通过 ptr 这个指针来修改 c 中的值了（<code>*ptr=20;</code> 会提示错误），但是 c 本身不是常量，用其他的指针或者，直接通过 <code>c=20;</code> 都是可以修改 c 的值的。这种<strong>指向常量的指针</strong>就叫做<strong>常量指针</strong>。</p>
+<p><strong>指针常量/常量指针</strong> 这两种是不是特别容易搞混啊？考试就考这个了！其实按照我们的结合律来判断也非常好判断，如果指针名先跟 const 结合了，这个指针内的地址就不能变了，那就是指针常量，而如果指针名先跟 * 结合了，这就说明指针是可变的，然后遇到了 const 和某种类型，那就说明指针指向了某种常量，是常量指针。</p>
+<p>来一个难一点的判断：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span> (<span style="color:#f92672">*</span>test)();
+</code></pre></div><p>首先从名字入手，<code>(*test)</code> 说明 test 是一个指针，然后向外，() 优先级较高，先判断后面的小括号，说名 test 指针指向一个没有参数的函数，其返回值目前未知，然后向前判断，首先遇到了一个 *，说明返回值也是一个指针，指向了前面的 <code>(int * const)</code> ，接着跟 const 结合，返回指针为指针常量，接着是 <code>(int *)</code> 说明这个指针常量是一个二级指针，它指向了一个指向 int 型的指针。</p>
+<p>也就是说 <code>test</code> 是一个指针，指向了一个函数，函数不接受参数，并且返回一个二级指针，这个二级指针是个指针常量，解除引用一次后的指针，指向一个 int 型变量。</p>
+<p>当然 “常量指针常量” 这种变态也是存在的，这种指针不能修改地址，其对应的变量也不能通过此指针改变。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> ptr<span style="color:#f92672">=</span>(<span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>)<span style="color:#ae81ff">10</span>;
+</code></pre></div><p>如果你之前写过程序，或者看我上文的函数指针例子中，发现很多字符串处理函数的字符串参数都是 <code>const char *</code> 这种类型，你就应该明白了，字符串譬如 <code>&quot;Hello world&quot;</code> 本质其实就是一个常量指针，<code>const char *</code> 的存在是为了保证内部的字符不会因为这个指针而发生改变。注意，如果你用一个字符串给指针赋值的话，这个指针是不能修改字符串的内容的，否则会报错哦。</p>
+<p>所以常量指针的存在意义其实是为了保护数据，在操作的过程中不会因为一些错误修改而改变了内存中对应的数据的值。其意义还是十分重大的！</p>
+<p>到此为止，如果你全部掌握了以上的内容，恭喜，你已经熟练掌握指针的操作了！</p>
+<p>最后留一个问题，如果本文最后的 test 指针，我想让他的返回值是一个二级指针，但这个二级指针的解引用一次之后才是一个常量指针该怎么改写这个声明呢？非常简单啊哈哈！</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

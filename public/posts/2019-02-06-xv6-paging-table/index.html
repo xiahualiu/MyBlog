@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    xv6 Basics - Page Tables | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-02-06-xv6-paging-table/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-02-06-xv6-paging-table/" rel="bookmark">xv6 Basics - Page Tables</a>
+  </h2>
+  
+  <time datetime="2019-02-06T00:00:00Z">
+    6 February, 2019
+  </time>
+  
+</header>
+
+  <p><strong>Paging tables are the mechanism through which the operating system controls what memory address means.</strong> They allow xv6 to multiplex the address spaces of different processes onto a single physical memory, and to protect the memories of different processes. The level of indirection provided by page tables allows many neat tricks. xv6 uses page tables primarily to multiplex address spaces and to protect memory.</p>
+<p>It also uses a few simple page-table tricks:</p>
+<ul>
+<li>Mapping the same memory (the kernel) in several address spaces.</li>
+<li>Mapping the same memory more than once in one address space. (Each user page is also mapped into the kernel&rsquo;s physical view of memory)</li>
+<li>Guarding a user stack with an ummapped page.</li>
+</ul>
+<h1 id="paging-hardware">Paging hardware</h1>
+<p>As a reminder, x86 instructions (both user and kernel) manipulate virtual addresses. The mechine&rsquo;s RAM, or physical memory, is indexed with physical addresses.</p>
+<p>The x86 page table hardware connects these two kinds of addresses, by mapping each virtual address to a physical address.</p>
+<pre><code>   10      10          12          |     PPN     | Offset |  
+|-------|---------|----------|            ^
+|  Dir  |  Table  |  Offset  |        20  |          12
+|-------|----|----|----------|     |------|------|-------|
+    |        |--------------------&gt;|     PPN     | Flags |
+    |                              |-------------|-------|
+    |         20       10          |             |       |
+    |     |---------|-------|      |-------------|-------|
+    |     |         |       |      |             |       |
+    |     |---------|-------|      |-------------|-------|
+    |----&gt;|   PPN   | Flags |-------&gt;     Page Table
+          |---------|-------|         2^10(1024) entries
+          |         |       |              (PTEs)
+          |---------|-------|
+ |CR3|---&gt;   Page Directory
+           2^10(1024) entries
+</code></pre><p>According to CSAPP, xv6 uses paging harware that support 2-level paging.</p>
+<p>We use first top 10 bits to index page directory, and fetch the 20 bits PPN to index the Page table, and use the second 10 bits to index PPN in page table.</p>
+<p>An x86 page table is logically an array of 2^20 (1,048,576) page table entries. Thus a page table gives table gives the operating system control over virtual-to-physical address translations at the granularity of aligned chunks of 4096 (2^12) bytes. Such a chunk is called a page.</p>
+<p>Each PTE contains <strong>flag bits</strong> that tell the paging hardware how the associated virtual address is allowed to be used:</p>
+<pre><code>|31                    |12   |8   |6  |5  |4   |3   |2  |1  |0  |
+|----------------------|-----|----|---|---|----|----|---|---|---|
+| Physical Page Number | AVL |    | D | A | CD | WT | U | W | P |
+                          |         |   |   |    |    |    |   |---- P - Present
+                          |         |   |   |    |    |    |-------- W - Writable
+                          |         |   |   |    |    |------------- U - User
+                          |         |   |   |    |----------------- WT - 1=Write-through, 0=Write-back
+                          |         |   |   |---------------------- CD - Cache Disabled
+                          |         |   |--------------------------- A - Accessed
+                          |         |------------------------------- D - Dirty (0 in page directory)
+                          |--------------------------------------- AVL - Available for system use
+
+Page table and page directory entries are identical except for the D bits
+</code></pre><ul>
+<li><code>PTE_P</code> indicates whether the PTE is present: if it is not set, a reference to the page causes a fault.</li>
+<li><code>PTE_W</code> controls whether instructions are allows to issue writes to the page; if not set, only reads and instructions fetches are allowed.</li>
+<li><code>PTE_U</code> controls whether the user programs are allowed to use the page; if clear, only kernel is allowed to use the page.</li>
+</ul>
+<p>The flags and all other page hardware related structures are defined in <code>mmu.h</code>.</p>
+<h1 id="process-address-space">Process address space</h1>
+<p><a href="https://xiahua.blog/2019/01/29/2019-1-29-paging/">The <code>entry.S</code> provided a primal memory layout for the kernel</a>. The two entries we created map virtual address <code>0:0x400000</code> to physical address <code>0:0x400000</code> as well as <code>KERNBASE:KERNBASE+0x400000</code> to <code>0:0x400000</code>. It is quite elaborately designed because the bootloader can only get access to physical addresses, whereas the kernel only uses virtual addresses. To prevent the <code>entry.S</code> program breaking down, we assigned two different virtual address pages to the same physical address page. So the <code>jmp</code> need to be an indirect jump.</p>
+<p><img src="memory_layout.png" alt="Figure 2-2. Layout of the virtual address space of a process and the layout of the physical address space. Note that if a machine has more than 2 Gbyte of physical memory, xv6 can use only the memory that fits between KERNBASE and 0xFE00000."></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define KERNBASE 0x80000000
+</span></code></pre></div><p>But once we start the process, a more elaborate plan for describing process address space is required. And this turns to be the standard memory layout of the xv6 system. As we can see in the Figure 2-2.</p>
+<h2 id="0kernbase">0:KERNBASE</h2>
+<p>This area which addressed up to 2 gigabytes is reserved for the user process. That means one process can use 2 gigabytes of memory for the most. The structure of this area is familiar to the most programmers, including user text, user data, user stack, etc. The user programs use
+them to do tasks on computer.</p>
+<p>This area is not mapped to physical memory at first because the entries are dynamically created, which means only when the program needs to use memory, the corresponding entries are created by kernel and linking the virtual pages with vacant physical pages. At first, there is no process being, so there is no entry in this area.</p>
+<h2 id="kernbase0xffffffff">KERNBASE:0xFFFFFFFF</h2>
+<p>Above <code>KERNBASE</code> sits the kernel. And in this area, entries are all created with a simple mapping rule, which shown in <code>memlayout.h</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define V2P_WO(x) ((x) - KERNBASE)    </span><span style="color:#75715e">// same as V2P, but without casts
+</span></code></pre></div><p>That means, in this area, virtual pages and physical pages are 1:1 mapped except for an offset <code>KERNBASE</code>. Why?</p>
+<p>The advantage of this is that the kernel can manipulate the physical memory easily. The kernal can see the whole world including all processes' page tables.</p>
+<p>Xv6 does not set the PTE_U flag in the PTEs above KERNBASE, so only the kernel can use them.</p>
+<p>Having every process’s page table contain mappings for both user memory and the entire kernel is convenient when switching from user code to kernel code during system calls and interrupts: such switches do not require page table switches. For the most part the kernel does not have its own page table; it is almost always borrowing some process’s page table.</p>
+<p>To review, xv6 ensures that each process can use only its own memory. And, each process sees its memory as having contiguous virtual addresses starting at zero, while the process’s physical memory can be non-contiguous. xv6 implements the first by setting the PTE_U bit only on PTEs of virtual addresses that refer to the process’s own memory. It implements the second using the ability of page tables to translate successive virtual addresses to whatever physical pages happen to be allocated to the process.</p>
+<p><code>PHYSTOP</code> in the physical memory show the maximum address of the physical address. However, the memory-mapped I/O devices occupy the addresses from <code>0xFE000000</code> to <code>0xFFFFFFFF</code>. Memory in between <code>PHYSTOP</code> and <code>0xFE000000</code> does not exist, and cannot be accessed.</p>
+<h1 id="code-comments">Code comments</h1>
+<blockquote>
+<p><code>main</code> calls <code>kvmalloc</code> to create and switch to a page table with the mappings above <code>KERNBASE</code> required for the kernel to run.</p>
+</blockquote>
+<p>Do remember the <code>%esp</code> pointer is well prepared right a moment ago. In <code>entry.S</code> we allocated a per-process kernel stack (4096 bytes) in the kernel. So the next call will store address in the kernel stack, just like an process that just has been trapped in the kernel.</p>
+<p>Jump into <code>kvmalloc</code>: <code>vm.c.138:145</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Allocate one page table for the machine for the kernel address
+</span><span style="color:#75715e">// space for scheduler processes.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">kvmalloc</span>(<span style="color:#66d9ef">void</span>)
+{
+  kpgdir <span style="color:#f92672">=</span> setupkvm();
+  switchkvm();
+}
+</code></pre></div><p><code>kpgdir</code> is the directory of kernel program pages. It is defined above in <code>vm.c</code>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">typedef</span> uint pde_t;
+pde_t <span style="color:#f92672">*</span>kpgdir;  <span style="color:#75715e">// for use in scheduler()
+</span></code></pre></div><p>As far we don&rsquo;t know what is a <code>scheduler</code>, but we just know <code>kpgdir</code> is an entry pointer and  it is global in kernel.</p>
+<p>Jump into <code>setupkvm</code>, where the most work is done.<code>vm.c.117:136</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Set up kernel part of a page table.
+</span><span style="color:#75715e"></span>pde_t<span style="color:#f92672">*</span>
+<span style="color:#a6e22e">setupkvm</span>(<span style="color:#66d9ef">void</span>)
+{
+  pde_t <span style="color:#f92672">*</span>pgdir;
+  <span style="color:#66d9ef">struct</span> kmap <span style="color:#f92672">*</span>k;
+
+  <span style="color:#66d9ef">if</span>((pgdir <span style="color:#f92672">=</span> (pde_t<span style="color:#f92672">*</span>)kalloc()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+  memset(pgdir, <span style="color:#ae81ff">0</span>, PGSIZE);
+  <span style="color:#66d9ef">if</span> (P2V(PHYSTOP) <span style="color:#f92672">&gt;</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)DEVSPACE)
+    panic(<span style="color:#e6db74">&#34;PHYSTOP too high&#34;</span>);
+  <span style="color:#66d9ef">for</span>(k <span style="color:#f92672">=</span> kmap; k <span style="color:#f92672">&lt;</span> <span style="color:#f92672">&amp;</span>kmap[NELEM(kmap)]; k<span style="color:#f92672">++</span>)
+    <span style="color:#66d9ef">if</span>(mappages(pgdir, k<span style="color:#f92672">-&gt;</span>virt, k<span style="color:#f92672">-&gt;</span>phys_end <span style="color:#f92672">-</span> k<span style="color:#f92672">-&gt;</span>phys_start,
+                (uint)k<span style="color:#f92672">-&gt;</span>phys_start, k<span style="color:#f92672">-&gt;</span>perm) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+      freevm(pgdir);
+      <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+    }
+  <span style="color:#66d9ef">return</span> pgdir;
+}
+</code></pre></div><p>first we allocate a 4096 bytes page in physical memory, and clear it totally.</p>
+<p>Then xv6 uses a static <code>struct kmap</code> array to represent the layout of the kernel virtual pages: <code>vm.c.103:115</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// This table defines the kernel&#39;s mappings, which are present in
+</span><span style="color:#75715e">// every process&#39;s page table.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> kmap {
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>virt;
+  uint phys_start;
+  uint phys_end;
+  <span style="color:#66d9ef">int</span> perm;
+} kmap[] <span style="color:#f92672">=</span> {
+ { (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)KERNBASE, <span style="color:#ae81ff">0</span>,             EXTMEM,    PTE_W}, <span style="color:#75715e">// I/O space
+</span><span style="color:#75715e"></span> { (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)KERNLINK, V2P(KERNLINK), V2P(data), <span style="color:#ae81ff">0</span>},     <span style="color:#75715e">// kern text+rodata
+</span><span style="color:#75715e"></span> { (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)data,     V2P(data),     PHYSTOP,   PTE_W}, <span style="color:#75715e">// kern data+memory
+</span><span style="color:#75715e"></span> { (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)DEVSPACE, DEVSPACE,      <span style="color:#ae81ff">0</span>,         PTE_W}, <span style="color:#75715e">// more devices
+</span><span style="color:#75715e"></span>};
+</code></pre></div><p>The four entries in <code>kmap[]</code> correspond to the 4 areas  above <code>KERNBASE</code> in Figure 2.2.</p>
+<p><code>mappages</code> installs the translations that are described in <code>kmap</code> array in page directory. <code>vm.c.57:80</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Create PTEs for virtual addresses starting at va that refer to
+</span><span style="color:#75715e">// physical addresses starting at pa. va and size might not
+</span><span style="color:#75715e">// be page-aligned.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>
+<span style="color:#a6e22e">mappages</span>(pde_t <span style="color:#f92672">*</span>pgdir, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>va, uint size, uint pa, <span style="color:#66d9ef">int</span> perm)
+{
+  <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>a, <span style="color:#f92672">*</span>last;
+  pte_t <span style="color:#f92672">*</span>pte;
+
+  a <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)PGROUNDDOWN((uint)va);
+  last <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)PGROUNDDOWN(((uint)va) <span style="color:#f92672">+</span> size <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>);
+  <span style="color:#66d9ef">for</span>(;;){
+    <span style="color:#66d9ef">if</span>((pte <span style="color:#f92672">=</span> walkpgdir(pgdir, a, <span style="color:#ae81ff">1</span>)) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+      <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">if</span>(<span style="color:#f92672">*</span>pte <span style="color:#f92672">&amp;</span> PTE_P)
+      panic(<span style="color:#e6db74">&#34;remap&#34;</span>);
+    <span style="color:#f92672">*</span>pte <span style="color:#f92672">=</span> pa <span style="color:#f92672">|</span> perm <span style="color:#f92672">|</span> PTE_P;
+    <span style="color:#66d9ef">if</span>(a <span style="color:#f92672">==</span> last)
+      <span style="color:#66d9ef">break</span>;
+    a <span style="color:#f92672">+=</span> PGSIZE;
+    pa <span style="color:#f92672">+=</span> PGSIZE;
+  }
+  <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>In <code>mappages</code>, we use <code>walkpgdir</code> function to find the right page of given virtual address (needs to be rounded down to page borders). <code>vm.c.32:55</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Return the address of the PTE in page table pgdir
+</span><span style="color:#75715e">// that corresponds to virtual address va.  If alloc!=0,
+</span><span style="color:#75715e">// create any required page table pages.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> pte_t <span style="color:#f92672">*</span>
+<span style="color:#a6e22e">walkpgdir</span>(pde_t <span style="color:#f92672">*</span>pgdir, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>va, <span style="color:#66d9ef">int</span> alloc)
+{
+  pde_t <span style="color:#f92672">*</span>pde;
+  pte_t <span style="color:#f92672">*</span>pgtab;
+
+  pde <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>pgdir[PDX(va)];  <span style="color:#75715e">// Get first 10 bits of va, and index page directory entry
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span>(<span style="color:#f92672">*</span>pde <span style="color:#f92672">&amp;</span> PTE_P){ <span style="color:#75715e">// If the page directory entry present
+</span><span style="color:#75715e"></span>    pgtab <span style="color:#f92672">=</span> (pte_t<span style="color:#f92672">*</span>)P2V(PTE_ADDR(<span style="color:#f92672">*</span>pde)); <span style="color:#75715e">// Get the first 20 bits of *pde, and index page table
+</span><span style="color:#75715e"></span>  } <span style="color:#66d9ef">else</span> {
+    <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>alloc <span style="color:#f92672">||</span> (pgtab <span style="color:#f92672">=</span> (pte_t<span style="color:#f92672">*</span>)kalloc()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+      <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#75715e">// Make sure all those PTE_P bits are zero.
+</span><span style="color:#75715e"></span>    memset(pgtab, <span style="color:#ae81ff">0</span>, PGSIZE);
+    <span style="color:#75715e">// The permissions here are overly generous, but they can
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// be further restricted by the permissions in the page table
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// entries, if necessary.
+</span><span style="color:#75715e"></span>    <span style="color:#f92672">*</span>pde <span style="color:#f92672">=</span> V2P(pgtab) <span style="color:#f92672">|</span> PTE_P <span style="color:#f92672">|</span> PTE_W <span style="color:#f92672">|</span> PTE_U;
+  }
+  <span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span>pgtab[PTX(va)];
+}
+</code></pre></div><p>The interesting part is in <code>walkpgdir</code>, it mimics the actions of the x86 paging hardware as it looks up the PTE for a virtual address. walkpgdir uses the upper 10 bits of the virtual address to find the page directory entry. If the page directory entry isn’t present, then the required page table page hasn’t yet been allocated; if the <code>alloc</code> argument is set, walkpgdir allocates it and puts its physical address in the page directory. Finally it uses the next 10 bits of the virtual address to find the address of the PTE in the page table page.</p>
+<h1 id="physical-memory-allocation">Physical memory allocation</h1>
+<p>We said <code>kalloc</code> again and again. When the xv6 works, we need to allocate and free physical memory dynamically.</p>
+<blockquote>
+<p>The kernel must allocate and free physical memory at run-time for page tables, process user memory, kernel stacks, and pipe buffers.</p>
+</blockquote>
+<p>The way <code>kalloc</code> manages memory does not involve with a lot of optimization here. There is a list of all the physical memory pages and <code>kalloc</code> keeps track of them.</p>
+<blockquote>
+<p>There is a bootstrap problem: all of physical memory must be mapped in order for the allocator to initialize the free list, but creating a page table with those mappings involves allocating page-table pages. xv6 solves this problem by using a separate page allocator during entry, which allocates memory just after the end of the kernel’s data segment. This allocator does not support freeing and is limited by the 4 MB mapping in the <code>entrypgdir</code>, but that is sufficient to allocate the first kernel page table.</p>
+</blockquote>
+<h2 id="code-physical-memory-allocator">Code: Physical memory allocator</h2>
+<p>This part is a little difficult to understand, xv6 use a <em>free list</em> to implement allocation, which is the simplest way. <code>kalloc.c.79:95</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Allocate one 4096-byte page of physical memory.
+</span><span style="color:#75715e">// Returns a pointer that the kernel can use.
+</span><span style="color:#75715e">// Returns 0 if the memory cannot be allocated.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>
+<span style="color:#a6e22e">kalloc</span>(<span style="color:#66d9ef">void</span>)
+{
+  <span style="color:#66d9ef">struct</span> run <span style="color:#f92672">*</span>r;
+
+  <span style="color:#66d9ef">if</span>(kmem.use_lock)
+    acquire(<span style="color:#f92672">&amp;</span>kmem.lock);
+  r <span style="color:#f92672">=</span> kmem.freelist;
+  <span style="color:#66d9ef">if</span>(r)
+    kmem.freelist <span style="color:#f92672">=</span> r<span style="color:#f92672">-&gt;</span>next;
+  <span style="color:#66d9ef">if</span>(kmem.use_lock)
+    release(<span style="color:#f92672">&amp;</span>kmem.lock);
+  <span style="color:#66d9ef">return</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)r;
+}
+</code></pre></div><p>Free list strategy does not have the best allocation performance, however it is the simplest way.</p>
+<blockquote>
+<p>The function main calls <code>kinit1</code> and <code>kinit2</code> to initialize the allocator. The reason for having two calls is that for much of main one cannot use locks or memory above 4 megabytes. The call to <code>kinit1</code> sets up for lock-less allocation in the first 4 megabytes, and the call to kinit2 enables locking and arranges for more memory to be allocatable. main ought to determine how much physical memory is available, but this turns out to be difficult on the x86. Instead it assumes that the machine has 224 megabytes (PHYSTOP) of physical memory, and uses all the memory between the end of the kernel and <code>PHYSTOP</code> as the initial pool of free memory. <code>kinit1</code> and <code>kinit2</code> call <code>freerange</code> to add memory to the free list via per-page calls to <code>kfree</code>. A PTE can only refer to a physical address that is aligned on a 4096-byte boundary (is a multiple of 4096), so <code>freerange</code> uses <code>PGROUNDUP</code> to ensure that it frees only aligned physical addresses. The allocator starts with no memory; these calls to <code>kfree</code> give it some to manage.</p>
+</blockquote>
+<p><code>kalloc.c.26:44</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Initialization happens in two phases.
+</span><span style="color:#75715e">// 1. main() calls kinit1() while still using entrypgdir to place just
+</span><span style="color:#75715e">// the pages mapped by entrypgdir on free list.
+</span><span style="color:#75715e">// 2. main() calls kinit2() with the rest of the physical pages
+</span><span style="color:#75715e">// after installing a full page table that maps them on all cores.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">kinit1</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>vstart, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>vend)
+{
+  initlock(<span style="color:#f92672">&amp;</span>kmem.lock, <span style="color:#e6db74">&#34;kmem&#34;</span>);
+  kmem.use_lock <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+  freerange(vstart, vend);
+}
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">kinit2</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>vstart, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>vend)
+{
+  freerange(vstart, vend);
+  kmem.use_lock <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+}
+</code></pre></div><p>The function <code>kfree</code> begins by setting every byte in the memory being freed
+to the value 1. This will cause code that uses memory after freeing it (uses ‘‘dangling
+references’’) to read garbage instead of the old valid contents; hopefully that will cause
+such code to break faster. <code>kalloc.c.54:77</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">//PAGEBREAK: 21
+</span><span style="color:#75715e">// Free the page of physical memory pointed at by v,
+</span><span style="color:#75715e">// which normally should have been returned by a
+</span><span style="color:#75715e">// call to kalloc().  (The exception is when
+</span><span style="color:#75715e">// initializing the allocator; see kinit above.)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">kfree</span>(<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>v)
+{
+  <span style="color:#66d9ef">struct</span> run <span style="color:#f92672">*</span>r;
+
+  <span style="color:#66d9ef">if</span>((uint)v <span style="color:#f92672">%</span> PGSIZE <span style="color:#f92672">||</span> v <span style="color:#f92672">&lt;</span> end <span style="color:#f92672">||</span> V2P(v) <span style="color:#f92672">&gt;=</span> PHYSTOP)
+    panic(<span style="color:#e6db74">&#34;kfree&#34;</span>);
+
+  <span style="color:#75715e">// Fill with junk to catch dangling refs.
+</span><span style="color:#75715e"></span>  memset(v, <span style="color:#ae81ff">1</span>, PGSIZE);
+
+  <span style="color:#66d9ef">if</span>(kmem.use_lock)
+    acquire(<span style="color:#f92672">&amp;</span>kmem.lock);
+  r <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> run<span style="color:#f92672">*</span>)v;
+  r<span style="color:#f92672">-&gt;</span>next <span style="color:#f92672">=</span> kmem.freelist;
+  kmem.freelist <span style="color:#f92672">=</span> r;
+  <span style="color:#66d9ef">if</span>(kmem.use_lock)
+    release(<span style="color:#f92672">&amp;</span>kmem.lock);
+}
+</code></pre></div><h1 id="user-address-space">User address space</h1>
+<p><img src="user.png" alt="Figure 2-3. Memory layout of a user process with its initial stack."></p>
+<p>The program text and data segment start at virtual address 0 and end with a guard page. The guard page is not mapped so when the stack runs out, the hardware will throw an exception.</p>
+<p>The initial content of stack is created by <code>exec</code>.</p>
+<h1 id="code-sbrk">Code: sbrk</h1>
+<p><code>sbrk</code> is the system call for a process to shrink or grow its memory. The system call is implemented by the function <code>growproc</code>. If <code>n</code> is postive, <code>growproc</code> allocates one or more physical pages and maps them at the top of the process’s address space. If <code>n</code> is negative, <code>growproc</code> unmaps one or more pages from the process’s address space and frees the corresponding physical pages. To make these changes, xv6 modifies the process’s page table. The process’s page table is stored in memory, and so the kernel can update the table with ordinary assignment statements, which is what <code>allocuvm</code> and <code>deallocuvm</code> do.</p>
+<p>The x86 hardware caches page table entries in a Translation Lookaside Buffer (TLB), and when xv6 changes the page tables, it must invalidate the cached entries. If it didn’t invalidate the cached entries, then at some point later the TLB might use an old mapping, pointing to a physical page that in the mean time has been allocated to another process, and as a result, a process might be able to scribble on some other process’s memory. Xv6 invalidates stale cached entries, by reloading <code>cr3</code>, the register that holds the address of the current page table.</p>
+<h1 id="code-exec">Code: exec</h1>
+<p><code>exec</code> allocates a new page table with no user mappings with <code>setupkvm</code>, allocates memory for each ELF segment with <code>allocuvm</code>, and loads each segment into
+memory with <code>loaduvm</code>. <code>allocuvm</code> checks that the virtual addresses requested is
+below <code>KERNBASE</code>. <code>loaduvm</code> uses <code>walkpgdir</code> to find the physical address of the allocated memory at which to write each page of the ELF segment, and <code>readi</code> to read
+from the file.</p>
+<blockquote>
+<p>During the preparation of the new memory image, if exec detects an error like an invalid program segment, it jumps to the label bad, frees the new image, and returns –1. Exec must wait to free the old image until it is sure that the system call will succeed: if the old image is gone, the system call cannot return –1 to it. The only error cases in exec happen during the creation of the image. Once the image is complete, exec can install the new image (6701) and free the old one (6702). Finally, exec returns 0.</p>
+</blockquote>
+<h1 id="real-world">Real World</h1>
+<p>The following content come directly from xv6 textbook, which is worth reading.</p>
+<p>Like most operating systems, xv6 uses the paging hardware for memory protection and mapping. Most operating systems use x86’s 64-bit paging hardware (which has 3 levels of translation). 64-bit address spaces allow for a less restrictive memory layout than xv6’s; for example, it would be easy to remove xv6’s limit of 2 gigabytes for physical memory. Most operating systems make far more sophisticated use of paging than xv6; for example, xv6 lacks demand paging from disk, copy-on-write fork, shared memory, lazily-allocated pages, and automatically extending stacks. The x86 supports address translation using segmentation (see Appendix B), but xv6 uses segments only for the common trick of implementing per-cpu variables such as proc that are at a fixed address but have different values on different CPUs (see seginit). Implementations of per-CPU (or per-thread) storage on non-segment architectures would dedicate a register to holding a pointer to the per-CPU data area, but the x86 has so few general registers that the extra effort required to use segmentation is worthwhile.</p>
+<p>Xv6 maps the kernel in the address space of each user process but sets it up so that the kernel part of the address space is inaccessible when the processor is in user mode. This setup is convenient because after a process switches from user space to kernel space, the kernel can easily access user memory by reading memory locations directly. It is probably better for security, however, to have a separate page table for the kernel and switch to that page table when entering the kernel from user mode, so that the kernel and user processes are more separated from each other. This design, for example, would help mitigating side-channels that are exposed by the Meltdown vulnerability and that allow a user process to read arbitrary kernel memory.</p>
+<p>On machines with lots of memory it might make sense to use the x86’s 4-megabytes ‘‘super pages.’’ Small pages make sense when physical memory is small, to allow allocation and page-out to disk with fine granularity. For example, if a program uses only 8 kilobytes of memory, giving it a 4 megabytes physical page is wasteful. Larger pages make sense on machines with lots of RAM, and may reduce overhead for page-table manipulation. Xv6 uses super pages in one place: the initial page table. The array initialization sets two of the 1024 PDEs, at indices zero and 512 (<code>KERNBASE&gt;&gt;PDXSHIFT</code>), leaving the other PDEs zero. Xv6 sets the PTE_PS bit in these two PDEs to mark them as super pages. The kernel also tells the paging hardware to allow super pages by setting the <code>CR_PSE</code> bit (Page Size Extension) in <code>%cr4</code>.</p>
+<p>Xv6 should determine the actual RAM configuration, instead of assuming 224 MB. On the x86, there are at least three common algorithms: the first is to probe the physical address space looking for regions that behave like memory, preserving the values written to them; the second is to read the number of kilobytes of memory out of a known 16-bit location in the PC’s non-volatile RAM; and the third is to look in BIOS memory for a memory layout table left as part of the multiprocessor tables. Reading the memory layout table is complicated.</p>
+<p>Memory allocation was a hot topic a long time ago, the basic problems being efficient use of limited memory and preparing for unknown future requests; see Knuth. Today people care more about speed than space-efficiency. In addition, a more elaborate kernel would likely allocate many different sizes of small blocks, rather than (as in xv6) just 4096-byte blocks; a real kernel allocator would need to handle small allocations as well as large ones.</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

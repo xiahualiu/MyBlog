@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    FPGA EEPROM Communication | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2018-08-09-fpga-eeprom/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2018-08-09-fpga-eeprom/" rel="bookmark">FPGA EEPROM Communication</a>
+  </h2>
+  
+  <time datetime="2018-08-09T00:00:00Z">
+    9 August, 2018
+  </time>
+  
+</header>
+
+  <p>本文将会就 FPGA 的 I2C 总线实现进行实践，在测试的时候，我们使用了一个假象的 EEPROM 对象来进行测试，验证我们设计的合理性。</p>
+<h2 id="i2c-总线物理层与链路层">I2C 总线物理层与链路层</h2>
+<p>I2C 为两线双工总线，两根线分别为 SCL 和 SDA。空闲时 SCL 和 SDA 均为高电平。启动信号由 SCL 处于高电平，SDA 拉低开始。从这个时间后主机输出时钟 SCL，在 SCL 处于低电平状态下进行 SDA 改变，SCL 高电平情况下 SDA 数据被锁定，给丛机读取，最后 SCL 在高电平情况下拉高 SDA 完成传输。</p>
+<p>每传输 8 个位，也就是一个字节后，下一个位的时钟期间，将SDA 释放，成为高电平，接收方将其拉低，应答完毕。</p>
+<h2 id="eeprom-测试模型">EEPROM 测试模型</h2>
+<p>测试使用的 EEPROM 模型是使用 FPGA 实现的理想化简化行为模型，仅仅供测试使用。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#75715e">/* This file is made by EggyCat to implement AT24C02 */</span>
+
+<span style="color:#66d9ef">`timescale</span> <span style="color:#ae81ff">1</span>ns<span style="color:#f92672">/</span><span style="color:#ae81ff">1</span>ns
+<span style="color:#75715e">`define timeslice 100
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">module</span> EEPROM(scl, sda);
+<span style="color:#66d9ef">input</span> scl;
+<span style="color:#66d9ef">inout</span> sda;
+<span style="color:#66d9ef">reg</span> out_flag;
+
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] memory[<span style="color:#ae81ff">2047</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>];
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">10</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] address;
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] memory_buf;
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] sda_buf;
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] shift;
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] addr_byte;
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] ctrl_byte;
+<span style="color:#66d9ef">reg</span>[<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] State;
+
+<span style="color:#66d9ef">integer</span> i;
+
+<span style="color:#66d9ef">parameter</span> r7<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101111</span>, w7<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101110</span>; <span style="color:#75715e">//memory page 7
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r6<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101101</span>, w6<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101100</span>; <span style="color:#75715e">//memory page 6
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r5<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101011</span>, w5<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101010</span>; <span style="color:#75715e">//memory page 5
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r4<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101001</span>, w4<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10101000</span>; <span style="color:#75715e">//memory page 4
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r3<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100111</span>, w3<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100110</span>; <span style="color:#75715e">//memory page 3
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r2<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100101</span>, w2<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100100</span>; <span style="color:#75715e">//memory page 2
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r1<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100011</span>, w1<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100010</span>; <span style="color:#75715e">//memory page 1
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">parameter</span> r0<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100001</span>, w0<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b10100000</span>; <span style="color:#75715e">//memory page 0
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">assign</span> sda<span style="color:#f92672">=</span>(out_flag<span style="color:#f92672">==</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">?</span>sda_buf[<span style="color:#ae81ff">7</span>]<span style="color:#f92672">:</span><span style="color:#ae81ff">1</span>&#39;bz; <span style="color:#75715e">//sda whether output
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">initial</span>
+    <span style="color:#66d9ef">begin</span>
+    addr_byte<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    ctrl_byte<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    out_flag<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    sda_buf<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b00</span>;
+    memory_buf<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    address<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    shift<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+
+    <span style="color:#66d9ef">for</span>(i<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;i<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">2047</span>;i<span style="color:#f92672">=</span>i<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>)
+        memory[i]<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">end</span>
+
+<span style="color:#66d9ef">always</span> @(<span style="color:#66d9ef">negedge</span> sda)
+    <span style="color:#66d9ef">if</span>(scl<span style="color:#f92672">==</span><span style="color:#ae81ff">1</span>)
+        <span style="color:#66d9ef">begin</span>
+            State<span style="color:#f92672">=</span>State<span style="color:#f92672">+</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b01</span>; <span style="color:#75715e">//ModelSim6.0版本以上认为z到1是负跳变沿
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span>(State<span style="color:#f92672">==</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b11</span>)
+                <span style="color:#66d9ef">disable</span> write_to_eeprom;
+        <span style="color:#66d9ef">end</span>
+
+<span style="color:#66d9ef">always</span> @(<span style="color:#66d9ef">posedge</span> sda)
+    <span style="color:#66d9ef">if</span>(scl<span style="color:#f92672">==</span><span style="color:#ae81ff">1</span>)
+        stop_W_R; <span style="color:#75715e">//传输完毕
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">else</span>
+        <span style="color:#66d9ef">begin</span>
+            <span style="color:#66d9ef">casex</span>(State)
+                <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b01</span><span style="color:#f92672">:</span> 
+                <span style="color:#66d9ef">begin</span>
+                    read_in;
+                    <span style="color:#66d9ef">if</span>(ctrl_byte<span style="color:#f92672">==</span>w7 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w6 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w5 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w4 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w3 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w2 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w1 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>w0)
+                    <span style="color:#66d9ef">begin</span>
+                        State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b10</span>;
+                        write_to_eeprom;
+                    <span style="color:#66d9ef">end</span>
+						  <span style="color:#66d9ef">else</span>
+							State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b00</span>;
+					 <span style="color:#66d9ef">end</span>
+                <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b11</span><span style="color:#f92672">:</span>
+                read_from_eeprom;
+                <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+                State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b00</span>;
+            <span style="color:#66d9ef">endcase</span>
+        <span style="color:#66d9ef">end</span>
+
+<span style="color:#66d9ef">task</span> stop_W_R;
+    <span style="color:#66d9ef">begin</span> 
+        State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b00</span>;
+        addr_byte<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+        ctrl_byte<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+        out_flag<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+        sda_buf<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#66d9ef">task</span> read_in;
+    <span style="color:#66d9ef">begin</span>
+        shift_in(ctrl_byte);
+        shift_in(addr_byte);
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#66d9ef">task</span> write_to_eeprom;
+    <span style="color:#66d9ef">begin</span>
+        shift_in(memory_buf);
+        address<span style="color:#f92672">=</span>{ctrl_byte[<span style="color:#ae81ff">3</span><span style="color:#f92672">:</span><span style="color:#ae81ff">1</span>], addr_byte};
+        memory[address]<span style="color:#f92672">=</span>memory_buf;
+        $display(<span style="color:#e6db74">&#34;eeprom---memory[%0h]=%0h&#34;</span>, address, memory[address]);
+        State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b00</span>;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#66d9ef">task</span> read_from_eeprom;
+    <span style="color:#66d9ef">begin</span>
+        shift_in(ctrl_byte);
+        <span style="color:#66d9ef">if</span>(ctrl_byte<span style="color:#f92672">==</span>r7 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r6 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r5 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r4 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r3 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r2 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r1 <span style="color:#f92672">||</span> ctrl_byte<span style="color:#f92672">==</span>r0)
+            <span style="color:#66d9ef">begin</span>
+                address<span style="color:#f92672">=</span>{ctrl_byte[<span style="color:#ae81ff">3</span><span style="color:#f92672">:</span><span style="color:#ae81ff">1</span>], addr_byte};
+                sda_buf<span style="color:#f92672">=</span>memory[address];
+                shift_out;
+                State<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b00</span>;
+            <span style="color:#66d9ef">end</span>
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#66d9ef">task</span> shift_in;
+    <span style="color:#66d9ef">output</span>[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>]shift;
+        <span style="color:#66d9ef">begin</span>
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">7</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">6</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">5</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">4</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">3</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">2</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">1</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">posedge</span> scl) shift[<span style="color:#ae81ff">0</span>]<span style="color:#f92672">=</span>sda;
+            @(<span style="color:#66d9ef">negedge</span> scl)
+                <span style="color:#66d9ef">begin</span>
+                    #<span style="color:#66d9ef">`timeslice</span>;
+                    out_flag<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>;
+                    sda_buf<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+                <span style="color:#66d9ef">end</span>
+            @(<span style="color:#66d9ef">negedge</span> scl)
+                #<span style="color:#66d9ef">`timeslice</span> out_flag<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+        <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#66d9ef">task</span> shift_out;
+    <span style="color:#66d9ef">begin</span>
+        out_flag<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>;
+        <span style="color:#66d9ef">for</span>(i<span style="color:#f92672">=</span><span style="color:#ae81ff">6</span>;i<span style="color:#f92672">&gt;=</span><span style="color:#ae81ff">0</span>;i<span style="color:#f92672">=</span>i<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+            <span style="color:#66d9ef">begin</span> 
+                @(<span style="color:#66d9ef">negedge</span> scl);
+                #<span style="color:#66d9ef">`timeslice</span>;
+                sda_buf<span style="color:#f92672">=</span>sda_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+            <span style="color:#66d9ef">end</span>
+        @(<span style="color:#66d9ef">negedge</span> scl) #<span style="color:#66d9ef">`timeslice</span> sda_buf[<span style="color:#ae81ff">7</span>]<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>;
+        @(<span style="color:#66d9ef">negedge</span> scl) #<span style="color:#66d9ef">`timeslice</span> out_flag<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h2 id="模块分析">模块分析</h2>
+<p>我们可以看到我们的 EEPROM 仿真模块是使用状态机来进行模拟的，<code>State</code> 为状态值，状态机闲置状态时 <code>State=2'b00</code>，EEPROM处于被写状态为 <code>State=2'b01</code>，EEPROM处于被读状态为 <code>State=2'b11</code>。</p>
+<p>启动信号为 sda 的下降沿和 scl 处于高电平时，结束传输信号是 sda 处于上升沿且 scl 为高电平状态。在其他情况下，也就是 sda 处于上升沿且 scl 处于低电平状态时（因为 EEPROM 的第一个控制位一定为 1），我们就认定已经开始传输数据位了，这时触发 <code>read_in</code> 任务，开始顺序在 scl 的上升沿读取 sda 的数据到控制字节和数据字节中。</p>
+<p>应答是通过一个连接标志 <code>out_flag</code> 实现的，sda 会在 <code>out_flag==1</code> 的情况下被连接在 sda_buf[7] 上面。应答是在最后的 scl 下降沿拉低 sda，我们在最后的下降沿将 sda_buf 置为 0，并将 <code>out_flag</code> 置 1 连接即可，在下一个 scl 下降沿（此时应答结束）将 <code>out_flag</code> 置 0，断开输出（sda 置为高阻）。</p>
+<p>读任务完成后，EEPROM 获取了外部的沟通信息，信息分为两类，一类是外部请求读某地址的数据，另一类是外部请求写某地址的数据。我们接下来分析请求是读还是写，使用 if 语句比较第一个字节（控制字节）的信息，如果是请求写数据，那么触发写操作任务；相反如果控制字节是读信息，那么触发读操作任务。</p>
+<p>写操作较为简单，因为不涉及应答，而读操作需要应答。</p>
+<p>在读任务中，我们首先将需要发送的输出放置在 sda_buf 中，然后连接 sda
+和 sda_buf(<code>out_flag=1</code>)，因为我们在之前 read_in 的最后 scl 下降沿没有改变数据，也就是在一开始连接的时候就相当于已经发送出去了一位数据。为了避免冒险，我们定义了 `timeslice 延迟，在这里也可以使用非阻塞的方法避免冒险。在发送完第 8 位后，断开连接释放总线，等待主机拉高 sda（主机接收器不应答）结束通信。</p>
+<p>在 Quartus Prime Lite 中编译提示，在 <code>task shift_in</code> 里面不能产生多事件序列，综合失败。</p>
+<h2 id="可综合的-eeprom-读写器模型">可综合的 EEPROM 读写器模型</h2>
+<p>程序实际上是一个嵌套的状态机，由主状态机和从状态机通过控制线启动的总线在不同的输入信号情况下构成不同功能的较复杂得到有限状态机（FSM）。</p>
+<p>两个状态机的模型，分别为控制时序电路和开关组合电路，开关组合电路控制总线的开闭，有节奏地打开或者闭合，这样 SDA 可以按照 I2C 数据总线的格式输入和输出，使得 SDA 和 SCL 一起完成 EEPROM 的读写操作。</p>
+<p><img src="/img/2018-8-9-FPGA-EEPROM/struct.png" alt=""></p>
+<p>其状态机的状态转移图如：</p>
+<p><img src="/img/2018-8-9-FPGA-EEPROM/FSM.png" alt=""></p>
+<p>状态机的状态编码采用独热编码，减少实现状态机的组合逻辑数目，减少复杂性，提高系统的速度，通常用于高速状态机中（也有编码输出型状态机）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">`timescale</span> <span style="color:#ae81ff">1</span>ns<span style="color:#f92672">/</span><span style="color:#ae81ff">1</span>ns
+
+<span style="color:#66d9ef">module</span> EEPROM_WR(SDA, SCL, ACK, RESET, CLK, WR, RD, ADDR, DATA);
+<span style="color:#66d9ef">output</span> SCL;
+<span style="color:#66d9ef">output</span> ACK;
+<span style="color:#66d9ef">input</span> RESET;
+<span style="color:#66d9ef">input</span> CLK;
+<span style="color:#66d9ef">input</span> WR, RD;
+<span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">10</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] ADDR;
+<span style="color:#66d9ef">inout</span> SDA;
+<span style="color:#66d9ef">inout</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] DATA;
+
+<span style="color:#66d9ef">reg</span> ACK;
+<span style="color:#66d9ef">reg</span> SCL;
+<span style="color:#66d9ef">reg</span> WF, RF;
+<span style="color:#66d9ef">reg</span> FF;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] head_buf;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] stop_buf;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] sh8out_buf;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">8</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] sh8out_state;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">9</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] sh8in_state;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] head_state;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">2</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] stop_state;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">10</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] main_state;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] data_from_rm;
+<span style="color:#66d9ef">reg</span> link_sda;
+<span style="color:#66d9ef">reg</span> link_read;
+<span style="color:#66d9ef">reg</span> link_head;
+<span style="color:#66d9ef">reg</span> link_write;
+<span style="color:#66d9ef">reg</span> link_stop;
+<span style="color:#66d9ef">wire</span> sda1, sda2, sda3, sda4;
+
+<span style="color:#75715e">/* Switch Signal */</span>
+<span style="color:#66d9ef">assign</span> sda1<span style="color:#f92672">=</span>(link_head)<span style="color:#f92672">?</span> head_buf[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>;
+<span style="color:#66d9ef">assign</span> sda2<span style="color:#f92672">=</span>(link_write)<span style="color:#f92672">?</span> sh8out_buf[<span style="color:#ae81ff">7</span>] <span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>;
+<span style="color:#66d9ef">assign</span> sda3<span style="color:#f92672">=</span>(link_stop)<span style="color:#f92672">?</span> stop_buf[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>;
+<span style="color:#66d9ef">assign</span> sda4<span style="color:#f92672">=</span>(sda1<span style="color:#f92672">|</span>sda2<span style="color:#f92672">|</span>sda3);
+<span style="color:#66d9ef">assign</span> SDA<span style="color:#f92672">=</span>(link_sda)<span style="color:#f92672">?</span> sda4: <span style="color:#ae81ff">1</span>&#39;bz;
+<span style="color:#66d9ef">assign</span> DATA<span style="color:#f92672">=</span>(link_read)<span style="color:#f92672">?</span> data_from_rm <span style="color:#f92672">:</span> <span style="color:#ae81ff">8</span>&#39;hzz;
+
+<span style="color:#75715e">/* Main FSM State Definition */</span>
+<span style="color:#66d9ef">parameter</span>
+    IDLE        <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00000000001</span>,
+    Ready       <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00000000010</span>,
+    Write_start <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00000000100</span>,
+    Ctrl_write  <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00000001000</span>,
+    Addr_write  <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00000010000</span>,
+    Data_write  <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00000100000</span>,
+    Read_start  <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00001000000</span>,
+    Ctrl_read   <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00010000000</span>,
+    Data_read   <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b00100000000</span>,
+    Stop        <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b01000000000</span>,
+    Ackn        <span style="color:#f92672">=</span> <span style="color:#ae81ff">11</span><span style="color:#ae81ff">&#39;b10000000000</span>,
+
+<span style="color:#75715e">/* Parallel to Serial Output State Definition */</span>
+    sh8out_bit7 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b000000001</span>,
+    sh8out_bit6 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b000000010</span>,
+    sh8out_bit5 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b000000100</span>,
+    sh8out_bit4 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b000001000</span>,
+    sh8out_bit3 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b000010000</span>,
+    sh8out_bit2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b000100000</span>,
+    sh8out_bit1 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b001000000</span>,
+    sh8out_bit0 <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b010000000</span>,
+    sh8out_end  <span style="color:#f92672">=</span> <span style="color:#ae81ff">9</span><span style="color:#ae81ff">&#39;b100000000</span>,
+
+<span style="color:#75715e">/* Serial to Parallel Output State Definition */</span>
+    sh8in_begin <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0000000001</span>,
+    sh8in_bit7  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0000000010</span>,
+    sh8in_bit6  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0000000100</span>,
+    sh8in_bit5  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0000001000</span>,
+    sh8in_bit4  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0000010000</span>,
+    sh8in_bit3  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0000100000</span>,
+    sh8in_bit2  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0001000000</span>,
+    sh8in_bit1  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0010000000</span>,
+    sh8in_bit0  <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b0100000000</span>,
+    sh8in_end   <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span><span style="color:#ae81ff">&#39;b1000000000</span>,
+
+<span style="color:#75715e">/* Start of Transmission */</span>
+    head_begin <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b01</span>,
+    head_bit   <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b10</span>,
+
+<span style="color:#75715e">/* End of Transmission */</span>
+    stop_begin <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span><span style="color:#ae81ff">&#39;b001</span>,
+    stop_bit   <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span><span style="color:#ae81ff">&#39;b010</span>,
+    stop_end   <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span><span style="color:#ae81ff">&#39;b100</span>,
+
+    YES <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span>,
+    NO  <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>;
+
+<span style="color:#75715e">/* Generate SCL (CLK divided by 2) */</span>
+<span style="color:#66d9ef">always</span> @(<span style="color:#66d9ef">negedge</span> CLK)
+    <span style="color:#66d9ef">if</span>(RESET)
+        SCL<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">else</span>
+        SCL<span style="color:#f92672">&lt;=~</span>SCL;
+
+<span style="color:#75715e">/* Main FSM Status */</span>
+<span style="color:#66d9ef">always</span> @(<span style="color:#66d9ef">posedge</span> CLK)
+    <span style="color:#66d9ef">if</span>(RESET) <span style="color:#75715e">// RESET
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">begin</span>
+            link_read  <span style="color:#f92672">&lt;=</span> NO;
+            link_write <span style="color:#f92672">&lt;=</span> NO;
+            link_head  <span style="color:#f92672">&lt;=</span> NO;
+            link_stop  <span style="color:#f92672">&lt;=</span> NO;
+            link_sda   <span style="color:#f92672">&lt;=</span> NO;
+            ACK        <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+            RF         <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+            WF         <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+            FF         <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+            main_state <span style="color:#f92672">&lt;=</span> IDLE;
+        <span style="color:#66d9ef">end</span>
+    <span style="color:#66d9ef">else</span>
+        <span style="color:#66d9ef">begin</span>
+            <span style="color:#66d9ef">casex</span>(main_state)
+                IDLE:
+                    <span style="color:#66d9ef">begin</span>
+                        link_read  <span style="color:#f92672">&lt;=</span> NO;
+                        link_write <span style="color:#f92672">&lt;=</span> NO;
+                        link_head  <span style="color:#f92672">&lt;=</span> NO;
+                        link_stop  <span style="color:#f92672">&lt;=</span> NO;
+                        link_sda   <span style="color:#f92672">&lt;=</span> NO;
+                        <span style="color:#66d9ef">if</span>(WR)
+                            <span style="color:#66d9ef">begin</span>
+                                WF<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">1</span>;
+                                main_state<span style="color:#f92672">&lt;=</span>Ready;
+                            <span style="color:#66d9ef">end</span>
+                        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span>(RD)
+                            <span style="color:#66d9ef">begin</span>
+                                RF<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">1</span>;
+                                main_state<span style="color:#f92672">&lt;=</span>Ready;
+                            <span style="color:#66d9ef">end</span>
+                        <span style="color:#66d9ef">else</span>
+                            <span style="color:#66d9ef">begin</span>
+                                WF<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">0</span>;
+                                RF<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">0</span>;
+                                main_state<span style="color:#f92672">&lt;=</span>IDLE;
+                            <span style="color:#66d9ef">end</span>
+                    <span style="color:#66d9ef">end</span>
+
+                Ready:
+                    <span style="color:#66d9ef">begin</span>
+                        link_read  <span style="color:#f92672">&lt;=</span> NO;
+                        link_write <span style="color:#f92672">&lt;=</span> NO;
+                        link_head  <span style="color:#f92672">&lt;=</span> YES;
+                        link_stop  <span style="color:#f92672">&lt;=</span> NO;
+                        link_sda   <span style="color:#f92672">&lt;=</span> YES;
+                        head_buf[<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b10</span>;
+                        stop_buf[<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b01</span>;
+                        head_state    <span style="color:#f92672">&lt;=</span> head_begin;
+                        FF  <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                        ACK <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                        main_state <span style="color:#f92672">&lt;=</span> Write_start;
+                    <span style="color:#66d9ef">end</span>
+
+                Write_start:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift_head;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            sh8out_buf[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] <span style="color:#f92672">&lt;=</span>{<span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span>, <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>, <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span>, <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>, ADDR[<span style="color:#ae81ff">10</span><span style="color:#f92672">:</span><span style="color:#ae81ff">8</span>], <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>};
+                            link_head <span style="color:#f92672">&lt;=</span> NO;
+                            link_write <span style="color:#f92672">&lt;=</span> YES;
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                            sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit6;
+                            main_state <span style="color:#f92672">&lt;=</span> Ctrl_write;
+                        <span style="color:#66d9ef">end</span>
+
+                Ctrl_write:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift8_out;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                            <span style="color:#66d9ef">if</span>(WF)
+                                <span style="color:#66d9ef">begin</span>
+                                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit7;
+                                    sh8out_buf[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] <span style="color:#f92672">&lt;=</span> DATA;
+                                    main_state <span style="color:#f92672">&lt;=</span> Data_write;
+                                <span style="color:#66d9ef">end</span>
+                            <span style="color:#66d9ef">if</span>(RF)
+                                <span style="color:#66d9ef">begin</span>
+                                    head_buf <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b10</span>;
+                                    head_state <span style="color:#f92672">&lt;=</span> head_begin;
+                                    main_state <span style="color:#f92672">&lt;=</span> Read_start;
+                                <span style="color:#66d9ef">end</span>
+                        <span style="color:#66d9ef">end</span>
+
+                Addr_write:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift8_out;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                            <span style="color:#66d9ef">if</span>(WF)
+                                <span style="color:#66d9ef">begin</span> 
+                                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit7;
+                                    sh8out_buf[<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] <span style="color:#f92672">&lt;=</span> DATA;
+                                    main_state <span style="color:#f92672">&lt;=</span> Data_write;
+                                <span style="color:#66d9ef">end</span>
+                            <span style="color:#66d9ef">if</span>(RF)
+                                <span style="color:#66d9ef">begin</span>
+                                    head_buf <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">2</span><span style="color:#ae81ff">&#39;b10</span>;
+                                    head_state <span style="color:#f92672">&lt;=</span> head_begin;
+                                    main_state <span style="color:#f92672">&lt;=</span> Read_start;
+                                <span style="color:#66d9ef">end</span>
+                        <span style="color:#66d9ef">end</span>
+
+                Data_write:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift8_out;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            stop_state <span style="color:#f92672">&lt;=</span> stop_begin;
+                            main_state <span style="color:#f92672">&lt;=</span> Stop;
+                            link_write <span style="color:#f92672">&lt;=</span> NO;
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                        <span style="color:#66d9ef">end</span>
+                
+                Read_start:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift_head;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            sh8out_buf <span style="color:#f92672">&lt;=</span> {<span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span>, <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>, <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span>, <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>, ADDR[<span style="color:#ae81ff">10</span><span style="color:#f92672">:</span><span style="color:#ae81ff">8</span>], <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span>};
+                            link_head <span style="color:#f92672">&lt;=</span> NO;
+                            link_sda <span style="color:#f92672">&lt;=</span> YES;
+                            link_write <span style="color:#f92672">&lt;=</span> YES;
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                            sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit6;
+                            main_state <span style="color:#f92672">&lt;=</span> Ctrl_read;
+                        <span style="color:#66d9ef">end</span>
+
+                Data_read:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift8in;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            link_stop <span style="color:#f92672">&lt;=</span> YES;
+                            link_sda <span style="color:#f92672">&lt;=</span> YES;
+                            stop_state <span style="color:#f92672">&lt;=</span> stop_bit;
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                            main_state <span style="color:#f92672">&lt;=</span> Stop;
+                        <span style="color:#66d9ef">end</span>
+                
+                Stop:
+                    <span style="color:#66d9ef">if</span>(FF<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>)
+                        shift_stop;
+                    <span style="color:#66d9ef">else</span>
+                        <span style="color:#66d9ef">begin</span>
+                            ACK <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1</span>;
+                            FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                            main_state <span style="color:#f92672">&lt;=</span> Ackn;
+                        <span style="color:#66d9ef">end</span>
+
+                Ackn:
+                    <span style="color:#66d9ef">begin</span>
+                        ACK <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                        WF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                        RF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                        main_state <span style="color:#f92672">&lt;=</span> IDLE;
+                    <span style="color:#66d9ef">end</span>
+
+                <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span> 
+                    main_state <span style="color:#f92672">&lt;=</span> IDLE;
+            <span style="color:#66d9ef">endcase</span>
+        <span style="color:#66d9ef">end</span>
+
+<span style="color:#75715e">/* Serial to Parallel Task */</span>
+<span style="color:#66d9ef">task</span> shift8in;
+<span style="color:#66d9ef">begin</span>
+    <span style="color:#66d9ef">casex</span>(sh8in_state)
+        sh8in_begin:
+            sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit7;
+        sh8in_bit7:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">7</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit6;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit7;
+        sh8in_bit6:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">6</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit5;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit6;
+        sh8in_bit5:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">5</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit4;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit5;
+        sh8in_bit4:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">4</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit3;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit4;
+        sh8in_bit3:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">3</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit2;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit3;
+        sh8in_bit2:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">2</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit1;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit2;
+        sh8in_bit1:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit0;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit1;
+        sh8in_bit0:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    data_from_rm[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">&lt;=</span> SDA;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_end;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit0;
+        sh8in_end:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_read <span style="color:#f92672">&lt;=</span> YES;
+                    FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1</span>;
+                    sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit7;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_end;
+        <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+            <span style="color:#66d9ef">begin</span>
+                link_read <span style="color:#f92672">&lt;=</span> NO;
+                sh8in_state <span style="color:#f92672">&lt;=</span> sh8in_bit7;
+            <span style="color:#66d9ef">end</span>
+    <span style="color:#66d9ef">endcase</span>
+<span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#75715e">/* Parallel to Serial Task */</span>
+<span style="color:#66d9ef">task</span> shift8_out;
+<span style="color:#66d9ef">begin</span>
+    <span style="color:#66d9ef">casex</span>(sh8out_state)
+        sh8out_bit7:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_sda <span style="color:#f92672">&lt;=</span> YES;
+                    link_write <span style="color:#f92672">&lt;=</span> YES;
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit6;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit7;
+        sh8out_bit6:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_sda <span style="color:#f92672">&lt;=</span> YES;
+                    link_write <span style="color:#f92672">&lt;=</span> YES;
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit5;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit6;
+        sh8out_bit5:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit4;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit5;
+        sh8out_bit4:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit3;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit4;
+        sh8out_bit3:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit2;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit3;
+        sh8out_bit2:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit1;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit2;
+        sh8out_bit1:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit0;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit1;
+        sh8out_bit0:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_end;
+                    sh8out_buf <span style="color:#f92672">&lt;=</span> sh8out_buf<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_bit0;
+        sh8out_end:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_sda <span style="color:#f92672">&lt;=</span> NO;
+                    link_write <span style="color:#f92672">&lt;=</span> NO;
+                    FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                sh8out_state <span style="color:#f92672">&lt;=</span> sh8out_end;
+    <span style="color:#66d9ef">endcase</span>
+<span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#75715e">/* Start of Transmission Task */</span>
+<span style="color:#66d9ef">task</span> shift_head;
+<span style="color:#66d9ef">begin</span>
+    <span style="color:#66d9ef">casex</span>(head_state)
+        head_begin:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_write <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>;
+                    link_sda <span style="color:#f92672">&lt;=</span> YES;
+                    link_head <span style="color:#f92672">&lt;=</span> YES;
+                    head_state <span style="color:#f92672">&lt;=</span> head_bit;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                head_state <span style="color:#f92672">&lt;=</span> head_begin;
+        head_bit:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1</span>;
+                    head_buf <span style="color:#f92672">&lt;=</span> head_buf <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>;
+                    head_state <span style="color:#f92672">&lt;=</span> head_bit;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                head_state <span style="color:#f92672">&lt;=</span> head_bit;
+    <span style="color:#66d9ef">endcase</span>
+<span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+
+<span style="color:#75715e">/* End of Transmission */</span>
+<span style="color:#66d9ef">task</span> shift_stop;
+<span style="color:#66d9ef">begin</span>
+    <span style="color:#66d9ef">casex</span>(stop_state)
+        stop_begin:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_sda <span style="color:#f92672">&lt;=</span> YES;
+                    link_write <span style="color:#f92672">&lt;=</span> NO;
+                    link_stop <span style="color:#f92672">&lt;=</span> YES;
+                    stop_state <span style="color:#f92672">&lt;=</span> stop_bit;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                stop_state <span style="color:#f92672">&lt;=</span> stop_begin;
+        stop_bit:
+            <span style="color:#66d9ef">if</span>(SCL)
+                <span style="color:#66d9ef">begin</span>
+                    stop_buf <span style="color:#f92672">&lt;=</span> stop_buf <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>;
+                    stop_state <span style="color:#f92672">&lt;=</span> stop_end;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                stop_state <span style="color:#f92672">&lt;=</span> stop_bit;
+        stop_end:
+            <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span>SCL)
+                <span style="color:#66d9ef">begin</span>
+                    link_head <span style="color:#f92672">&lt;=</span> NO;
+                    link_stop <span style="color:#f92672">&lt;=</span> NO;
+                    link_sda <span style="color:#f92672">&lt;=</span> NO;
+                    FF <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">1</span>;
+                <span style="color:#66d9ef">end</span>
+            <span style="color:#66d9ef">else</span>
+                stop_state <span style="color:#f92672">&lt;=</span> stop_end;
+    <span style="color:#66d9ef">endcase</span>
+<span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h2 id="读写器模型解析">读写器模型解析</h2>
+<p>在这个读写器模型中，我认为难点在于两个，一个是开关的控制，另外一个是状态机状态的转换过程。</p>
+<p>首先我们来讨论开关的控制。我们用了四个开关来控制 SDA 线的输入和输出，其中 <code>link_sda</code> 为总的使能开关，控制着总线的释放还是占据，释放的时候，sda 处于高阻态，也就是处于读取状态。而剩余的三个开关 <code>link_head</code>/<code>link_write</code>/<code>link_stop</code> 仅仅控制 sda 的移位寄存器连接关系，而这三个开关是互斥的，也就是同时 sda 所连接的寄存器只可能是 “启动信号”，“数据信号”，“停止信号” 中的一种寄存器中的最高位。</p>
+<p>之所以启动信号和停止信号都是两位的寄存器，是因为我们要通过 <strong>位移寄存器</strong> 来产生跳边沿。而数据寄存器没有多于一位，我们在描述中<code>shift8_out</code> 任务中，8 位的数据只位移了 7 次，第一次只连接寄存器，而不位移。</p>
+<p>在发送完启动信号之后的 <code>Write_start</code> 状态中，我们的 <code>shift8_out</code> 是从第 bit6 状态开始的，因为在这之前已经完成了开关，相当于已经发送了一位了。而在 <code>Addr_write</code> 中，我们则是从 bit7 状态开始的，因为我们其实在这个时候空出了一个 SCL 的低电平总线没有占据，在这个时间内是应答信号的时间。</p>
+<h2 id="状态机分析和-rtl-网表">状态机分析和 RTL 网表</h2>
+<p>状态机的分析很清晰：</p>
+<p><img src="/img/2018-8-9-FPGA-EEPROM/Serial_Check_main_state.png" alt=""></p>
+<p>相比之下，RTL 网表的分析就有些复杂了，因为我们设计的状态机用到了许多寄存器：</p>
+<p><img src="/img/2018-8-9-FPGA-EEPROM/RTL.png" alt=""></p>
+<p>至此，我们完成了对于 EEPROM 读写器的模型建立过程，在未来我们将会对于这个模型使用我们写好的 EEPROM 模块进行测试。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

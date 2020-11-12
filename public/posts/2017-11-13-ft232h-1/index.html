@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    FT232H Notes | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-11-13-ft232h-1/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-11-13-ft232h-1/" rel="bookmark">FT232H Notes</a>
+  </h2>
+  
+  <time datetime="2017-11-13T00:00:00Z">
+    13 November, 2017
+  </time>
+  
+</header>
+
+  <p>好久不见了朋友们。</p>
+<p>这段时间忙于项目设计上面的问题，前一段时间在 S32K144 上面进行了针对 W5500 以太网模块的适配，结果不尽人意，速度最快也只能到达 520KB/s 的速度（在 20MHz 的 LPSPI 时钟频率下），由于项目要求至少能够达到 1Mb/s 的速度，所以只能换一个芯片，于是我发现了这一块芯片，英国 FTDI 半导体公司生产的 FT232H 芯片，主要是实现了 USB 到各个单片机其他协议的转换功能，根据其官方数据，其 SPI 端口最多可以支持 30MHz 的时钟频率，这个速度相当可观，因为在大部分情况下，SPI 的时钟频率都不会超过这个值，相当于 SPI 的物理极限了。但是这块芯片的资料实在是少之又少，大部分人使用这块芯片都是在 FPGA 上设计 FIFO 转 USB 功能的，所以又回到了最艰苦奋斗的状态————读文档，幸好本渣英语好，加上 S32K144 2000 页的文档都搞定了，这个几百页的基本上不算问题了。</p>
+<h3 id="ft232h-基本信息">FT232H 基本信息</h3>
+<p>（全部翻译自官方文档）</p>
+<ul>
+<li>单通道的 USB to 串/并口</li>
+<li>片内 USB 全协议处理，不需要额外的硬件编程需要</li>
+<li>支持 USB2.0(480Mbits/s) 和 USB Full-Speed(8Mbits/s)</li>
+<li>多协议同步串口引擎（MPSSE）简化了同步串口协议的设计流程</li>
+<li>UART 传输速率可达 12Mbaud（RS232 传输速度受到外部的电平转变器的限制）</li>
+<li>USB to 异步 245 FIFO 模式可达 8Mbytes/s 的速度</li>
+<li>USB to 同步 245 FIFO 模式可达 40Mbytes/s 的速度</li>
+<li>支持一个半双工 FT1248 界面，可以设置的数据总线宽度(1, 2, 4 or 8 bits wide)</li>
+<li>CPU-style FIFO 界面简化 CPU 界面设计</li>
+<li>快速串口界面选项</li>
+<li>FTDI 皇家自由虚拟串口（VCP），和直接（D2XX）降低了开发 USB 驱动的设计需求</li>
+<li>可调整的接受数据缓冲超时</li>
+<li>发送或者接受 LED 驱动信号</li>
+<li>Bit-Bang 模式界面设置通过 RD# 和 WR# 频闪</li>
+<li>高度集成化设计，包含了 5V 到 3.3V 或 +1.8V 的 LDO 线性稳压器给 VCORE 供电，并集成 POR 上电复位功能</li>
+<li>异步 UART 界面选项，包含完全的硬件握手和调制信号功能</li>
+<li>支持硬件 X-ON 和 X-OFF 握手</li>
+<li>UART 支持 7/8 bits 数据位 1/2 bits 停止位和，奇校验/偶校验/Mark<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>/Space<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>/无校验位 校验方式</li>
+<li>自动发送控制 RS485 串口应用通过 TXDEN 管脚</li>
+<li>操作模式设置和 USB 描述字符串设置在外部的 EEPROM 通过 USB 界面进行设置</li>
+<li>可设置的 I/O 驱动力（4, 8, 12 or 16mA）和摆动速度</li>
+<li>低工作功率和闲置功率</li>
+<li>支持自我供电，总线供电，高功率总线供电</li>
+<li>UHCI/OHCI/EHCI 主机控制器支持</li>
+<li>USB 块数据传输功能，一次传输 512 字节包（在高速传输模式下）。</li>
+<li>+1.8V 核心电压和 3.3V I/O 界面电压（耐压 5V）</li>
+<li>-40°C to 85°C 工业级工作范围</li>
+<li>紧凑 48 管脚无铅 LQFP 封装或 QFN 封装</li>
+<li>可设置的 ACBUS I/O 管脚</li>
+</ul>
+<h3 id="驱动设置">驱动设置</h3>
+<p>FT232H 需要一个 USB 驱动，有 VCP 和 D2XX 两种，VCP 会创建一个虚拟串口，允许串口操作应用操作，D2XX 则是使用 DLL 来直接操作 FT232H</p>
+<h3 id="模块图">模块图</h3>
+<p><img src="/img/2017-11-13-FT232H_1/FT232H_Block.png" alt="FT232H block diagram"></p>
+<h3 id="引脚图mpsse">引脚图（MPSSE）</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">管脚号</th>
+<th style="text-align:center">管脚名称</th>
+<th style="text-align:center">MPSSE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">13</td>
+<td style="text-align:center">ADBUS0</td>
+<td style="text-align:center">TCK/SK<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup></td>
+</tr>
+<tr>
+<td style="text-align:center">14</td>
+<td style="text-align:center">ADBUS1</td>
+<td style="text-align:center">TDI/DO<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup></td>
+</tr>
+<tr>
+<td style="text-align:center">15</td>
+<td style="text-align:center">ADBUS2</td>
+<td style="text-align:center">TDO/DI<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup></td>
+</tr>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">ADBUS3</td>
+<td style="text-align:center">TMS/CS<sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup></td>
+</tr>
+<tr>
+<td style="text-align:center">17</td>
+<td style="text-align:center">ADBUS4</td>
+<td style="text-align:center">GPIOL0</td>
+</tr>
+<tr>
+<td style="text-align:center">18</td>
+<td style="text-align:center">ADBUS5</td>
+<td style="text-align:center">GPIOL1</td>
+</tr>
+<tr>
+<td style="text-align:center">19</td>
+<td style="text-align:center">ADBUS6</td>
+<td style="text-align:center">GPIOL2</td>
+</tr>
+<tr>
+<td style="text-align:center">20</td>
+<td style="text-align:center">ADBUS7</td>
+<td style="text-align:center">GPIOL3</td>
+</tr>
+<tr>
+<td style="text-align:center">21</td>
+<td style="text-align:center">ACBUS0</td>
+<td style="text-align:center">GPIOH0</td>
+</tr>
+<tr>
+<td style="text-align:center">25</td>
+<td style="text-align:center">ACBUS1</td>
+<td style="text-align:center">GPIOH1</td>
+</tr>
+<tr>
+<td style="text-align:center">26</td>
+<td style="text-align:center">ACBUS2</td>
+<td style="text-align:center">GPIOH2</td>
+</tr>
+<tr>
+<td style="text-align:center">27</td>
+<td style="text-align:center">ACBUS3</td>
+<td style="text-align:center">GPIOH3</td>
+</tr>
+<tr>
+<td style="text-align:center">28</td>
+<td style="text-align:center">ACBUS4</td>
+<td style="text-align:center">GPIOH4</td>
+</tr>
+<tr>
+<td style="text-align:center">29</td>
+<td style="text-align:center">ACBUS5</td>
+<td style="text-align:center">GPIOH5</td>
+</tr>
+<tr>
+<td style="text-align:center">30</td>
+<td style="text-align:center">ACBUS6</td>
+<td style="text-align:center">GPIOH6</td>
+</tr>
+<tr>
+<td style="text-align:center">31</td>
+<td style="text-align:center">ACBUS7</td>
+<td style="text-align:center">GPIOH7<sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup></td>
+</tr>
+<tr>
+<td style="text-align:center">32</td>
+<td style="text-align:center">ACBUS8</td>
+<td style="text-align:center">ACBUS8<sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup></td>
+</tr>
+<tr>
+<td style="text-align:center">33</td>
+<td style="text-align:center">ACBUS9</td>
+<td style="text-align:center">ACBUS9<sup id="fnref:9"><a href="#fn:9" class="footnote-ref" role="doc-noteref">9</a></sup></td>
+</tr>
+</tbody>
+</table>
+<h3 id="mpsse-简介">MPSSE 简介</h3>
+<p>这个就是我想要的功能了，MPSSE 模式允许 FT232H 有效的和同步串口协议（JTAG, I2C, SPI(MASTER)）总线交互。</p>
+<p>MPSSE 是完全可设置的，设置需要通过沿着数据流发送命令。这些命令可以被单独发送或者打包成为数据包发送，MPSSE 最多支持数据速度为 30Mbits/s。</p>
+<p>注意在使用 MPSSE 模拟 SPI 总线的时候，FT232H 是处于主机模式状态下的。</p>
+<p>在产品介绍当中，FT232H 主要是作为 PC 端通过 USB 来下载代码或者下命令使用的，所以在软件的设计中，也主要是集中在 PC 端进行设计说明的，这在一定程度上给我们未来的软件开发带来了一定的便利。但是在硬件开发层面，可能会带来一定程度上的困难，因为我主要是将单片机作为数据输出的。</p>
+<h4 id="mpsse-波形图">MPSSE 波形图</h4>
+<p>MPSSE 的波形如下所示，这是一个同步串口通用波形，所以我们在设计的时候要针对协议进行波形控制。
+<img src="/img/2017-11-13-FT232H_1/MPSSE_Waveform.png" alt="MPSSE_Waveform"></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Min</th>
+<th style="text-align:center">Typ</th>
+<th style="text-align:center">Max</th>
+<th style="text-align:center">Units</th>
+<th style="text-align:center">Comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">t1</td>
+<td style="text-align:center">15.15<sup id="fnref:10"><a href="#fn:10" class="footnote-ref" role="doc-noteref">10</a></sup></td>
+<td style="text-align:center">16.67</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">ns</td>
+<td style="text-align:center">CLKOUT 总周期</td>
+</tr>
+<tr>
+<td style="text-align:center">t2</td>
+<td style="text-align:center">7.5</td>
+<td style="text-align:center">8.33</td>
+<td style="text-align:center">9.17</td>
+<td style="text-align:center">ns</td>
+<td style="text-align:center">CLKOUT 高位时长</td>
+</tr>
+<tr>
+<td style="text-align:center">t3</td>
+<td style="text-align:center">7.5</td>
+<td style="text-align:center">8.33</td>
+<td style="text-align:center">9.17</td>
+<td style="text-align:center">ns</td>
+<td style="text-align:center">CLKOUT 低位时长</td>
+</tr>
+<tr>
+<td style="text-align:center">t4</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">7.15</td>
+<td style="text-align:center">ns</td>
+<td style="text-align:center">CLKOUT to TDI/DO 延迟</td>
+</tr>
+<tr>
+<td style="text-align:center">t5</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">ns</td>
+<td style="text-align:center">TDI/DO 维持时间</td>
+</tr>
+<tr>
+<td style="text-align:center">t6</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">8.33</td>
+<td style="text-align:center">9.17</td>
+<td style="text-align:center">ns</td>
+<td style="text-align:center">TDI/DO 设置时间</td>
+</tr>
+</tbody>
+</table>
+<p>fine，我承认这个时序图完全没看懂，不管了，在下面有 MPSSE 对应协议的设置推荐，直接去看我想用的 SPI 章节。</p>
+<h3 id="mpsse-设置">MPSSE 设置</h3>
+<p>所有的 MPSSE 命令或者是 GPIO 命令，都是通过 USB 总线从 PC 端发送到 FT 串口端。在这个过程中 <strong>必须使用 D2XX API</strong>，并且所有的 MPSSE 命令都是通过读写命令实现的，并且应当注意需要的模块和驱动。</p>
+<p>请注意一旦硬件连接被建立，工程师必须决定如何设置 MPSSE 让其与目标硬件单位沟通，下列是需要设置的参数。</p>
+<h4 id="msblsb-和-数据长度">MSB/LSB 和 数据长度</h4>
+<p>请确定目标设备的 MSB/LSB 方向以及传输数据的长度。
+MPSSE 命令运行在字节层面上，例如传输十进制 16 ，将会先发送一个 <code>0x00</code> 字节，在发送 <code>0x01</code> 字节（MSB）。但是也可以设置成为基于位的传输方式，以适应不适应字节传输的设备上。</p>
+<h4 id="时钟">时钟</h4>
+<p>和数据传输方向一样，设定时钟是非常重要的。</p>
+<h5 id="分频因子">分频因子</h5>
+<p>$$Data Speed=\frac{60MHz}{((1+Divisor) \times 2)}$$</p>
+<p>FTx232H 的分频因子是一个从 <code>0x0000</code> 到 <code>0xFFFF</code> 的数，也就是说数据的的速度从 30MHz 到 460Hz 之间。并且在 FTx232H 上有一个 5 的分频系数选项以维持稳定性。当开启的时候，将上式中的 <code>60MHz</code> 更换为 <code>12MHz</code> 即可。</p>
+<h5 id="沿设置">沿设置</h5>
+<p>数据在默认情况下是在时钟的边沿进行读取和更改的，所以沿设置是必须的。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">传输时钟沿</th>
+<th style="text-align:center">接收时钟沿</th>
+<th style="text-align:center">空闲时钟状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Rising</td>
+<td style="text-align:center">Rising</td>
+<td style="text-align:center">Not Valid</td>
+</tr>
+<tr>
+<td style="text-align:center">Rising</td>
+<td style="text-align:center">Falling</td>
+<td style="text-align:center">Low</td>
+</tr>
+<tr>
+<td style="text-align:center">Falling</td>
+<td style="text-align:center">Rising</td>
+<td style="text-align:center">High</td>
+</tr>
+<tr>
+<td style="text-align:center">Falling</td>
+<td style="text-align:center">Falling</td>
+<td style="text-align:center">Not Valid</td>
+</tr>
+<tr>
+<td style="text-align:center">Rising</td>
+<td style="text-align:center">No data transfer</td>
+<td style="text-align:center">Low</td>
+</tr>
+<tr>
+<td style="text-align:center">Falling</td>
+<td style="text-align:center">No data transfer</td>
+<td style="text-align:center">High</td>
+</tr>
+<tr>
+<td style="text-align:center">No data transfer</td>
+<td style="text-align:center">Rising</td>
+<td style="text-align:center">Low</td>
+</tr>
+<tr>
+<td style="text-align:center">No data transfer</td>
+<td style="text-align:center">Falling</td>
+<td style="text-align:center">High</td>
+</tr>
+</tbody>
+</table>
+<h4 id="杂项">杂项</h4>
+<h5 id="初始管脚状态">初始管脚状态</h5>
+<p>设定初始的时钟状态：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">初始 SK 状态</th>
+<th style="text-align:center">产生的时钟脉冲</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">低</td>
+<td style="text-align:center">低-高-低</td>
+</tr>
+<tr>
+<td style="text-align:center">高</td>
+<td style="text-align:center">高-低-高</td>
+</tr>
+</tbody>
+</table>
+<p>在发送和接受任何数据前，四个 MPSSE 管脚和 GPIO 管脚都应该设置为正确的数据方向，如果是输出状态，则应该设置其初始状态。</p>
+<h5 id="buffer-sizes">Buffer Sizes</h5>
+<p>MPSSE 数据和命令都混合在一个单独的 Buffer 下，多命令可以被送到 MPSSE 通过简单的调用 <code>FT_Write</code>，在这个过程中应用缓存必须有充足的大小才能一次性处理多命令和数据。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">数据类型</th>
+<th style="text-align:center">数据长度（bytes）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Command</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">Data length</td>
+<td style="text-align:center">2</td>
+</tr>
+<tr>
+<td style="text-align:center">Data payload</td>
+<td style="text-align:center">1 到 65536</td>
+</tr>
+<tr>
+<td style="text-align:center"><strong>Total</strong></td>
+<td style="text-align:center"><strong>4 到 65539</strong></td>
+</tr>
+</tbody>
+</table>
+<p>上表为 Buffer 分配制度。</p>
+<h3 id="mpsse-软件设置">MPSSE 软件设置</h3>
+<p>所有的 MPSSE 交流都是通过 FTDI D2XX API 实现的，其官方手册如下 <a href="http://www.ftdichip.com/Support/Documents/ProgramGuides/D2XX_Programmer's_Guide(FT_000071).pdf">FTDI D2XX Programmer’s Guide</a>，实现的必须步骤如下所示：</p>
+<p><img src="/img/2017-11-13-FT232H_1/MPSSE_Flow_Chart.png" alt="MPSSE_Flow_Chart"></p>
+<h4 id="确认设备连接并打开处理">确认设备连接并打开处理</h4>
+<p>在使用 MPSSE 前，应用程序需要了解有多少 FT 系列设备被连接在了主机系统上，并且选择其中正确的一个。这个过程是通过 D2XX API 调用实现的：</p>
+<ol>
+<li><code>FT_CreateDeviceInfoList</code> 这个调用返回可用的 FT 系列设备数量，<strong>重要</strong>：多端口的设备的每个端口都会被统计到这个数值内。</li>
+<li><code>FT_GetDeviceInfoList</code> 或者 <code>FT_GetDeviceInfoListDetail</code> 取决于使用方法，这个调用返回每个可用设备的信息，例如设备名称，端口名（例如 “FT2232H A” 或 “FT2232H B”），对应的 USB 地址 ID，USB 串口序号，还有最重要的 <strong>USB Handle</strong> 值。</li>
+<li><code>FT_Open</code> 或 <code>FT_OpenEx</code> 一旦端口信息被确定，下一步则可以打开端口，基于端口对应的 <strong>USB Handle</strong> 值。</li>
+</ol>
+<h4 id="设置-ftdi-端口为-mpsse-功能">设置 FTDI 端口为 MPSSE 功能</h4>
+<p>在打开端口后，一些参数需要被设置才能够正式打开 MPSSE，这个步骤包括以下：</p>
+<ol>
+<li><code>FT_ResetDevice</code> 重置 FTDI 外围端口</li>
+<li><code>FT_SetUSBParameters</code> 设置最大的 USB 传输字节，这个值可以被设置成为 64 bytes 到 64 Kbytes，取决于需要传输的数据总量，输入和输出的大小可以分别设置。</li>
+<li><code>FT_SetChars</code> 设置事件和错误码，大多数应用会禁用事件和错误代码。</li>
+<li><code>FT_SetTimeouts</code> 设置读取和写入的超时时间（毫秒），超时选项在默认状态下是禁用的，这个选项主要是给驱动一个突破错误传输的手段。</li>
+<li><code>FT_SetLatencyTimer</code> 这个设置在发送一个不完全的 USB 数据包前的等待时间，如果需要的快速反应，请将此值设置成为较小的值。</li>
+<li><code>FT_SetFlowControl</code> 设置 RTS/CTS 流控制以确认驱动不会响应 IN 请求如果 buffer 无法接受数据。</li>
+<li><code>FT_SetBitMode</code> 设置 <code>mode = 0, mask = 0</code> 以重置 MPSSE 控制器，但不会给端口重置。</li>
+<li><code>FT_SetBitMode</code> 设置 <code>mode = 2, mask = 0</code> 启用 MPSSE 控制器，引脚方向会在接下来的 MPSSE 命令中设置。</li>
+</ol>
+<h4 id="设置-mpsse">设置 MPSSE</h4>
+<p>在这个状态下，MPSSE 已经可以接受命令了，MPSSE 命令包含一个 op-code 和一到多个参数，参数已经被 <a href="http://www.ftdichip.com/Support/Documents/ProgramGuides/D2XX_Programmer's_Guide(FT_000071).pdf">FTDI D2XX Programmer’s Guide</a> 中定义了。</p>
+<p><code>FT_Write</code> 用于向 MPSSE 发送命令，反馈则使用 <code>FT_Read</code> 读取。</p>
+<h5 id="同步和坏命令侦测">同步和坏命令侦测</h5>
+<p>如果有一个坏命令被侦测到，MPSSE 将会返回 <code>0xFA</code> 同时跟着错误字节。</p>
+<p>使用坏命令侦测是决定 MPSSE 是否和应用同步的推荐方法，通过故意发送一个坏命令，等待 <code>0xFA</code> 应用可以确定与 MPSSE 之间的沟通是否有效。</p>
+<h5 id="mpsse-建立">MPSSE 建立</h5>
+<p>通过连接建立，MPSSE 必须设置时钟速度，管脚方向和初始管脚状态。FTx232H 有一个额外的参数是 5 分频器，3 相时钟和 JTAG 适应性时钟。虽然默认的设置可能对特定应用有效，但是发送 op-code 设置所有的特性会让程序更可靠。</p>
+<h4 id="串口交流">串口交流</h4>
+<p>一旦所有的参数被设置后，与外围的沟通有可能会发生，MPSSE 为了诊断连接目的可以被设置为 loop-back 模式，数据会被传输到 DO 管脚，同时也会被传输到 DI 管脚。</p>
+<p>在正常模式和回送模式下，一共有 32 种 数据的发送和接收选择，选择的 op-codee 决定于以下的选项：</p>
+<ul>
+<li>MSB 或者是 LSB 传输，注意这个是字节的传输顺序，如果数据长于 8-bits，则需要注意每个字节在 buffer 中的存放顺序是否正确。</li>
+<li>只发送数据、只接收数据、既接收又发送数据。</li>
+<li>发送数据沿，接收数据沿</li>
+</ul>
+<p>使用 <code>FT_Write</code> 发送命令到 Buffer 中需要跟随 <code>FT_GetStatus</code> 和 <code>FT_Read</code> 去读取外围的反馈信息。</p>
+<h4 id="gpio-访问">GPIO 访问</h4>
+<p>每个带有 MPSSE 的 FTDI 芯片都有一些管脚可以用于通用目的输入或者输出。在串口通信的时候，<code>FT_Write</code> 用于设置方向和输出值使 MPSSE 返回真实的管脚状态。在对 MPSSE 使用 <code>read GPIO</code> 命令后，<code>FT_Read</code> 将会取回包含引脚状态的数据。</p>
+<h4 id="关闭处理程序">关闭处理程序</h4>
+<p>当应用完成与外围的沟通的时候，处理程序必须被正确关闭。虽然不是额外的需要，但是重启 MPSSE 并将管脚置为空闲状态是一个推荐的选择。</p>
+<h4 id="例程">例程</h4>
+<h5 id="第一段设置了一些变量用于以后使用">第一段设置了一些变量用于以后使用</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">_tmain</span>(<span style="color:#66d9ef">int</span> argc, _TCHAR<span style="color:#f92672">*</span> argv[])
+{
+<span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e">// Variables
+</span><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e"></span>FT_HANDLE ftHandle; <span style="color:#75715e">/* FTDI device 处理对象 */</span>
+FT_STATUS ftStatus; <span style="color:#75715e">/* 每个 D2XX 调用的结果 */</span>
+DWORD dwNumDevs; <span style="color:#75715e">/* 设备数量 */</span>
+<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> uiDevIndex <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xF</span>; <span style="color:#75715e">/* 要用到的设备索引 */</span>
+BYTE byOutputBuffer[<span style="color:#ae81ff">8</span>]; <span style="color:#75715e">/* MPSSE 命令和数据缓存（发送） */</span>
+BYTE byInputBuffer[<span style="color:#ae81ff">8</span>]; <span style="color:#75715e">/* MPSSE 命令和数据缓存（接收） */</span>
+DWORD dwCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 循环计数 */</span>
+DWORD dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 输出缓存索引 */</span>
+DWORD dwNumBytesSent <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* FT_Write 实际输出字节统计 */</span>
+DWORD dwNumBytesToRead <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 目前接收缓存中的字节 */</span>
+DWORD dwNumBytesRead <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* FT_Read 实际读取的字节统计 */</span>
+DWORD dwClockDivisor <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x05DB</span>; <span style="color:#75715e">/* 时钟分频因子, SCL Frequency = 60/((1+0x05DB)*2) (MHz) = 1Mhz */</span>
+</code></pre></div><h5 id="确认设备存在并打开处理">确认设备存在并打开处理</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e">// Does an FTDI device exist?
+</span><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e"></span>printf(<span style="color:#e6db74">&#34;Checking for FTDI devices...</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+ftStatus <span style="color:#f92672">=</span> FT_CreateDeviceInfoList(<span style="color:#f92672">&amp;</span>dwNumDevs);
+<span style="color:#75715e">/* 取得 FTDI 设备数量 */</span>
+<span style="color:#66d9ef">if</span> (ftStatus <span style="color:#f92672">!=</span> FT_OK) <span style="color:#75715e">/* 命令是否正确执行 */</span>
+{
+printf(<span style="color:#e6db74">&#34;Error in getting the number of devices</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+<span style="color:#66d9ef">if</span> (dwNumDevs <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>) <span style="color:#75715e">/* 如果无设备则退出 */</span>
+{
+printf(<span style="color:#e6db74">&#34;There are no FTDI devices installed</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+printf(<span style="color:#e6db74">&#34;%d FTDI devices found \
+</span><span style="color:#e6db74">- the count includes individual ports on a single chip</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, dwNumDevs);
+<span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e">// 打开端口 - 这个应用默认第一个设备是 FTx232H 设备
+</span><span style="color:#75715e">// 在打开端口前，可以检查设备的描述，地点，串口号，等等
+</span><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e"></span>printf(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Assume first device has the MPSSE and open it...</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+ftStatus <span style="color:#f92672">=</span> FT_Open(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">&amp;</span>ftHandle);
+<span style="color:#66d9ef">if</span> (ftStatus <span style="color:#f92672">!=</span> FT_OK)
+{
+printf(<span style="color:#e6db74">&#34;Open Failed with error %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ftStatus);
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+</code></pre></div><h5 id="设置-ftdi-端口为-mpsse">设置 FTDI 端口为 MPSSE</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/* 设置端口参数 */</span>
+printf(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Configuring port for MPSSE use...</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+ftStatus <span style="color:#f92672">|=</span> FT_ResetDevice(ftHandle);
+<span style="color:#75715e">/* 重置 USB 端口 */</span>
+<span style="color:#75715e">/* 首先通过读取 FT232H 接收缓存，清空 USB 接收缓存 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 读取接收缓存中的字节数 */</span>
+
+<span style="color:#66d9ef">if</span> ((ftStatus <span style="color:#f92672">==</span> FT_OK) <span style="color:#f92672">&amp;&amp;</span> (dwNumBytesToRead <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>))
+FT_Read(ftHandle, <span style="color:#f92672">&amp;</span>byInputBuffer, dwNumBytesToRead, <span style="color:#f92672">&amp;</span>dwNumBytesRead);
+<span style="color:#75715e">/* 读取所有的 FT232H 接收缓存 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetUSBParameters(ftHandle, <span style="color:#ae81ff">65536</span>, <span style="color:#ae81ff">65535</span>);
+<span style="color:#75715e">/* 设置 USB 请求发送大小为 64KB */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetChars(ftHandle, false, <span style="color:#ae81ff">0</span>, false, <span style="color:#ae81ff">0</span>);
+<span style="color:#75715e">/* 关闭错误事件码 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetTimeouts(ftHandle, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">5000</span>);
+<span style="color:#75715e">/* 设置读取和写入超时时长 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetLatencyTimer(ftHandle, <span style="color:#ae81ff">1</span>);
+<span style="color:#75715e">/* 设置发送延时为 1ms */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetFlowControl(ftHandle, FT_FLOW_RTS_CTS, <span style="color:#ae81ff">0x00</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 开启流控制以同步 IN 请求 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 控制器 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x02</span>);
+<span style="color:#75715e">/* 开启 MPSSE 控制器 */</span>
+<span style="color:#66d9ef">if</span> (ftStatus <span style="color:#f92672">!=</span> FT_OK)
+{
+printf(<span style="color:#e6db74">&#34;Error in initializing the MPSSE %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ftStatus);
+FT_Close(ftHandle);
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+Sleep(<span style="color:#ae81ff">50</span>); <span style="color:#75715e">/* 等待 USB 完成设置并准备工作 */</span>
+</code></pre></div><p><strong>注意</strong>： D2XX 中 <code>ftStatus</code> 的返回值可以在上述所有的 API 调用完成后当做总检查。所以在接下来的例程中，<code>ftStatus</code> 不会在每个调用任务后都被检查，请注意。</p>
+<h5 id="设置-mpsse-1">设置 MPSSE</h5>
+<p>在这个状态下 MPSSE 已经可以接受命令了，每个命令包含一个 co-code 紧跟着一些必须的参数或者数据。为了使程序清晰明了，每个命令都必须独自使用一个 <code>FT_Write</code> 调用。在实际使用中，有时候需要将多个命令合并并使用一个 <code>FT_Write</code> 调用。</p>
+<h6 id="同步和坏命令检测">同步和坏命令检测</h6>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/* 内部回环连接测试 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x84</span>;
+<span style="color:#75715e">/* 开启回环连接 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, \
+dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送回环命令 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+<span style="color:#75715e">/* 检查接收缓存，应该是空 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 取得接收缓存的字节数 */</span>
+<span style="color:#66d9ef">if</span> (dwNumBytesToRead <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)
+{
+printf(<span style="color:#e6db74">&#34;Error - MPSSE receive buffer should be empty</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ftStatus);
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置端口以关闭 MPSSE */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+<span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e">// 同步 MPSSE 通过发送一个假 op-code 字节 (0xAB),
+</span><span style="color:#75715e">// MPSSE 将会相应 &#34;坏命令&#34; (0xFA) 
+</span><span style="color:#75715e">// 和对应的 op-code 本身发送到应用上。
+</span><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e"></span>byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xAB</span>;
+<span style="color:#75715e">/* 增加假 op-code 字节 (0xAB) 到队列中 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送假字节 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+<span style="color:#66d9ef">do</span>
+{
+ftStatus <span style="color:#f92672">=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 得到接收缓存中的字节数 */</span>
+} <span style="color:#66d9ef">while</span> ((dwNumBytesToRead <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">&amp;&amp;</span> (ftStatus <span style="color:#f92672">==</span> FT_OK));
+<span style="color:#75715e">/* 超时跳出 */</span>
+<span style="color:#66d9ef">bool</span> bCommandEchod <span style="color:#f92672">=</span> false;
+ftStatus <span style="color:#f92672">=</span> FT_Read(ftHandle, <span style="color:#f92672">&amp;</span>byInputBuffer, dwNumBytesToRead, <span style="color:#f92672">&amp;</span>dwNumBytesRead);
+<span style="color:#75715e">/* 从输入缓存中读取相应数量字节 */</span>
+<span style="color:#66d9ef">for</span> (dwCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; dwCount <span style="color:#f92672">&lt;</span> dwNumBytesRead <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>; dwCount<span style="color:#f92672">++</span>)
+<span style="color:#75715e">/* 检查是否有坏命令信息 */</span>
+{
+<span style="color:#66d9ef">if</span> ((byInputBuffer[dwCount] <span style="color:#f92672">==</span> <span style="color:#ae81ff">0xFA</span>) <span style="color:#f92672">&amp;&amp;</span> (byInputBuffer[dwCount<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>] <span style="color:#f92672">==</span> <span style="color:#ae81ff">0xAB</span>))
+{
+bCommandEchod <span style="color:#f92672">=</span> true;
+<span style="color:#66d9ef">break</span>;
+}
+}
+<span style="color:#66d9ef">if</span> (bCommandEchod <span style="color:#f92672">==</span> false)
+{
+printf(<span style="color:#e6db74">&#34;Error in synchronizing the MPSSE</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+FT_Close(ftHandle);
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+
+<span style="color:#75715e">/* 关闭内部回环连接 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x85</span>;
+<span style="color:#75715e">/* 关闭回环命令写入缓存 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer,\
+dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送关闭回环命令 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+<span style="color:#75715e">/* 检查输出缓存是否有字节 - 应当没有 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 取得接收缓存中的字节数 */</span>
+<span style="color:#66d9ef">if</span> (dwNumBytesToRead <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)
+{
+printf(<span style="color:#e6db74">&#34;Error - MPSSE receive buffer should be empty</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ftStatus);
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 以关闭端口 */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+</code></pre></div><h6 id="mpsse-建立-1">MPSSE 建立</h6>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e">// 设置 MPSSE 为 JTAG
+</span><span style="color:#75715e">// 可以在一个 FT_Write 中发送多个指令
+</span><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e"></span>dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 开启一个新的发送索引数 */</span>
+<span style="color:#75715e">/* 设置高速模式的 FTx232H */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x8A</span>;
+<span style="color:#75715e">/* 使用 60MHz 时钟主频 - 关闭 5 分频器 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x97</span>;
+<span style="color:#75715e">/* 关闭适应性时钟(可能对于 ARM 芯片需要开启) */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x8D</span>;
+<span style="color:#75715e">/* 关闭三相时钟 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送以上的命令 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+<span style="color:#75715e">/* 设置分频因子 */</span>
+<span style="color:#75715e">/* TCK = 60MHz /((1 + [(1 +0xValueH*256) OR 0xValueL])*2) */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;\x86&#39;</span>;
+<span style="color:#75715e">/* 设置时钟分频因子的指令 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> dwClockDivisor <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">0xFF</span>;
+<span style="color:#75715e">/* 设置 0xValueL 的分频因子 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> (dwClockDivisor <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">8</span>) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">0xFF</span>;
+<span style="color:#75715e">/* 设置 0xValueH 的分频因子 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送以上的分频因子设置指令 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+
+<span style="color:#75715e">// 初始化 MPSSE 界面 - P1
+</span><span style="color:#75715e">// - 低字节, 对应管脚方向和输出值
+</span><span style="color:#75715e">// Pin name Signal Direction Config Initial State Config
+</span><span style="color:#75715e">// ADBUS0   TCK/SK output    1      high          1
+</span><span style="color:#75715e">// ADBUS1   TDI/DO output    1      low           0
+</span><span style="color:#75715e">// ADBUS2   TDO/DI input     0                    0
+</span><span style="color:#75715e">// ADBUS3   TMS/CS output    1      high          1
+</span><span style="color:#75715e">// ADBUS4   GPIOL0 output    1      low           0
+</span><span style="color:#75715e">// ADBUS5   GPIOL1 output    1      low           0
+</span><span style="color:#75715e">// ADBUS6   GPIOL2 output    1      high          1
+</span><span style="color:#75715e">// ADBUS7   GPIOL3 output    1      high          1
+</span><span style="color:#75715e"></span>byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x80</span>;
+<span style="color:#75715e">/* 设置 MPSSE 管脚低字节 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xC9</span>;
+<span style="color:#75715e">/* 设置上表的 Initial State 初始状态 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xFB</span>;
+<span style="color:#75715e">/* 设置上表的 Direction 方向 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送上述命令 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+
+<span style="color:#75715e">/* 请注意数据在下述部分将会在上升沿震荡 */</span>
+<span style="color:#75715e">/* 初始时钟状态为高 - 时钟信号为 高-低-高 */</span>
+<span style="color:#75715e">/* 举个例子，在这个程序中，信息在上升沿改变，为了给其足够的时间让其有效，所以会在下降沿接收数据 */</span>
+
+<span style="color:#75715e">// 初始化 MPSSE 界面 - P2
+</span><span style="color:#75715e">// - 高字节, 对应管脚方向和输出值
+</span><span style="color:#75715e">// Pin name Signal Direction Config Initial State Config
+</span><span style="color:#75715e">// ACBUS0   GPIOH0 input     0      0
+</span><span style="color:#75715e">// ACBUS1   GPIOH1 input     0      0
+</span><span style="color:#75715e">// ACBUS2   GPIOH2 input     0      0
+</span><span style="color:#75715e">// ACBUS3   GPIOH3 input     0      0
+</span><span style="color:#75715e">// ACBUS4   GPIOH4 input     0      0
+</span><span style="color:#75715e">// ACBUS5   GPIOH5 input     0      0
+</span><span style="color:#75715e">// ACBUS6   GPIOH6 input     0      0
+</span><span style="color:#75715e">// ACBUS7   GPIOH7 input     0      0
+</span><span style="color:#75715e"></span>byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x82</span>;
+<span style="color:#75715e">/* 设置 MPSSE 管脚高字节 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>;
+<span style="color:#75715e">/* 设置上表的 Initial State 初始状态 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>;
+<span style="color:#75715e">/* 设置上表的 Direction 方向 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发送上述命令 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+<span style="color:#66d9ef">for</span>(dwCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; dwCount <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">8</span>; dwCount<span style="color:#f92672">++</span>)
+{ <span style="color:#75715e">/* 清空输入和输出缓存 */</span>
+byInputBuffer[dwCount] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>;
+byOutputBuffer[dwCount] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>;
+}
+</code></pre></div><h5 id="串口交流程序">串口交流程序</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/* 数据只发送不接收 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x10</span>;
+<span style="color:#75715e">/* 输出在上升沿，不输入，MSB 首先发送 */</span>
+<span style="color:#75715e">/* 时钟在发送后空闲（高） */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x01</span>; <span style="color:#75715e">/* 字节长度 - 低字节 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>; <span style="color:#75715e">/* 字节长度 - 高字节 */</span>
+<span style="color:#75715e">/* 字节长度 = 0x0001+1 = 2 bytes */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xA5</span>;
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0F</span>;
+<span style="color:#75715e">/* 数据 = 0xA50F */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 数据发射 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+Sleep(<span style="color:#ae81ff">2</span>); <span style="color:#75715e">/* 等待发送完毕 检查状态 */</span>
+<span style="color:#75715e">/* 数据包发送延时 1ms 故此处要等待大于 1ms */</span>
+<span style="color:#75715e">/* 检查输出缓存是否有字节 - 应当没有 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 检查接收缓存是否有字节 - 应当没有 */</span>
+<span style="color:#75715e">/* 本段程序第一句设置为数据只发送不接收 */</span>
+FT_Read(ftHandle, <span style="color:#f92672">&amp;</span>byInputBuffer, dwNumBytesToRead, <span style="color:#f92672">&amp;</span>dwNumBytesRead);
+<span style="color:#66d9ef">if</span> (dwNumBytesToRead <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)
+{
+printf(<span style="color:#e6db74">&#34;Error - MPSSE receive buffer should be empty</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ftStatus);
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 以关闭端口 */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+
+<span style="color:#75715e">/* 继续 */</span>
+
+printf(<span style="color:#e6db74">&#34;Press &lt;Enter&gt; to continue</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+getchar(); <span style="color:#75715e">/* 捕获一个字符输入 */</span>
+<span style="color:#75715e">/* 更改发送设置，重复发送过程 */</span>
+<span style="color:#75715e">/* 既发送数据，又接收数据 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x34</span>;
+<span style="color:#75715e">/* 输出在上升沿，输入在下降沿 */</span>
+<span style="color:#75715e">/* MSB 首先发送，时钟在发送后空闲（高） */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x01</span>; <span style="color:#75715e">/* 字节长度 - 低字节 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>; <span style="color:#75715e">/* 字节长度 - 高字节 */</span>
+<span style="color:#75715e">/* 字节长度 = 0x0001+1 = 2 bytes */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xA5</span>;
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0F</span>;
+<span style="color:#75715e">/* 数据 = 0xA50F */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发射数据 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+Sleep(<span style="color:#ae81ff">2</span>); <span style="color:#75715e">/* 等待发送完毕 检查状态 */</span>
+<span style="color:#75715e">/* 数据包发送延时 1ms 故此处要等待大于 1ms */</span>
+<span style="color:#75715e">/* 检查输出缓存是否有字节 - 应当有 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 检查接收缓存是否有字节 - 应当有两个 */</span>
+<span style="color:#75715e">/* 因为目前是回环状态 */</span>
+FT_Read(ftHandle, <span style="color:#f92672">&amp;</span>byInputBuffer, dwNumBytesToRead, <span style="color:#f92672">&amp;</span>dwNumBytesRead);
+<span style="color:#75715e">/* 应当有两个 */</span>
+<span style="color:#66d9ef">if</span> (dwNumBytesToRead <span style="color:#f92672">!=</span> <span style="color:#ae81ff">2</span>)
+{
+printf(<span style="color:#e6db74">&#34;Error - MPSSE receive buffer should have the looped-back data</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 以关闭端口 */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+printf(<span style="color:#e6db74">&#34;The correct number of bytes have been received</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#75715e">/* 检查发送与接收数据是否一致 */</span>
+<span style="color:#66d9ef">for</span>(dwCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; dwCount <span style="color:#f92672">&lt;=</span> dwNumBytesRead <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>; dwCount<span style="color:#f92672">++</span>)
+{
+<span style="color:#66d9ef">if</span> (byInputBuffer[dwCount] <span style="color:#f92672">!=</span> byOutputBuffer[dwCount <span style="color:#f92672">+</span> <span style="color:#ae81ff">3</span>])
+<span style="color:#75715e">/* 输出数组从索引 3 后开始才是数据 */</span>
+
+{
+printf(<span style="color:#e6db74">&#34;Error - Data received does not match data output</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 以关闭端口 */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+}
+printf(<span style="color:#e6db74">&#34;The input data matches the output data</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+
+<span style="color:#75715e">/* 继续 */</span>
+
+printf(<span style="color:#e6db74">&#34;Press &lt;Enter&gt; to continue</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+getchar(); <span style="color:#75715e">/* 捕获一个字符输入 */</span>
+<span style="color:#66d9ef">for</span>(dwCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; dwCount <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">8</span>; dwCount<span style="color:#f92672">++</span>)
+{ <span style="color:#75715e">/* 清空输入和输出数组 */</span>
+byInputBuffer[dwCount] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>;
+byOutputBuffer[dwCount] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00</span>;
+}
+</code></pre></div><h4 id="gpio-例程">GPIO 例程</h4>
+<p>有些 FTDI MPSSE 管脚不是专用管脚，这些管脚可以用于 GPIO。这些管脚可以作为 SPI 通信中的片选信号，置位或者清零这些管脚的方法也很流行。如果每个命令单独使用 <code>FT_Write</code> 来控制 GPIO，GPIO 的速度将会受到很大的限制（由于发送延时的存在），以下例程展示了如何在一个 <code>FT_Write</code> 中发送多个命令。片选信号被发送有效位（低），接着发送数据流，最后片选信号发送无效位（高）。</p>
+<p>下列代码展示了一个简单的 <strong>读-修改-写</strong> 的序列，以确保每个 GPIO 位完整有效。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Read From GPIO low byte
+</span><span style="color:#75715e">// *************************************************
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// Change scope trigger to channel 4 (TMS/CS) falling edge
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// *************************************************
+</span><span style="color:#75715e"></span>byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x81</span>;
+<span style="color:#75715e">/* 接收位数据 - 返回状态值 */</span>
+<span style="color:#75715e">/* 既返回输入也返回输出 */</span>
+<span style="color:#75715e">/* 低字节的 GPIO */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 读取 GPIO 低位字节 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 重置输出缓存指针 */</span>
+Sleep(<span style="color:#ae81ff">2</span>); <span style="color:#75715e">/* 等待发送完毕 检查状态 */</span>
+<span style="color:#75715e">/* 数据包发送延时 1ms 故此处要等待大于 1ms */</span>
+<span style="color:#75715e">/* 检查输出缓存是否有字节 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_GetQueueStatus(ftHandle, <span style="color:#f92672">&amp;</span>dwNumBytesToRead);
+<span style="color:#75715e">/* 得到 FTx232H 的接收缓存字节数 */</span>
+ftStatus <span style="color:#f92672">|=</span> FT_Read(ftHandle, <span style="color:#f92672">&amp;</span>byInputBuffer, dwNumBytesToRead, <span style="color:#f92672">&amp;</span>dwNumBytesRead);
+<span style="color:#66d9ef">if</span> ((ftStatus <span style="color:#f92672">!=</span> FT_OK) <span style="color:#f92672">&amp;</span> (dwNumBytesToRead <span style="color:#f92672">!=</span> <span style="color:#ae81ff">1</span>))
+{
+printf(<span style="color:#e6db74">&#34;Error - GPIO cannot be read</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 以关闭端口 */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">/* 错误退出 */</span>
+}
+printf(<span style="color:#e6db74">&#34;The GPIO low-byte = 0x%X</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, byInputBuffer[<span style="color:#ae81ff">0</span>]);
+<span style="color:#75715e">/* 输入应当只有一个字节 */</span>
+printf(<span style="color:#e6db74">&#34;Press &lt;Enter&gt; to continue</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+getchar(); <span style="color:#75715e">/* 捕获一个字符输入 */</span>
+<span style="color:#75715e">/* 修改 GPIO 字节并发送 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x80</span>;
+<span style="color:#75715e">/* 修改 GPIO 低位字节 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> byInputBuffer[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">0xF7</span>;
+<span style="color:#75715e">/* 仅仅将片选信号置 0 */</span>
+byOutputBuffer[dwNumBytesToSend<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xFB</span>;
+<span style="color:#75715e">/* 仍然需要写入 GPIO 方向 */</span>
+ftStatus <span style="color:#f92672">=</span> FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, <span style="color:#f92672">&amp;</span>dwNumBytesSent);
+<span style="color:#75715e">/* 发射数据 */</span>
+dwNumBytesToSend <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">// Reset output buffer pointer
+</span><span style="color:#75715e"></span>Sleep(<span style="color:#ae81ff">2</span>); <span style="color:#75715e">/* 等待发送完毕 检查状态 */</span>
+<span style="color:#75715e">/* 数据包发送延时 1ms 故此处要等待大于 1ms */</span>
+<span style="color:#75715e">/* 检查输出缓存是否有字节 */</span>
+</code></pre></div><h4 id="关闭处理程序-1">关闭处理程序</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e">// Start closing everything down
+</span><span style="color:#75715e">// -----------------------------------------------------------
+</span><span style="color:#75715e"></span>printf(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">AN_135 example program executed successfully.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+printf(<span style="color:#e6db74">&#34;Press &lt;Enter&gt; to continue</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+getchar(); <span style="color:#75715e">/* 捕获一个字符输入 */</span>
+FT_SetBitMode(ftHandle, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0x00</span>);
+<span style="color:#75715e">/* 重置 MPSSE 以关闭端口 */</span>
+FT_Close(ftHandle); <span style="color:#75715e">/* 关闭 USB 端口 */</span>
+<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* 成功退出 */</span>
+}
+</code></pre></div><p>以上就是 FT232H 中的 MPSSE 简单使用方法。</p>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>指校验位始终为 1 的校验方式。 <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2" role="doc-endnote">
+<p>指校验位始终为 0 的校验方式。 <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3" role="doc-endnote">
+<p>Clock Signal Output. <a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:4" role="doc-endnote">
+<p>Serial Data Output. <a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:5" role="doc-endnote">
+<p>Serial Data Input. <a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:6" role="doc-endnote">
+<p>Output Signal Select. <a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:7" role="doc-endnote">
+<p>此 GPIO 管脚内部有一个约为 75KΩ 的下拉电阻连接到地，如果使用 EEPROM 此管脚可被设置成为 USBVCC 模式而不是 GPIO 模式。 <a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:8" role="doc-endnote">
+<p>此管脚默认为三态输入，内部有一个约为 75KΩ 的上拉电阻连接到 VCCIO。 <a href="#fnref:8" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:9" role="doc-endnote">
+<p>此管脚默认为三态输入，内部有一个约为 75KΩ 的上拉电阻连接到 VCCIO。 <a href="#fnref:9" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:10" role="doc-endnote">
+<p>在官方文档中这个值是在 t1 的 Max 栏下的，我认为是 typo 将其归类在了 Min 栏下。 <a href="#fnref:10" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

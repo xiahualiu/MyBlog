@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    xv6 Chapter 3 - Turning on Paging | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-01-29-paging/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-01-29-paging/" rel="bookmark">xv6 Chapter 3 - Turning on Paging</a>
+  </h2>
+  
+  <time datetime="2019-01-29T00:00:00Z">
+    29 January, 2019
+  </time>
+  
+</header>
+
+  <p>In the last post, we discussed about the C code part of the boot loader, namely <code>bootmain.c</code>. It read 4096 bytes data from the beginning of the disk second sector into the physical address <code>0x10000</code> then parsed the elf file header by a <code>struct elf</code>, read specified fields of <code>struct elf</code> in order to validate elf file and acquire information about the program table. After that our boot loader fetched every corresponding elf body segment (e.g. .text .data) defined by each entry in the program header table and placed them in the written physical address <code>p_addr</code> By the end of boot loader it called <code>p-&gt;entry</code> which is the entry of the elf file, proceeding to the next program, which is <code>main</code>.</p>
+<p>The most difficult part of the boot loader is knowing how to parse the elf file structure. I assumed the reader was familiar with the virtual memory layout for a typical executable program, including what <code>.text</code> <code>.data</code> <code>.bss</code> etc. are and where they locate at. If you cannot really catch that please refer to <em>CSAPP</em> or other books. Back to the topic, an elf contains useful information that is necessary for an elf loader so our boot loader has actually performed a simple loading process in few lines.</p>
+<p>Here to remind you of the action sequence of the boot, we did not directly come from the very beginning to our boot loader program, because the machine need a tiny program (512 bytes), which was automatically imported from first sector on the disk since powered-up, that fact means the BIOS probably has the similar boot loader like bootmain.c, however this sneaky boot loader is stored in the mother-board’s rom other than disks and we cannot touch this pre-prepared boot loader.</p>
+<p>When the BIOS boot loader finished its duty, it gave the power to our 512-byte boot program, our tiny boot program contains code that tweaked our cpu settings and the boot loader. In a word the solidified BIOS boot loader loaded our boot program, there are two boot programs in different places and work in sequence. Make sure you are clear before continue.</p>
+<h1 id="abstract">Abstract</h1>
+<p>In this chapter, the kernel has already been in the memory, but where is it? The kernel has been compiled and linked so that it expects to find itself at virtual addresses starting at <code>0x80100000</code>. Thus, function call instructions must mention destination addresses that look like <code>0x801xxxxx</code>; you can see examples in <code>kernel.asm</code>. This address is configured in <code>kernel.ld</code> (9311). <code>0x80100000</code> is a relatively high address, towards the end of the 32-bit address space;  further chapters will explain the reasons for this choice. There may not be any physical memory at such a high address. Once the kernel starts executing, it will set up the paging hardware to map virtual addresses starting at <code>0x80100000</code> to physical addresses starting at <code>0x00100000</code>; the kernel assumes that there is physical memory at this lower address. At this point in the boot process, however, paging is not enabled. Instead, kernel.ld specifies that the ELF p_addr start at <code>0x00100000</code>, which causes the boot loader to copy the kernel to the low physical addresses to which the paging hardware will eventually point.</p>
+<p>That is quite a big load of words, simply speaking:</p>
+<ul>
+<li>The kernel’s entry is placed at physical address <code>0x00100000</code>, because address <code>0xa00000</code> to <code>0x100000</code> is reserved by IO devices. (Plus we assigned address <code>0x0</code> to <code>0x7c00</code> used for stack in <code>bootasm.S</code>)</li>
+<li>The kernel entry cannot be called directly since paging hardware is not enabled yet, and kernel uses virtual address for its functions. You can enter the kernel by <code>jmp</code> instruction but once we were in the kernel, all functions, variables cannot be found.</li>
+<li><strong>Conclusion</strong>: We need a transition program to set up the virtual map for the kernel. It is linked with the <code>main.c</code> program, and where <code>p-&gt;entry</code> fell.</li>
+</ul>
+<h1 id="turn-on-paging">Turn on paging</h1>
+<p>We need to do 3 things to turn on paging:</p>
+<ol>
+<li>Set the size for the virtual memory page, which also regarded as page size. By convention, it should be either 4K bytes or 4M bytes. Here we chose 4M bytes.</li>
+<li>We need to create the page table entries (PTE) for every page, currently we only need the one for <code>0x80100000</code> (We must sure that the elf is smaller than 4M) and 0x0 the address where the <code>%eip</code> is pointing at now. With 4M page, that number is 512 and 0 respectively.</li>
+<li>Set the entry for page table directory in <code>%cr3</code>.</li>
+<li>Turn on paging, by setting a specified bit in <code>%cr0</code>.</li>
+</ol>
+<p>The kernel’s physical address (<code>p_addr</code>) is used for our boot loader, it tells to allocate the first program segment at physical address <code>0x10000</code>. However, from the kernel’s perspective, it assumes itself locates at <code>v_addr</code> <code>0x80100000</code>. So we need to cast the virtual address <code>0x80000000</code> to the physical address <code>0x0</code>, thus entry 512 has the base address <code>0x0</code>.</p>
+<p>Here is a simple illustration of how mmu interprets virtual address:</p>
+<ol>
+<li>Read <code>v_addr</code>.</li>
+<li>Calculate the index of PTE implicitly, because we chose 4M page size so the value of the segment register is <code>v_addr/4M</code>.</li>
+<li>Fetch page table entry 512. The address was calculated by step 2.</li>
+<li>Check whether the page is missing, and validate the operation (i.e writing to a read-only page is illegal).</li>
+<li>Add up offset and the base address of the page, return the result physical address to cpu. (In some processor like later the Core i7, there are several levels of PTE so we need more steps to get the physical address.)</li>
+</ol>
+<p>In the transition program, we also created the entry 0 for our current program, it points to <code>0x0</code>, where we are now and the same address as entry 512 does, otherwise the program will crash after we turn on the paging function in <code>%cr0</code>, because cpu cannot find the next instruction.</p>
+<p>When we finished, we needed an indirect jump (fill the <code>%eip</code> by hand), since the assembler would otherwise generate the PC-related version of jump, and the result address is a low address, which is invalid in virtual address system.</p>
+<h1 id="code-notes">Code notes</h1>
+<p><code>entry.S</code> was linked with <code>main.c</code>, so the elf contained them both. Let&rsquo;s first read the header notes of <code>entry.S</code>:</p>
+<p><code>entry.S:1-3</code>:</p>
+<pre><code class="language-x86asm" data-lang="x86asm"># The xv6 kernel starts executing in this file. This file is linked with
+# the kernel C code, so it can refer to kernel symbols such as main().
+# The boot block (bootasm.S and bootmain.c) jumps to entry below.
+</code></pre><p>See? And there is the <code>_start</code> convention: <code>entry.S:37-41</code></p>
+<pre><code class="language-x86asm" data-lang="x86asm"># By convention, the _start symbol specifies the ELF entry point.
+# Since we havent set up virtual memory yet, our entry point is
+# the physical address of entry.
+.globl _start
+_start = V2P_WO(entry)
+</code></pre><p>The <code>_start</code> labeled the first function of the elf when executed, because <code>entry.S</code> and <code>main.c</code> were linked together, They shared the same entry point. The linker we used assumed all the segments locate at virtual addresses starting from <code>0x80100000</code> which includes <code>entry</code>. That is why we need to use macro <code>V2P_WO()</code> to change <code>entry</code> address. Otherwise, in the last step: <code>entry()</code> cannot be executed, since the  function pointer <code>p-&gt;entry</code> points to a high virtual address, and at that time we have not turned on paging yet.</p>
+<p>After called <code>p-&gt;entry</code>, we came here: <code>entry.S:43-56</code></p>
+<pre><code class="language-x86asm" data-lang="x86asm"># Entering xv6 on boot processor, with paging off.
+.globl entry
+entry:
+  # Turn on page size extension for 4Mbyte pages
+  movl    %cr4, %eax
+  orl     $(CR4_PSE), %eax
+  movl    %eax, %cr4
+  # Set page directory
+  movl    $(V2P_WO(entrypgdir)), %eax
+  movl    %eax, %cr3
+  # Turn on paging.
+  movl    %cr0, %eax
+  orl     $(CR0_PG|CR0_WP), %eax
+  movl    %eax, %cr0
+</code></pre><p>A series of operations to turn on paging. Please note that <code>entrypgdir</code> must be physical address, it is required by MMU and the linker created the virtual version. Since different CPUs have different paging config registers, so I do not want to explain in details about <code>%cr0</code> and <code>%cr3</code> <code>%cr4</code> registers. When you really need to write a OS, you have to refer to the corresponding processor manual. Different generations of CPU differ from each other on paging registers.</p>
+<p>However, please know the <code>entrypgdir</code> structure is defined in <code>main.c:97-108</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// The boot page table used in entry.S and entryother.S.
+</span><span style="color:#75715e">// Page directories (and page tables) must start on page boundaries,
+</span><span style="color:#75715e">// hence the __aligned__ attribute.
+</span><span style="color:#75715e">// PTE_PS in a page directory entry enables 4Mbyte pages.
+</span><span style="color:#75715e"></span>
+__attribute__((__aligned__(PGSIZE)))
+pde_t entrypgdir[NPDENTRIES] <span style="color:#f92672">=</span> {
+  <span style="color:#75715e">// Map VA&#39;s [0, 4MB) to PA&#39;s [0, 4MB)
+</span><span style="color:#75715e"></span>  [<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> (<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> PTE_P <span style="color:#f92672">|</span> PTE_W <span style="color:#f92672">|</span> PTE_PS,
+  <span style="color:#75715e">// Map VA&#39;s [KERNBASE, KERNBASE+4MB) to PA&#39;s [0, 4MB)
+</span><span style="color:#75715e"></span>  [KERNBASE<span style="color:#f92672">&gt;&gt;</span>PDXSHIFT] <span style="color:#f92672">=</span> (<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> PTE_P <span style="color:#f92672">|</span> PTE_W <span style="color:#f92672">|</span> PTE_PS,
+};
+</code></pre></div><p>As I said above, the page table contains two entries, one for <code>0x0</code> and one for <code>0x80000000</code> and the page table is strictly aligned, it is a global variable, so it can be found in the elf&rsquo;s <code>.data</code> segment.</p>
+<p>Next, prepare for calling <code>main()</code>: <code>entry.S:58-68</code></p>
+<pre><code class="language-x86asm" data-lang="x86asm">  # Set up the stack pointer.
+  movl $(stack + KSTACKSIZE), %esp
+
+  # Jump to main(), and switch to executing at
+  # high addresses. The indirect call is needed because
+  # the assembler produces a PC-relative instruction
+  # for a direct jump.
+  mov $main, %eax
+  jmp *%eax
+
+.comm stack, KSTACKSIZE
+</code></pre><p>When it comes to call a function, always remember to <strong>make sure the stack is available now</strong>, we have changed address configuration so we want to change stack pointer.</p>
+<p>The final line has a strange command <code>.comm</code>. Here is its usage:</p>
+<pre><code class="language-x86asm" data-lang="x86asm"> .comm name, size, alignment
+ # The .comm directive allocates storage in the data section. 
+ # The storage is referenced by the identifier name. Size is 
+ # measured in bytes and must be a positive integer. Name 
+ # cannot be predefined. Alignment is optional. If alignment 
+ # is specified, the address of name is aligned to a multiple 
+ # of alignment.
+</code></pre><p><code>.comm stack, KSTACKSIZE</code> allocated a storage <code>stack</code> of size <code>KSTACKSIZE</code> in <code>.data</code> segment and can be linked by others (just like global variables), <code>KSTACKSIZE</code> are defined in <code>param.h:2</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define KSTACKSIZE 4096  </span><span style="color:#75715e">// size of per-process kernel stack
+</span></code></pre></div><p>Per-process kernel stack allows multiple processes trapped in the kernel at the same time. These stacks seem to be isolated, kernel knows which stack is for which process when switches to different processes.</p>
+<p>In the end, we use an indirect jump to transfer the processor to <code>main</code> in <code>main.c</code>.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>In this chapter, we talked about the process of turning on paging in xv6, the code implementation can be found in entry.S file. The code is pretty simple but has a lot important things in how to handle details of the P2V transition including indirect jump, and the PTE 0.</p>
+<p>In the next post we will discuss the details of the creating the first process in xv6.</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

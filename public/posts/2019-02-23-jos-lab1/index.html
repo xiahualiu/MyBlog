@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    JOS Lab1 My Answers | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-02-23-jos-lab1/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-02-23-jos-lab1/" rel="bookmark">JOS Lab1 My Answers</a>
+  </h2>
+  
+  <time datetime="2019-02-23T00:00:00Z">
+    23 February, 2019
+  </time>
+  
+</header>
+
+  <p>The <a href="https://pdos.csail.mit.edu/6.828/2018/labs/lab1/">xv6 lab1</a> provides a extern kernel named JOS, it works in the same way as xv6. So student can step in it to explore the world of xv6.</p>
+<h1 id="part-2-the-boot-loader">Part 2: The Boot Loader</h1>
+<blockquote>
+<p>At what point does the processor start executing 32-bit code? What exactly causes the switch from 16- to 32-bit mode?</p>
+</blockquote>
+<p><strong>Answer</strong>: After opening A20 Gate and loading GDT table that is prepared in <code>boot.S</code>, we enable protected mode by moving a value with <code>$CR0_PE_ON</code> bit to <code>CR0</code> register. But the exact activation event happens during <code>ljmp</code> instruction, while <code>CS</code> and <code>IP</code> registers both update and point to the beginning of 32-bit code (which is, however, at the next memory address). CPU works in 32-bit mode after that.</p>
+<blockquote>
+<p>What is the last instruction of the boot loader executed, and what is the first instruction of the kernel it just loaded?</p>
+</blockquote>
+<p><strong>Answer</strong>: The boot loader reads kernel in elf file format from disk, then copies each section into the corresponding location in memory. The last job of bootloader is calling the entry address of the kernel <code>*0x10018</code>(the entry address is stored at the fixed address in memory because its fixed offset in elf file and is <code>0x0010000c</code> in this case), transferring control to kernel. And the first instruction is: <code>movw $0x1234,0x472</code></p>
+<p><img src="/img/2019-2-23-JOS-lab1/1.png" alt="1"></p>
+<blockquote>
+<p>Where is the first instruction of the kernel?</p>
+</blockquote>
+<p><strong>Answer</strong>: Said above, at <code>0x10000c</code>.</p>
+<blockquote>
+<p>How does the boot loader decide how many sectors it must read in order to fetch the entire kernel from disk? Where does it find this information?</p>
+</blockquote>
+<p><strong>Answer</strong>: The boot loader first reads elf header to get the starting address of program header table <code>ph=ELFHDR + ELFHDR-&gt;e_phoff</code>, then reads the number of entries in the program header table by <code>ELFHDR-&gt;e_phnum</code>, then adds it to <code>ph</code> to acquire the end of the program header table <code>eph</code>, then loops reading each segment.</p>
+<h2 id="exercise-5">Exercise 5</h2>
+<blockquote>
+<p>Trace through the first few instructions of the boot loader again and identify the first instruction that would &ldquo;break&rdquo; or otherwise do the wrong thing if you were to get the boot loader&rsquo;s link address wrong. Then change the link address in boot/Makefrag to something wrong, run <code>make clean</code>, recompile the lab with <code>make</code>, and trace into the boot loader again to see what happens. Don&rsquo;t forget to change the link address back and <code>make clean</code> again afterward!</p>
+</blockquote>
+<p><strong>Answer</strong>: The boot loader&rsquo;s entry is at <code>0x7c00</code> if it is changed to <code>0x7c01</code> or else that are not aligned right, some <code>nop</code> will be inserted at the top to slide processor to the aligned instructions.</p>
+<p>After that, the code is executed normally, however, when it comes to the first <code>ljmp</code>, it crashes immediately. But the real problem happened way ahead, the crash is due to a loading GDT table failure (<code>lgdt</code> did not complain).</p>
+<p>As we know, we changed the linker address however the load address of our program stays unchanged. The BIOS works blindly, it just reads 1st sector on disk (no matter what link address is) then jumps to <code>0x7c00</code>. Thus the actual GDT table has still been put at the old place (GDT is always put at <code>0x7c4c</code> in xv6 case), but into the bootloader, the <code>lgdt</code> only accepts linker address, which is wrong. So what <code>lgdt</code> actually installed was meaningless trash in memory after the modification.</p>
+<p>So when the <code>ljmp</code> reads GDT, it gets trash value instead of real GDT entries. Then the program crashes.</p>
+<h2 id="exercise-6">Exercise 6</h2>
+<blockquote>
+<p>We can examine memory using GDB&rsquo;s <code>x</code> command. The GDB manual has full details, but for now, it is enough to know that the command <code>x/Nx ADDR</code> prints N words of memory at ADDR. (Note that both <code>x</code>s in the command are lowercase.) Warning: The size of a word is not a universal standard. In GNU assembly, a word is two bytes (the <code>w</code> in xorw, which stands for word, means 2 bytes).
+Reset the machine (exit QEMU/GDB and start them again). Examine the 8 words of memory at <code>0x00100000</code> at the point the BIOS enters the boot loader, and then again at the point the boot loader enters the kernel. Why are they different? What is there at the second breakpoints? (You do not really need to use QEMU to answer this question. Just think.)</p>
+</blockquote>
+<p><strong>Answer</strong>: During the time from the CPU changed into protected mode and to the bootloader starts, <code>0x100000</code> and higher addresses are of full zeroes.</p>
+<p><img src="/img/2019-2-23-JOS-lab1/2.png" alt="2"></p>
+<p>The reason is simple, we haven&rsquo;t mapped the kernel into memory yet at that time.</p>
+<h1 id="part-3-kernel">Part 3: Kernel</h1>
+<h2 id="exercise-7">Exercise 7</h2>
+<blockquote>
+<p>Use QEMU and GDB to trace into the JOS kernel and stop at the movl %eax, %cr0. Examine memory at 0x00100000 and at 0xf0100000. Now, single step over that instruction using the stepi GDB command. Again, examine memory at 0x00100000 and at 0xf0100000. Make sure you understand what just happened.
+What is the first instruction after the new mapping is established that would fail to work properly if the mapping weren&rsquo;t in place? Comment out the movl %eax, %cr0 in kern/entry.S, trace into it, and see if you were right.</p>
+</blockquote>
+<p><img src="/img/2019-2-23-JOS-lab1/3.png" alt="3"></p>
+<p><strong>Answer</strong>: After <code>movl %eax %cr0</code>, Memory at <code>0x0010000</code> was copied to <code>0xf010000</code>. But the real fact is that these pages are mapped to the same physical memory page.</p>
+<p>If the mapping failed, the jump up to the <code>KERNBASE</code> would definitely fail.</p>
+<p>We can see that in picture. The program jumped to a null memory, then crashed.</p>
+<p><img src="/img/2019-2-23-JOS-lab1/4.png" alt="4"></p>
+<h2 id="exercise-8">Exercise 8</h2>
+<blockquote>
+<p>We have omitted a small fragment of code - the code necessary to print octal numbers using patterns of the form &ldquo;%o&rdquo;. Find and fill in this code fragment.</p>
+</blockquote>
+<p><strong>Answer</strong>: Original file:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">...
+
+<span style="color:#75715e">// (unsigned) octal
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#39;o&#39;</span><span style="color:#f92672">:</span>
+    <span style="color:#75715e">// Replace this with your code.
+</span><span style="color:#75715e"></span>        putch(<span style="color:#e6db74">&#39;X&#39;</span>, putdat);
+        putch(<span style="color:#e6db74">&#39;X&#39;</span>, putdat);
+        putch(<span style="color:#e6db74">&#39;X&#39;</span>, putdat);
+        <span style="color:#66d9ef">break</span>;
+
+...
+</code></pre></div><p>New file:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">...
+
+<span style="color:#75715e">// (unsigned) octal
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#39;o&#39;</span><span style="color:#f92672">:</span>
+    <span style="color:#75715e">// My code
+</span><span style="color:#75715e"></span>        num <span style="color:#f92672">=</span> getuint(<span style="color:#f92672">&amp;</span>ap,lflag);
+        base <span style="color:#f92672">=</span> <span style="color:#ae81ff">8</span>;
+        <span style="color:#66d9ef">goto</span> number;
+
+...
+</code></pre></div><p><strong>Be able to answer the following questions:</strong></p>
+<ol>
+<li>
+<blockquote>
+<p>Explain the interface between <code>printf.c</code> and <code>console.c</code>. Specifically, what function does <code>console.c</code> export? How is this function used by printf.c?
+<strong>Answer</strong>: <code>console.c</code> exports high-level I/O by providing three functions, <code>cputchar</code> <code>getchar</code> <code>iscons</code>.
+The <code>cputchar</code> function is used for <code>printf.c</code>.</p>
+</blockquote>
+</li>
+<li>
+<blockquote>
+<p>Explain the following from <code>console.c</code>:</p>
+</blockquote>
+</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">if</span> (crt_pos <span style="color:#f92672">&gt;=</span> CRT_SIZE) {
+    <span style="color:#66d9ef">int</span> i;
+    memmove(crt_buf, crt_buf <span style="color:#f92672">+</span> CRT_COLS, (CRT_SIZE <span style="color:#f92672">-</span> CRT_COLS) <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(uint16_t));
+    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> CRT_SIZE <span style="color:#f92672">-</span> CRT_COLS; i <span style="color:#f92672">&lt;</span> CRT_SIZE; i<span style="color:#f92672">++</span>)
+        crt_buf[i] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0700</span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39; &#39;</span>;
+    crt_pos <span style="color:#f92672">-=</span> CRT_COLS;
+}
+</code></pre></div><p><strong>Answer</strong>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Prevent screen buffer overflow
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span> (crt_pos <span style="color:#f92672">&gt;=</span> CRT_SIZE) {
+    <span style="color:#66d9ef">int</span> i;
+    <span style="color:#75715e">// Move all CRT content a column up, vacating the bottom column
+</span><span style="color:#75715e"></span>    memmove(crt_buf, crt_buf <span style="color:#f92672">+</span> CRT_COLS, (CRT_SIZE <span style="color:#f92672">-</span> CRT_COLS) <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(uint16_t));
+    <span style="color:#75715e">// Loop printing the bottom line with print attribute: &#39;white on black&#39;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> CRT_SIZE <span style="color:#f92672">-</span> CRT_COLS; i <span style="color:#f92672">&lt;</span> CRT_SIZE; i<span style="color:#f92672">++</span>)
+        crt_buf[i] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0700</span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39; &#39;</span>;
+    crt_pos <span style="color:#f92672">-=</span> CRT_COLS;
+}
+</code></pre></div><ol start="3">
+<li>
+<blockquote>
+<p>For the following questions you might wish to consult the notes for Lecture 2. These notes cover GCC&rsquo;s calling convention on the x86.
+Trace the execution of the following code step-by-step:</p>
+</blockquote>
+</li>
+</ol>
+<ul>
+<li>In the call to cprintf(), to what does <code>fmt</code> point? To what does <code>ap</code> point?</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, y <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>, z <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>;
+cprintf(<span style="color:#e6db74">&#34;x %d, y %x, z %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, x, y, z);
+</code></pre></div><p><strong>Answer</strong>:</p>
+<p>I add this code in <code>init.c</code>, right after the first <code>cprintf</code>, seen below:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">i386_init</span>(<span style="color:#66d9ef">void</span>)
+{
+	<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">char</span> edata[], end[];
+
+	<span style="color:#75715e">// Before doing anything else, complete the ELF loading process.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// Clear the uninitialized global data (BSS) section of our program.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// This ensures that all static/global variables start out zero.
+</span><span style="color:#75715e"></span>	memset(edata, <span style="color:#ae81ff">0</span>, end <span style="color:#f92672">-</span> edata);
+
+	<span style="color:#75715e">// Initialize the console.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// Can&#39;t call cprintf until after we do this!
+</span><span style="color:#75715e"></span>	cons_init();
+
+	cprintf(<span style="color:#e6db74">&#34;6828 decimal is %o octal!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">6828</span>);
+
+	<span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, y <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>, z <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>;
+	cprintf(<span style="color:#e6db74">&#34;x %d, y %x, z %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, x, y, z);
+
+	<span style="color:#75715e">// Test the stack backtrace function (lab 1 only)
+</span><span style="color:#75715e"></span>	test_backtrace(<span style="color:#ae81ff">5</span>);
+
+	<span style="color:#75715e">// Drop into the kernel monitor.
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">while</span> (<span style="color:#ae81ff">1</span>)
+		monitor(NULL);
+}
+</code></pre></div><p><img src="/img/2019-2-23-JOS-lab1/5.png" alt="5"></p>
+<p>The <code>fmt</code> points to a memory that is in <code>.rodata</code> section. And the content is the format string <code>x %d, y %x, z %d\n\0</code>.</p>
+<p><img src="/img/2019-2-23-JOS-lab1/6.png" alt="6"></p>
+<p><img src="/img/2019-2-23-JOS-lab1/7.png" alt="7"></p>
+<p>I disassembled the kernel and found out that <code>ap</code> pointed to the args that had been pushed to stack before calling <code>vcprintf</code>.</p>
+<pre><code>+-------------+
+| 00 00 00 04 |
++-------------+
+| 00 00 00 03 |
++-------------+
+| 00 00 00 01 |
++-------------+ &lt;--- ap
+| f0 10 1a 92 |
++-------------+ &lt;--- fmt
+| f0 10 00 fa |
++-------------+ 
+|             |
++-------------+
+|             | 
+     STACK
+</code></pre><ul>
+<li>List (in order of execution) each call to <code>cons_putc</code>, <code>va_arg</code>, and <code>vcprintf</code>. For <code>cons_putc</code>, list its argument as well. For <code>va_arg</code>, list what <code>ap</code> points to before and after the call. For <code>vcprintf</code> list the values of its two arguments.</li>
+</ul>
+<p><strong>Answer</strong>: List: After print &ldquo;x &ldquo;, <code>getint</code> was called, in which <code>va_arg</code> was called. Before the calling <code>ap = (va_list) 0xf010ffd4 &quot;\001&quot;</code>, after the calling <code>ap = (va_list) 0xf010ffd8 &quot;\003&quot;</code>. Then <code>cons_putc(c=49)</code> was called, output changed to &ldquo;x 1&rdquo;. Then <code>cons_putc(c=44)</code> was called, output changed to &ldquo;x 1,&rdquo;. Then <code>cons_putc(c=32)</code> was called, output changed to &ldquo;x 1, &ldquo;. Then <code>cons_putc(c=121)</code> was called, output changed to &ldquo;x 1, y&rdquo;&hellip; It worked in this sequence till finishing printing.</p>
+<p>For two arguments of <code>vcprintf</code> see picture above.</p>
+<ol start="4">
+<li>
+<blockquote>
+<p>Run the following code.</p>
+</blockquote>
+</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00646c72</span>;
+    cprintf(<span style="color:#e6db74">&#34;H%x Wo%s&#34;</span>, <span style="color:#ae81ff">57616</span>, <span style="color:#f92672">&amp;</span>i);
+</code></pre></div><p>What is the output? Explain how this output is arrived at in the step-by-step manner of the previous exercise.</p>
+<p><strong>Output</strong>: He110 World!</p>
+<p>Decimal 57616 equals hexadecimal number 0xe110, so the first number was &ldquo;e110&rdquo;. And because i386 use little-endian, <code>0x00646c7c</code> in little-endian byte order was</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#ae81ff">0xf010ffec</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0x72</span> <span style="color:#ae81ff">0x6c</span> <span style="color:#ae81ff">0x64</span> <span style="color:#ae81ff">0x00</span>
+</code></pre></div><p>We can translate it into string: <code>rld/0</code></p>
+<ol start="5">
+<li>
+<blockquote>
+<p>In the following code, what is going to be printed after &lsquo;y=&rsquo;? (note: the answer is not a specific value.) Why does this happen?</p>
+</blockquote>
+</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    cprintf(<span style="color:#e6db74">&#34;x=%d y=%d&#34;</span>, <span style="color:#ae81ff">3</span>);
+</code></pre></div><p>Because we use <code>va_list</code> pointer <code>ap</code> to run down stack to acquire args that were pushed beforehand in the order from right to left in <code>cprintf</code>. When &lsquo;3&rsquo; was read by <code>getint</code> function, <code>va_arg</code> moves pointer <code>ap</code> upwards for the next arg, whereas we do not have another arg, instead it is an <code>ret</code> address for <code>call &lt;i386_init&gt;</code>, so the next <code>%d</code> prints an address value.</p>
+<pre><code>+-------------+
+| 00 00 00 00 |
++-------------+
+| f0 10 ff ec |
++-------------+ &lt;--- ap (y=0xf010ffec)
+| 00 00 00 03 |
++-------------+ &lt;--- ap (x=3)
+| f0 10 1a ce |
++-------------+ &lt;--- fmt
+| f0 10 01 2a |
++-------------+
+|             | 
+     STACK
+</code></pre><p>To confirm my speculation, I replaced the second <code>y=%d</code> with <code>y=%x</code>, and here it goes:</p>
+<p><img src="/img/2019-2-23-JOS-lab1/8.png" alt="8"></p>
+<p>Just like above.</p>
+<ol start="6">
+<li>
+<blockquote>
+<p>Let&rsquo;s say that GCC changed its calling convention so that it pushed arguments on the stack in declaration order, so that the last argument is pushed last. How would you have to change cprintf or its interface so that it would still be possible to pass it a variable number of arguments?</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>Answer</strong>: We can make <code>va_list</code> pointer <code>ap</code> points to the highest arg on stack before entering <code>vcprintf</code>, then modify <code>va_arg</code> to decrease <code>ap</code> instead of increase it.</p>
+<blockquote>
+<p><strong>Challenge</strong> Enhance the console to allow text to be printed in different colors. The traditional way to do this is to make it interpret ANSI escape sequences embedded in the text strings printed to the console, but you may use any mechanism you like. There is plenty of information on the 6.828 reference page and elsewhere on the web on programming the VGA display hardware. If you&rsquo;re feeling really adventurous, you could try switching the VGA hardware into a graphics mode and making the console draw text onto the graphical frame buffer.</p>
+</blockquote>
+<p><strong>Answer</strong>: <em>Too complex, to be solved.</em></p>
+<h1 id="the-stack">The Stack</h1>
+<blockquote>
+<p><strong>Exercise 9</strong>. Determine where the kernel initializes its stack, and exactly where in memory its stack is located. How does the kernel reserve space for its stack? And at which &ldquo;end&rdquo; of this reserved area is the stack pointer initialized to point to?</p>
+</blockquote>
+<p><strong>Answer</strong>: In file &ldquo;entry.S&rdquo;,</p>
+<pre><code class="language-x86_asm" data-lang="x86_asm">	# Set the stack pointer
+	movl	$(bootstacktop),%esp
+</code></pre><p><code>$(bootstacktop)</code> is defined the end of &ldquo;entry.S&rdquo;, it is <code>KSTKSIZE</code> away from the beginning of <code>.data</code> section.</p>
+<pre><code class="language-x86_asm" data-lang="x86_asm">.data
+###################################################################
+# boot stack
+###################################################################
+	.p2align	PGSHIFT		# force page alignment
+	.globl		bootstack
+bootstack:
+	.space		KSTKSIZE
+	.globl		bootstacktop   
+bootstacktop:
+</code></pre><blockquote>
+<p><strong>Exercise 10</strong>. To become familiar with the C calling conventions on the x86, find the address of the test_backtrace function in obj/kern/kernel.asm, set a breakpoint there, and examine what happens each time it gets called after the kernel starts. How many 32-bit words does each recursive nesting level of test_backtrace push on the stack, and what are those words?
+Note that, for this exercise to work properly, you should be using the patched version of QEMU available on the tools page or on Athena. Otherwise, you&rsquo;ll have to manually translate all breakpoint and memory addresses to linear addresses.</p>
+</blockquote>
+<p><strong>Answer</strong>: Every level of nesting, push 8 words on stack.</p>
+<p><img src="/img/2019-2-23-JOS-lab1/9.png" alt="9"></p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

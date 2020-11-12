@@ -3,15 +3,191 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://xiahualiu.github.io/categories/</loc>
+    <loc>/posts/</loc>
+    <lastmod>2020-02-11T13:17:03-05:00</lastmod>
   </url>
   
   <url>
-    <loc>https://xiahualiu.github.io/tags/</loc>
+    <loc>/</loc>
+    <lastmod>2020-02-11T13:17:03-05:00</lastmod>
   </url>
   
   <url>
-    <loc>https://xiahualiu.github.io/</loc>
+    <loc>/posts/2020-02-11-tex-on-vscode/</loc>
+    <lastmod>2020-02-11T13:17:03-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2020-01-30-matrix-multiplication/</loc>
+    <lastmod>2020-01-30T20:17:54-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2020-01-11-lrta-ab/</loc>
+    <lastmod>2020-01-11T21:59:55-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2020-01-07-searching/</loc>
+    <lastmod>2020-01-07T13:02:01-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-12-23-dp/</loc>
+    <lastmod>2019-12-23T17:59:10-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-07-28-partial-fraction-expansion/</loc>
+    <lastmod>2019-07-28T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-04-25-lfsr-crc/</loc>
+    <lastmod>2019-04-26T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-04-04-event-driven/</loc>
+    <lastmod>2019-04-04T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-02-23-jos-lab1/</loc>
+    <lastmod>2019-02-23T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-02-06-xv6-paging-table/</loc>
+    <lastmod>2019-02-06T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-02-03-xv6-first-process/</loc>
+    <lastmod>2019-02-03T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-01-29-paging/</loc>
+    <lastmod>2019-01-29T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-01-26-xv6-boot1/</loc>
+    <lastmod>2019-01-26T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2019-01-26-xv6-boot2/</loc>
+    <lastmod>2019-01-26T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-08-28-rb-tree/</loc>
+    <lastmod>2018-08-28T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-08-09-fpga-eeprom/</loc>
+    <lastmod>2018-08-09T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-08-08-verilog-example/</loc>
+    <lastmod>2018-08-08T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-08-07-claa/</loc>
+    <lastmod>2018-08-07T10:48:30+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-07-27-sorting/</loc>
+    <lastmod>2018-07-27T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-07-24-priority_queue/</loc>
+    <lastmod>2018-07-24T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-07-13-csapp-link/</loc>
+    <lastmod>2018-07-13T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2018-07-05-optimize-your-c-code/</loc>
+    <lastmod>2018-07-05T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-12-12-can_bus/</loc>
+    <lastmod>2017-12-12T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-12-07-c-pointer/</loc>
+    <lastmod>2017-12-07T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-11-28-ft232h-command/</loc>
+    <lastmod>2017-11-28T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-11-13-ft232h-1/</loc>
+    <lastmod>2017-11-13T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-10-26-s32k144_8/</loc>
+    <lastmod>2017-10-26T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-10-20-s32k144_7/</loc>
+    <lastmod>2017-10-20T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-10-19-s32k144_6/</loc>
+    <lastmod>2017-10-19T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-10-17-s32k144_5/</loc>
+    <lastmod>2017-10-17T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-10-16-s32k144_4/</loc>
+    <lastmod>2017-10-16T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-10-02-s32k144_3/</loc>
+    <lastmod>2017-10-02T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-09-29-s32k144_2/</loc>
+    <lastmod>2017-09-29T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/posts/2017-09-28-s32k144_1/</loc>
+    <lastmod>2017-09-28T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/categories/</loc>
+  </url>
+  
+  <url>
+    <loc>/tags/</loc>
   </url>
   
 </urlset>

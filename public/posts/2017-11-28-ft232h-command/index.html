@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    FT_Write Commands | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-11-28-ft232h-command/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-11-28-ft232h-command/" rel="bookmark">FT_Write Commands</a>
+  </h2>
+  
+  <time datetime="2017-11-28T00:00:00Z">
+    28 November, 2017
+  </time>
+  
+</header>
+
+  <p>在使用 <code>FT_Write</code> 发送命令的时候应该注意，一个标准的命令包含一个操作字节（OPCODE）和几个从属的字节，所有的命令都是以字节为单位发送的。</p>
+<h1 id="数据发送命令">数据发送命令</h1>
+<p>这个是控制 MPSSE 发送数据时候的设置字节组成:</p>
+<ul>
+<li>Bit 0 : 在下降沿发送</li>
+<li>Bit 1 : 1 为 bits 发送，其他为 bytes 发送</li>
+<li>Bit 2 : 在下降沿读取</li>
+<li>Bit 3 : 1为LSB first, 其他为 MSB first</li>
+<li>Bit 4 : 允许写 TDI（允许发送数据）</li>
+<li>Bit 5 : 允许读 TDO（允许接收数据）</li>
+<li>Bit 6 : 开启写入时的 TMS（片选）</li>
+<li>Bit 7 : 0</li>
+</ul>
+<h2 id="msb-首先">MSB 首先</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">设置字节</th>
+<th style="text-align:center">数据是否接收</th>
+<th style="text-align:center">数据是否发送</th>
+<th style="text-align:center">位/字节</th>
+<th style="text-align:center">接收数据的<strong>捕获</strong>时钟沿</th>
+<th style="text-align:center">发送数据的<strong>变化</strong>时钟沿</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0x10</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x11</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x12</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x13</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x20</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x24</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x22</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x26</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x31</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x34</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x33</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x36</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+</tbody>
+</table>
+<h3 id="举例子">举例子:</h3>
+<ol>
+<li>如果发送字节在上升沿，MSB，不读取，则发送的字节顺序为:</li>
+</ol>
+<pre><code>0x10,
+LengthL,
+LengthH,
+Byte1
+..
+Byte65536 (max)
+</code></pre><p>长度 <code>0x0000</code> 为 1 字节，<code>0xffff</code> 为 65536 字节，最多一次可以发送 65536，因为缓存只有 64KB。第一个字节的第 7 位，也就是首先要发送的位会被放置在 TDI/DO 上，然后时钟会开始第一个跳变，数据会在下一个上升沿变化。</p>
+<ol start="2">
+<li>如果读取字节在上升沿，MSB，不发送，则发送的字节顺序为:</li>
+</ol>
+<pre><code>0x20,
+LengthL,
+LengthH
+</code></pre><p>这个设置字节会在 TDO/DI 端口接收 1 - 65536 个字节，第一个位会是第一个字节的 MSB（最高位），数据会在每个 CLK 的上升沿进行捕获。</p>
+<ol start="3">
+<li>接收数据并且发送数据，MSB 首先:</li>
+</ol>
+<pre><code>0x31,   // 发送数据在下降沿跳变，接收数据在上升沿捕获
+LengthL,
+LengthH,
+Byte1
+..
+Byte65536 (max)
+</code></pre><h2 id="lsb-首先">LSB 首先</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">设置字节</th>
+<th style="text-align:center">数据是否接收</th>
+<th style="text-align:center">数据是否发送</th>
+<th style="text-align:center">位/字节</th>
+<th style="text-align:center">接收数据的<strong>捕获</strong>时钟沿</th>
+<th style="text-align:center">发送数据的<strong>变化</strong>时钟沿</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0x18</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x19</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x1A</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x1B</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x28</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x2C</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x2A</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x2E</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x39</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x3C</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BYTES</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x3B</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">上升沿</td>
+<td style="text-align:center">下降沿</td>
+</tr>
+<tr>
+<td style="text-align:center">0x3E</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">BITS</td>
+<td style="text-align:center">下降沿</td>
+<td style="text-align:center">上升沿</td>
+</tr>
+</tbody>
+</table>
+<p>具体例子可以参考上述的 MSB 章节，几乎一模一样。</p>
+<h2 id="初始化端口状态">初始化端口状态</h2>
+<p>端口分为高 8 位和低 8 位。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">设置字节</th>
+<th style="text-align:center">设置状态</th>
+<th style="text-align:center">读取状态</th>
+<th style="text-align:center">高 8 位</th>
+<th style="text-align:center">低 8 位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0x80</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+</tr>
+<tr>
+<td style="text-align:center">0x82</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+</tr>
+<tr>
+<td style="text-align:center">0x81</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+</tr>
+<tr>
+<td style="text-align:center">0x83</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">YES</td>
+<td style="text-align:center">-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="设置状态值和方向">设置状态值和方向</h3>
+<pre><code>0x80,
+0xValue,
+0xDirection
+</code></pre><p>会设置低 8 位端口的方向和状态值。<br>
+1 为输出方向，0 为输入方向。</p>
+<h3 id="读取值">读取值</h3>
+<pre><code>0x81,
+</code></pre><p>会读取当前的端口状态值，返回一个字节。</p>
+<h2 id="内部回环">内部回环</h2>
+<p>内部短接 TDI/DO 和 TDO/DI，以测试传输。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">设置字节</th>
+<th style="text-align:center">是否回环</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0x84</td>
+<td style="text-align:center">YES</td>
+</tr>
+<tr>
+<td style="text-align:center">0x85</td>
+<td style="text-align:center">NO</td>
+</tr>
+</tbody>
+</table>
+<h2 id="设置分频因子">设置分频因子</h2>
+<p>对于 FT232H/FT2232H/FT4232H 型号，发送 <code>0x8A</code> 可以关闭内部的 5 预分频器。</p>
+<pre><code>0x86,
+0xValueL,
+0xValueH,
+</code></pre><p>TCK period = 60MHz / (( 1 +[ (0xValueH * 256) OR 0xValueL] ) * 2)</p>
+<h2 id="ft232hft2232hft4232h-特殊的指令">FT232H/FT2232H/FT4232H 特殊的指令</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">操作字节</th>
+<th style="text-align:left">功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0x8A</td>
+<td style="text-align:left">关闭 5 预分频器，主时钟频率为 60MHz</td>
+</tr>
+<tr>
+<td style="text-align:center">0x8B</td>
+<td style="text-align:left">开启 5 预分频，以便于适应 FT2232D</td>
+</tr>
+<tr>
+<td style="text-align:center">0x8C</td>
+<td style="text-align:left">开启三相数据时钟，<!-- raw HTML omitted -->使用 I2C 总线会使数据在双时钟沿传送</td>
+</tr>
+<tr>
+<td style="text-align:center">0x8D</td>
+<td style="text-align:left">关闭三相数据时钟</td>
+</tr>
+<tr>
+<td style="text-align:center">0x8E</td>
+<td style="text-align:left">允许时钟在无数据输出的时候输出，<!-- raw HTML omitted -->通常用于 JTAG 状态机，时钟按位计算</td>
+</tr>
+<tr>
+<td style="text-align:center">0x8F</td>
+<td style="text-align:left">允许时钟在无数据输出的时候输出，<!-- raw HTML omitted -->通常用于 JTAG 状态机，时钟按字节计算</td>
+</tr>
+<tr>
+<td style="text-align:center">0x94</td>
+<td style="text-align:left">允许时钟在无数据输出的时候输出，<!-- raw HTML omitted -->直到 GPIOL1 输入 1</td>
+</tr>
+<tr>
+<td style="text-align:center">0x95</td>
+<td style="text-align:left">允许时钟在无数据输出的时候输出，<!-- raw HTML omitted -->直到 GPIOL1 输入 0</td>
+</tr>
+<tr>
+<td style="text-align:center">0x96</td>
+<td style="text-align:left">开启适应性时钟</td>
+</tr>
+<tr>
+<td style="text-align:center">0x97</td>
+<td style="text-align:left">关闭适应性时钟</td>
+</tr>
+<tr>
+<td style="text-align:center">0x9C</td>
+<td style="text-align:left">允许时钟在无数据输出的时候输出，<!-- raw HTML omitted -->直到 GPIOL1 输入 1 或者一定数量的时钟被发送</td>
+</tr>
+<tr>
+<td style="text-align:center">0x9C</td>
+<td style="text-align:left">允许时钟在无数据输出的时候输出，<!-- raw HTML omitted -->直到 GPIOL1 输入 0 或者一定数量的时钟被发送</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ftstatus-错误状态分析">ftStatus 错误状态分析：</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">错误码</th>
+<th style="text-align:center">错误类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">无错误</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">无效的 HANDLE</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">未找到设备</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td style="text-align:center">设备未被打开</td>
+</tr>
+<tr>
+<td style="text-align:center">4</td>
+<td style="text-align:center">设备 IO 错误</td>
+</tr>
+<tr>
+<td style="text-align:center">5</td>
+<td style="text-align:center">资源不足</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">参数无效</td>
+</tr>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">无效波特率</td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">设备擦拭未打开</td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">设备写入未打开</td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td style="text-align:center">写入设备无效</td>
+</tr>
+<tr>
+<td style="text-align:center">11</td>
+<td style="text-align:center">EEPROM 读取失败</td>
+</tr>
+<tr>
+<td style="text-align:center">12</td>
+<td style="text-align:center">EEPROM 写入失败</td>
+</tr>
+<tr>
+<td style="text-align:center">13</td>
+<td style="text-align:center">EEPROM 擦拭失败</td>
+</tr>
+<tr>
+<td style="text-align:center">14</td>
+<td style="text-align:center">EEPROM 不存在</td>
+</tr>
+<tr>
+<td style="text-align:center">15</td>
+<td style="text-align:center">EEPROM 未格式化</td>
+</tr>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">无效的参数</td>
+</tr>
+<tr>
+<td style="text-align:center">17</td>
+<td style="text-align:center">不支持的类型</td>
+</tr>
+<tr>
+<td style="text-align:center">18</td>
+<td style="text-align:center">其他错误</td>
+</tr>
+</tbody>
+</table>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

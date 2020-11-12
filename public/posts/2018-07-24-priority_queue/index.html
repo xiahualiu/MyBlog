@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    Priority Queue/Heap | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2018-07-24-priority_queue/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2018-07-24-priority_queue/" rel="bookmark">Priority Queue/Heap</a>
+  </h2>
+  
+  <time datetime="2018-07-24T00:00:00Z">
+    24 July, 2018
+  </time>
+  
+</header>
+
+  <p>在本文中将会对于 <strong>优先队列（Priority Queue）</strong> 的几种实现方式进行详细的叙述，优先队列在日常中的使用非常普遍，在学校里面的打印机打印文件的时候，应该对于文件的页数进行排序，首先打印页数最少的文件，最后处理页数最多的文件，虽然在队列中，文件提交的顺序并不是这样的。（但是现在的大多数打印机都不会这样做，譬如我们学校的打印机）。</p>
+<p>在系统中，操作系统调度程序必须决定在若干进程中运行哪个进程。一般情况下，一个进程只能被允许运行一个固定的时间片（在这里不考虑进程并行情况）。一种算法是使用队列，调度时一直从队首拿出作业进行，在队尾增加作业。但是更优的情况是，短的作业要尽可能快的结束，因为短的作业重要性和长的相同；有些情况下，即使作业很长，但是由于其具有优先级，也应该首先对其进行处理。</p>
+<p>本文将讨论以下的内容：</p>
+<ul>
+<li>优先队列 ADT 的有效实现</li>
+<li>优先队列的使用</li>
+<li>优先队列的高级实现</li>
+</ul>
+<blockquote>
+<p>我们将看到的这类数据结构属于计算机科学中最讲究的一种。
+&mdash;<em>《Data Structure and Algorithm Analysis in C》</em></p>
+</blockquote>
+<p>这也是为什么要为这一章单独记录的原因。</p>
+<h2 id="模型">模型</h2>
+<p>由于是队列，所以优先队列的模型与队列相同，<strong>入队（Enqueue）</strong>，和 <strong>出队（Dequeue）</strong>，但是与普通队列不同的是，这里的出队是踢出优先级最高的元素。在计算机科学中，优先级一般使用数字（0，1，2，3&hellip;）表示，优先级越高的元素，其对应的数字就会越低。所以在模型的操作中，我们将出队称为 <strong>删除最小值（DeleteMin）</strong>，入队称为 <strong>插入（Insert）</strong>，但这两种操作的作用和原有的普通队列相同，只不过出队操作略有改变。</p>
+<blockquote>
+<p>软件工程界目前认为删除最小值并不是个很好的思路，不过出于历史原因我们继续使用这个函数。</p>
+</blockquote>
+<p><img src="/img/2018-7-24-Priority_Queue/module.png" alt=""></p>
+<h2 id="一些简单的实现">一些简单的实现</h2>
+<p>最简单的实现是使用链表，在链表的表头以 <em>O(1)</em> 执行插入操作，以 <em>O(n)</em> 遍历链表以寻找最小元删除，另外一种办法是使链表一直保持排序状态，这会使插入操作成为 <em>O(n)</em>，删除操作成为 <em>O(1)</em>。但是在队列中，删除操作从来不会多于插入操作，所以前者的办法更好。</p>
+<p>另外的一种办法是使用二叉查找树，二叉树使得元素的插入和删除操作平均时间都是 <em>O(logN)</em>。但是使用二叉查找树似乎有点过分，因为我们只需要很少的操作，而二叉树的功能过于强大，而且与指针有关。在这里我们使用了一种新的数据结构，它将不需要指针，并以最坏情况 <em>O(logN)</em> 支持这两种操作。然后我们讨论如何合并它们，在合并的过程中，我们要使用到指针。</p>
+<h2 id="二叉堆">二叉堆</h2>
+<p>它叫做 <strong>二叉堆（binary heap）</strong>，它对于优先队列如此普遍，以至于只要提起 <strong>堆（heap）</strong>，我们就认为是这种数据结构。</p>
+<h3 id="结构性质">结构性质</h3>
+<p>堆是一种完全被填满或者即将被填满的二叉树，即使底部可能有些没有填满，但是元素从顶到底依次填入二叉树的各个部位。由于其规律很显著，我们可以使用一个数组来表示它。如图，树中的数字对应着它们在数组内的位置。至于为什么根不是 0 位置，我们在下部分来讨论。</p>
+<p><img src="/img/2018-7-24-Priority_Queue/binary_heap.png" alt=""></p>
+<p>显然，对于下标为 i 的元素，使用 i/2 可以访问其父节点，使用 2i 可以访问其左子树，使用 2i+1 索引可以访问其右子树，相比于指针，这样的访问方式更加快捷，缺点就是元素只能是连续分布的数组类型，树必须是满二叉树。堆的大小，等于我们声明数组时候的数组长度。</p>
+<h3 id="创建二叉堆">创建二叉堆</h3>
+<p>我们使用如下的代码创建二叉堆：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define ElementType int
+</span><span style="color:#75715e">#define MinValue 0
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> HeapStruct {
+	<span style="color:#66d9ef">int</span> Capacity;
+	<span style="color:#66d9ef">int</span> Size;
+	ElementType <span style="color:#f92672">*</span>Elements;
+}<span style="color:#f92672">*</span>PriorityQueue;
+
+<span style="color:#75715e">//初始化堆
+</span><span style="color:#75715e"></span>PriorityQueue <span style="color:#a6e22e">PQInitialize</span>(<span style="color:#66d9ef">int</span> MaxElements);
+<span style="color:#75715e">//销毁堆
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PQDestroy</span>(PriorityQueue H);
+<span style="color:#75715e">//清空堆
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">MakeEmpty</span>(PriorityQueue H);
+<span style="color:#75715e">//插入元素
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Insert</span>(ElementType X, PriorityQueue H);
+<span style="color:#75715e">//打印目前堆的形状
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PrintPQ</span>(PriorityQueue H);
+<span style="color:#75715e">//出队
+</span><span style="color:#75715e"></span>ElementType <span style="color:#a6e22e">DeleteMin</span>(PriorityQueue H);
+<span style="color:#75715e">//寻找下一个出队元素
+</span><span style="color:#75715e"></span>ElementType <span style="color:#a6e22e">FindMin</span>(PriorityQueue H);
+<span style="color:#75715e">//堆是否为空
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">IsEmpty</span>(PriorityQueue H);
+<span style="color:#75715e">//减少关键字的值(增大优先级)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">DecreaseKey</span>(<span style="color:#66d9ef">int</span> P,<span style="color:#66d9ef">int</span> delta,PriorityQueue H);
+<span style="color:#75715e">//增大关键字的值(减少优先级)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">IncreaseKey</span>(<span style="color:#66d9ef">int</span> P, <span style="color:#66d9ef">int</span> delta, PriorityQueue H);
+<span style="color:#75715e">//删除一个元素
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">DeleteKey</span>(<span style="color:#66d9ef">int</span> P, PriorityQueue H);
+</code></pre></div><p>详细的各种函数实现方法在我写的对应的 <a href="https://git.coding.net/Eggycat/DSAA.git">repo</a> 中的 <code>Priority_Queue</code> 中，不具体介绍。</p>
+<h2 id="d-堆">d-堆</h2>
+<p>d-堆，又被称作多叉堆，是一个完全的多叉树，与二叉堆相比，多叉堆的优点在于减少了 <code>Insert</code> 的时间，因为树的层树少了，而 <code>Insert</code> 操作的最坏时间就是元素从最底层升到根，与层数多少有关，为 <em>O(logdN)</em>。而 <code>DeleteMin</code> 操作由于有相邻元素的比较过程，多叉堆的效率就显著下降，为 <em>O(d</em>logdN)*，d 堆的使用和 B 树使用类似，在磁盘上读写数据时效率高于二叉堆。</p>
+<h2 id="左式堆">左式堆</h2>
+<p>左式堆的实现是为了简化两个二叉堆的合并过程，左式堆的定义如下：</p>
+<blockquote>
+<p>我们把任一节点 X 的 <strong>零路径长（NPL）</strong> <em>Npl(X)</em> 定义为从 <em>X</em> 到一个没有两个儿子的节点的最短路径的长度。具有一个或者零个节点的 <em>Npl(X)</em> 为 0，而 <em>Npl(NULL)</em>=-1。</p>
+</blockquote>
+<p>左式堆：</p>
+<ul>
+<li><strong>中任意节点的左儿子零路径长要大于等于右儿子零路径长。</strong></li>
+</ul>
+<blockquote>
+<p>定理：在右路径上有 r 个节点的左式树必然至少有 2^r-1 个节点。</p>
+</blockquote>
+<p><img src="/img/2018-7-24-Priority_Queue/leftist_heap.png" alt=""></p>
+<h2 id="左式堆的合并重点">左式堆的合并（重点）</h2>
+<p>合并是左式堆的基本操作。插入可以看做是一个单节点树的合并。合并的过程是一个递归的过程，怎么理解呢，就是左式堆的两个子树一定也是左式堆，我们可以从一个基本状态开始，逐步分析递归合并的过程：确保合并过后每个节点的左子树右子树均为左式堆，并保证根节点满足左式堆要求。</p>
+<h4 id="合并的过程中的类型">合并的过程中的类型</h4>
+<p>对于左式堆 H1&lt;-H2 的合并的过程有三种类型，第一种是 H1 的左子树为空，在这种条件下，我们可以直接将 H2 置为 H1 左子树，因为在左式堆中左子树为空意味着右子树也为空，H1 是一个单节点左式堆，直接合并的操作是安全的。并且这样甚至不会改变 H1 根节点的 <em>Npl</em> 值，它依旧为 0。</p>
+<p>第二种为 H1 的右子树为空，这种状态下，我们将 H2 置为 H1 的右子树，因为 H2 是左式堆，H1 的左子树也是左式堆，故我们只要确保合并后的 H1 根节点的零路径长满足要求即可，也就是此时 H1 根节点左零路径长于右路径，若不满足则将其左右子树交换位置，最后我们将 H1 根节点的 <em>Npl</em> 值变成两者中最小值加一，就完成了合并的过程。</p>
+<p>但是很多情况下，这种状态并不常发生，H1 通常左右子树已经有子树了，那怎么办呢？没关系，我们一直顺着 H1 的右子树路径走下去，直到找到有一个满足我们第一或第二种类型的节点 H1* 即可，因为 H1 是左式堆，子树的每一个节点都满足左式堆的条件，我们这个时候就视作 H1* 为第一或第二种类型中的左式堆根节点，将 H1* 和 H2 合并。但是在第二种类型中，我们修改的 Npl 值会影响父节点的零路径长，故我们要依次向上检查，有可能要交换好几次左右子树的位置，而第一种类型的合并是安全的，我们无需再去考虑。</p>
+<p>有的时候，在 H1 向右寻找儿子的过程中，有可能会遇到 H1 的子节点值小于 H2 根节点值大小的情况，我们只需要交换 H1* H2 的顺序即可，也就是本来是 H1*&lt;-H2 合并，改为 H2&lt;-H1*，合并完的结果是 H1 树中的某些点被 H2 给先合并了，然后带有 H1 某些节点的 H2 左式堆又被 H1 合并了，实际的元素并没有丢失，只不过在 H1 和 H2 之间进行了位置的互换。</p>
+<p>详细实现的代码如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SwapChildren</span>(PriorityQueue L) {
+	PriorityQueue temp;
+	<span style="color:#66d9ef">if</span> (L <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span>;
+	temp <span style="color:#f92672">=</span> L<span style="color:#f92672">-&gt;</span>Left;
+	L<span style="color:#f92672">-&gt;</span>Left <span style="color:#f92672">=</span> L<span style="color:#f92672">-&gt;</span>Right;
+	L<span style="color:#f92672">-&gt;</span>Right <span style="color:#f92672">=</span> temp;
+}
+
+<span style="color:#66d9ef">static</span> PriorityQueue <span style="color:#a6e22e">Merge1</span>(PriorityQueue L1, PriorityQueue L2) {
+	<span style="color:#66d9ef">if</span> (L1<span style="color:#f92672">-&gt;</span>Left <span style="color:#f92672">==</span> NULL)
+		L1<span style="color:#f92672">-&gt;</span>Left <span style="color:#f92672">=</span> L2;
+	<span style="color:#66d9ef">else</span> {
+		L1<span style="color:#f92672">-&gt;</span>Right <span style="color:#f92672">=</span> Merge(L1<span style="color:#f92672">-&gt;</span>Right, L2);
+		<span style="color:#66d9ef">if</span> (L1<span style="color:#f92672">-&gt;</span>Left<span style="color:#f92672">-&gt;</span>Npl <span style="color:#f92672">&lt;</span> L1<span style="color:#f92672">-&gt;</span>Right<span style="color:#f92672">-&gt;</span>Npl)
+			SwapChildren(L1);
+
+		L1<span style="color:#f92672">-&gt;</span>Npl <span style="color:#f92672">=</span> L1<span style="color:#f92672">-&gt;</span>Right<span style="color:#f92672">-&gt;</span>Npl <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+	}
+	<span style="color:#66d9ef">return</span> L1;
+}
+
+PriorityQueue <span style="color:#a6e22e">Merge</span>(PriorityQueue L1, PriorityQueue L2) {
+	<span style="color:#66d9ef">if</span> (L1 <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span> L2;
+	<span style="color:#66d9ef">if</span> (L2 <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span> L1;
+	<span style="color:#66d9ef">if</span> (L1<span style="color:#f92672">-&gt;</span>Element <span style="color:#f92672">&lt;</span> L2<span style="color:#f92672">-&gt;</span>Element)
+		<span style="color:#66d9ef">return</span> Merge1(L1, L2);
+	<span style="color:#66d9ef">else</span>
+		<span style="color:#66d9ef">return</span> Merge1(L2, L1);
+}
+</code></pre></div><h2 id="斜堆">斜堆</h2>
+<p>斜堆与左式堆的关系如同伸展树和 AVL 树之间的关系，我们对于斜堆的合成使用与左式堆相同的方式，递归的生成合成树，但是在验证根的左式性时，我们都假设合并后右子树零路径长较长，直接进行交换，这样合成的树在大多数情况下是左式的，但是并不能保证。</p>
+<p>斜堆这个无需验证的性质使得斜堆的节点无需储存 Npl 值，使其具有较高的空间利用率，并且减少了验证过程的时间消耗。</p>
+<p>精确确定左式堆和斜堆的右路径长是一个悬而未决的问题。</p>
+<h2 id="二项队列">二项队列</h2>
+<p>二项队列使用了一个很有意思的思维，它使用了“森林”的数据结构，在二项队列中，有许多 <strong>堆序树</strong> 组成，而这些树的元素个数都是 2 的倍数：高度为 0 的二项树是一棵单节点树；高度为 k 的二项树 B<em>k</em> 由两棵高度为 B<em>k-1</em> 的二项树组成，类似于二进制中的进位概念，最后组成的数据结构的形状如图：</p>
+<p><img src="/img/2018-7-24-Priority_Queue/binomial_queue.png" alt=""></p>
+<p>这样构造的森林结构和元素数量一一对应，譬如有 11 个元素，转换为二进制为：11=8+2+1=0b1011。则森林的结构为 B0，B1，B3。没有 B2，对应的二进制位也为 0。</p>
+<p>这样构造的堆序树森林，我们要寻找最小元素，只需要在森林各个树的根寻找，易得，时间复杂度是 <em>O(logn)</em>。合并操作拥有与二进制相同的进位方法。合并两个相同结构树只需要将其中根节点值较大的树附加在根节点值较小树的根上就可以了。</p>
+<p>为了方便遍历这个森林中的根节点，我们将其根节点放置在一个数组中。而由图可见，我们发现二项队列中的树不是二叉树，节点的子树数量不定，这样怎么用程序表示呢？我们可以通过一个简单的转变即可，将每一层中的相邻节点用链表穿起来，这些同一层的节点可以视作是 “兄弟” 而不是父子关系，因为兄弟之间没有大小顺序，而父子之间存在大小关系。图中的虚线就是表示这种关系。</p>
+<p><img src="/img/2018-7-24-Priority_Queue/binomial_queue_new.png" alt=""></p>
+<p>每个节点的数据结构为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> BinNode{
+	ElementType Element;
+	Position Child;
+	Position Sibling;
+}
+</code></pre></div><p>进行合并的时候，很简单的操作，譬如两个二项队列 B1 和 B2 合并，B1 根元素小于 B2。故为 B1&lt;-B2 合并，根据二项队列的结构我们可以知道合并的双方具有相同的形状。依旧使用递归，这个递归在树的合并中使用太广泛了，不讲解了：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">BinTree <span style="color:#a6e22e">CombineTrees</span>(BinTree T1, BinTree T2){
+	<span style="color:#66d9ef">if</span>(T1<span style="color:#f92672">-&gt;</span>Element <span style="color:#f92672">&gt;</span> T2<span style="color:#f92672">-&gt;</span>Element)
+		<span style="color:#66d9ef">return</span> CombineTrees(T2, T1);
+	T2<span style="color:#f92672">-&gt;</span>Sibling<span style="color:#f92672">=</span>T1<span style="color:#f92672">-&gt;</span>Child;
+	T1<span style="color:#f92672">-&gt;</span>Child<span style="color:#f92672">=</span>T2;
+	<span style="color:#66d9ef">return</span> T1;
+}
+</code></pre></div><h2 id="总结">总结</h2>
+<p>这一章我们介绍了数种常见的优先队列数据结构，它们各有各的优点和缺点，对于最常用的二叉堆，它的实现是简单和快速的，因为它平均仅仅需要常数时间的插入时间花费（最坏情况为 <em>logN</em>，气泡法，从底浮到根），和 <em>logN</em> 的删除时间花费(气泡法，每次删除几乎都是从根到底沉下，所以最坏也为 <em>O(logN)</em>)，但是它对于合并的支持较差，时间边界为 <em>O(N)</em>。左式堆和斜堆对于插入，合并，和删除的操作，时间边界均为 <em>O(logN)</em>。二项队列以 <em>O(logN)</em> 时间边界支持这三种操作，并且对于插入操作，平均花费常数时间。</p>
+<p>具体使用哪一种还是要看具体的数据性质咯。Peace out~</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

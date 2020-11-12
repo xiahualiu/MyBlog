@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    xv6 Chapter 4 - Creating the First Process | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-02-03-xv6-first-process/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-02-03-xv6-first-process/" rel="bookmark">xv6 Chapter 4 - Creating the First Process</a>
+  </h2>
+  
+  <time datetime="2019-02-03T00:00:00Z">
+    3 February, 2019
+  </time>
+  
+</header>
+
+  <p>There goes the main part of xv6. Xv6 souce code provided a really clear view of each component of the kernel. All parts are shown below: <code>main.c:14-38</code></p>
+<p>In this chapter, we will go through the sub-function <code>userinit</code>, in which we initialize the memory for a user process, and create the first process.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Bootstrap processor starts running C code here.
+</span><span style="color:#75715e">// Allocate a real stack and switch to it, first
+</span><span style="color:#75715e">// doing some setup required for memory allocator to work.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span>
+<span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>)
+{
+  kinit1(end, P2V(<span style="color:#ae81ff">4</span><span style="color:#f92672">*</span><span style="color:#ae81ff">1024</span><span style="color:#f92672">*</span><span style="color:#ae81ff">1024</span>)); <span style="color:#75715e">// phys page allocator
+</span><span style="color:#75715e"></span>  kvmalloc();      <span style="color:#75715e">// kernel page table
+</span><span style="color:#75715e"></span>  mpinit();        <span style="color:#75715e">// detect other processors
+</span><span style="color:#75715e"></span>  lapicinit();     <span style="color:#75715e">// interrupt controller
+</span><span style="color:#75715e"></span>  seginit();       <span style="color:#75715e">// segment descriptors
+</span><span style="color:#75715e"></span>  picinit();       <span style="color:#75715e">// disable pic
+</span><span style="color:#75715e"></span>  ioapicinit();    <span style="color:#75715e">// another interrupt controller
+</span><span style="color:#75715e"></span>  consoleinit();   <span style="color:#75715e">// console hardware
+</span><span style="color:#75715e"></span>  uartinit();      <span style="color:#75715e">// serial port
+</span><span style="color:#75715e"></span>  pinit();         <span style="color:#75715e">// process table
+</span><span style="color:#75715e"></span>  tvinit();        <span style="color:#75715e">// trap vectors
+</span><span style="color:#75715e"></span>  binit();         <span style="color:#75715e">// buffer cache
+</span><span style="color:#75715e"></span>  fileinit();      <span style="color:#75715e">// file table
+</span><span style="color:#75715e"></span>  ideinit();       <span style="color:#75715e">// disk 
+</span><span style="color:#75715e"></span>  startothers();   <span style="color:#75715e">// start other processors
+</span><span style="color:#75715e"></span>  kinit2(P2V(<span style="color:#ae81ff">4</span><span style="color:#f92672">*</span><span style="color:#ae81ff">1024</span><span style="color:#f92672">*</span><span style="color:#ae81ff">1024</span>), P2V(PHYSTOP)); <span style="color:#75715e">// must come after startothers()
+</span><span style="color:#75715e"></span>  userinit();      <span style="color:#75715e">// first user process
+</span><span style="color:#75715e"></span>  mpmain();        <span style="color:#75715e">// finish this processor&#39;s setup
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p><code>userinit</code>&rsquo;s first action is to call <code>allocproc</code>. Go to the definition of it, we can see <code>allocproc</code> do several things:</p>
+<ul>
+<li>allocating a slot (<code>struct proc</code>) in process table. <code>allocproc</code> scans the proc table for a slot with state <code>UNUSED</code>. <code>proc.c:69-83</code></li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Look in the process table for an UNUSED proc.
+</span><span style="color:#75715e">// If found, change state to EMBRYO and initialize
+</span><span style="color:#75715e">// state required to run in the kernel.
+</span><span style="color:#75715e">// Otherwise return 0.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> proc<span style="color:#f92672">*</span>
+<span style="color:#a6e22e">allocproc</span>(<span style="color:#66d9ef">void</span>)
+{
+  <span style="color:#66d9ef">struct</span> proc <span style="color:#f92672">*</span>p;
+  <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>sp;
+
+  acquire(<span style="color:#f92672">&amp;</span>ptable.lock);
+
+  <span style="color:#66d9ef">for</span>(p <span style="color:#f92672">=</span> ptable.proc; p <span style="color:#f92672">&lt;</span> <span style="color:#f92672">&amp;</span>ptable.proc[NPROC]; p<span style="color:#f92672">++</span>)
+    <span style="color:#66d9ef">if</span>(p<span style="color:#f92672">-&gt;</span>state <span style="color:#f92672">==</span> UNUSED)
+      <span style="color:#66d9ef">goto</span> found;
+</code></pre></div><ul>
+<li>initializing the parts of process&rsquo;s state required for its kernel thread to execute. It sets the state to <code>EMBRYO</code> to mark it as used and give the process a unique pid. <code>proc.c:88-92</code></li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">found:
+  p<span style="color:#f92672">-&gt;</span>state <span style="color:#f92672">=</span> EMBRYO;
+  p<span style="color:#f92672">-&gt;</span>pid <span style="color:#f92672">=</span> nextpid<span style="color:#f92672">++</span>;
+
+  release(<span style="color:#f92672">&amp;</span>ptable.lock);
+</code></pre></div><ul>
+<li>Next, it allocate a kernel stack for the process&rsquo;s kernel thread. If failed, labeled the <code>struct proc</code> with <code>UNUSED</code>, return 0. <code>proc.c:94-99</code> (kernel thread is the thread when a process is trapped in kernel).</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"> <span style="color:#75715e">// Allocate kernel stack.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span>((p<span style="color:#f92672">-&gt;</span>kstack <span style="color:#f92672">=</span> kalloc()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>){
+    p<span style="color:#f92672">-&gt;</span>state <span style="color:#f92672">=</span> UNUSED;
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+  }
+  sp <span style="color:#f92672">=</span> p<span style="color:#f92672">-&gt;</span>kstack <span style="color:#f92672">+</span> KSTACKSIZE;
+</code></pre></div><p>Here we meet a new function called <code>kalloc</code>. Go to its definition, <code>kalloc.c:79-95</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Allocate one 4096-byte page of physical memory.
+</span><span style="color:#75715e">// Returns a pointer that the kernel can use.
+</span><span style="color:#75715e">// Returns 0 if the memory cannot be allocated.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>
+<span style="color:#a6e22e">kalloc</span>(<span style="color:#66d9ef">void</span>)
+{
+  <span style="color:#66d9ef">struct</span> run <span style="color:#f92672">*</span>r;
+
+  <span style="color:#66d9ef">if</span>(kmem.use_lock)
+    acquire(<span style="color:#f92672">&amp;</span>kmem.lock);
+  r <span style="color:#f92672">=</span> kmem.freelist;
+  <span style="color:#66d9ef">if</span>(r)
+    kmem.freelist <span style="color:#f92672">=</span> r<span style="color:#f92672">-&gt;</span>next;
+  <span style="color:#66d9ef">if</span>(kmem.use_lock)
+    release(<span style="color:#f92672">&amp;</span>kmem.lock);
+  <span style="color:#66d9ef">return</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)r;
+}
+</code></pre></div><p><code>kalloc</code> is used to allocate one 4096-byte page physical memory. We can infer from the above usage that <code>kalloc</code> return a pointer that can point to a stack space.</p>
+<p>In <code>allocproc</code>, we assign <code>sp</code> at the top of the kernel stack.</p>
+<p><img src="kernel_stack.png" alt="Figure 1-4. A new kernel stack"></p>
+<p>Next <code>allocproc</code> use <code>sp</code> to form the stack like the picture above, and assign the various pointer like <code>p-&gt;tf</code> <code>p-&gt;context</code>.</p>
+<p>What is trapframe and context? Well, trapframe is used for the code to return from the kernel back to the process&rsquo;s user code. All the registers and the porgram counter value (in <code>%eip</code>) are freezed before entering kernel and stored in trapframe through trap entry code. After exiting, all the registers are restored and the processor executes from the freezed program counter value. Then exit process is in <code>trapret</code> function. <code>trapasm.S:23-32</code></p>
+<p>The trapframe structure is defined in <code>x86.h:148-183</code>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Layout of the trap frame built on the stack by the
+</span><span style="color:#75715e">// hardware and by trapasm.S, and passed to trap().
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> trapframe {
+  <span style="color:#75715e">// registers as pushed by pusha
+</span><span style="color:#75715e"></span>  uint edi;
+  uint esi;
+  uint ebp;
+  uint oesp;      <span style="color:#75715e">// useless &amp; ignored
+</span><span style="color:#75715e"></span>  uint ebx;
+  uint edx;
+  uint ecx;
+  uint eax;
+
+  <span style="color:#75715e">// rest of trap frame
+</span><span style="color:#75715e"></span>  ushort gs;
+  ushort padding1;
+  ushort fs;
+  ushort padding2;
+  ushort es;
+  ushort padding3;
+  ushort ds;
+  ushort padding4;
+  uint trapno;
+
+  <span style="color:#75715e">// below here defined by x86 hardware
+</span><span style="color:#75715e"></span>  uint err;
+  uint eip;
+  ushort cs;
+  ushort padding5;
+  uint eflags;
+
+  <span style="color:#75715e">// below here only when crossing rings, such as from user to kernel
+</span><span style="color:#75715e"></span>  uint esp;
+  ushort ss;
+  ushort padding6;
+};
+</code></pre></div><p>The trapframe is built by hardware and by <code>trapasm.S</code>: <code>trapasm.S:5-21</code></p>
+<pre><code class="language-x86asm" data-lang="x86asm">alltraps:
+  # Build trap frame.
+  pushl %ds
+  pushl %es
+  pushl %fs
+  pushl %gs
+  pushal
+  
+  # Set up data segments.
+  movw $(SEG_KDATA&lt;&lt;3), %ax
+  movw %ax, %ds
+  movw %ax, %es
+
+  # Call trap(tf), where tf=%esp
+  pushl %esp
+  call trap
+  addl $4, %esp
+</code></pre><p><code>trapret</code> is also defined in <code>trapasm.S:23-32</code>:</p>
+<pre><code class="language-x86asm" data-lang="x86asm">  # Return falls through to trapret...
+.globl trapret
+trapret:
+  popal
+  popl %gs
+  popl %fs
+  popl %es
+  popl %ds
+  addl $0x8, %esp  # trapno and errcode
+  iret
+</code></pre><p>The context works similar with trapframe, but it is used by context control system. The kernel switches processor from a process to another, so we also need to store the context frame into kernel stack for switching.</p>
+<p>The <code>allocproc</code> function is called not only in <code>userinit</code>, but also every time when a new process is forked. So it is delicately designed for both two conditions. It sets the context frame&rsquo;s <code>%eip</code> value right at <code>forkret</code>, so when the processor switches to this process, <code>forkret</code> will be executed. Unlike <code>trapret</code>, <code>forkret</code> only does a simple thing, returning to whatever on the bottom of the kernel stack. At that time, the context frame has already poped, what at the stack bottom is the <code>trapret</code> entrance. So the processor assumes the process just return from kernel, <code>trapret</code> then restores the trapframe.</p>
+<p>However when the process was first allocated, we will deliberately set trapframe&rsquo;s <code>%eip</code> to 0x0, so when <code>trapret</code> returns, the user code will be executed at 0x0. <code>proc.c:101-106</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">  <span style="color:#75715e">// Leave room for trap frame.
+</span><span style="color:#75715e"></span>  sp <span style="color:#f92672">-=</span> <span style="color:#66d9ef">sizeof</span> <span style="color:#f92672">*</span>p<span style="color:#f92672">-&gt;</span>tf;
+  p<span style="color:#f92672">-&gt;</span>tf <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> trapframe<span style="color:#f92672">*</span>)sp;
+
+  <span style="color:#75715e">// Set up new context to start executing at forkret,
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// which returns to trapret.
+</span><span style="color:#75715e"></span>  sp <span style="color:#f92672">-=</span> <span style="color:#ae81ff">4</span>;
+  <span style="color:#f92672">*</span>(uint<span style="color:#f92672">*</span>)sp <span style="color:#f92672">=</span> (uint)trapret;
+
+  sp <span style="color:#f92672">-=</span> <span style="color:#66d9ef">sizeof</span> <span style="color:#f92672">*</span>p<span style="color:#f92672">-&gt;</span>context;
+  p<span style="color:#f92672">-&gt;</span>context <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> context<span style="color:#f92672">*</span>)sp;
+  memset(p<span style="color:#f92672">-&gt;</span>context, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span> <span style="color:#f92672">*</span>p<span style="color:#f92672">-&gt;</span>context);
+  p<span style="color:#f92672">-&gt;</span>context<span style="color:#f92672">-&gt;</span>eip <span style="color:#f92672">=</span> (uint)forkret;
+
+  <span style="color:#66d9ef">return</span> p;
+}
+</code></pre></div><p>When the <code>allocproc</code> finish, we called <code>setupkvm</code> to prepare the memory page for our first process code, and manipulate the trapframe to let it return right to the beginning of the user code. (<code>allocproc</code> only modified the value of context and <code>forkret</code> part) We will discuss <code>setupkvm</code> in the near future, but at high level it creates a address space as the Figure 1-2.</p>
+<p><img src="address_space.png" alt="Figure 1-2. Layout of a virtual address space"></p>
+<p>The initial contents of the first process’s user-space memory are the compiled form of <code>initcode.S</code>; as part of the kernel build process, the linker embeds that binary in the kernel and defines two special symbols, <code>_binary_initcode_start</code> and <code>_binary_initcode_size</code>, indicating the location and size of the binary. Userinit copies that binary into the new process’s memory by calling inituvm, which allocates one page of physical memory, maps virtual address zero to that memory, and copies the binary to that page.</p>
+<p>Then userinit sets up the trap frame with the initial user mode state: the %cs register contains a segment selector for the <code>SEG_UCODE</code> segment running at privilege level <code>DPL_USER</code> (i.e., user mode rather than kernel mode), and similarly <code>%ds</code>, <code>%es</code>, and <code>%ss</code> use <code>SEG_UDATA</code> with privilege <code>DPL_USER</code>. The <code>%eflags</code> <code>FL_IF</code> bit is set to allow hardware interrupts; we will re-examine this in Chapter 3.</p>
+<p>The stack pointer <code>%esp</code> is set to the process’s largest valid virtual address, <code>p-&gt;sz</code>. The instruction pointer is set to the entry point for the initcode, address 0. The function userinit sets <code>p-&gt;name</code> to initcode mainly for debugging. Setting <code>p-&gt;cwd</code> sets the process’s current working directory; we will examine namei in detail in Chapter 6.</p>
+<p>Once the process is initialized, userinit marks it available for scheduling by setting <code>p-&gt;state</code> to <code>RUNNABLE</code>.</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

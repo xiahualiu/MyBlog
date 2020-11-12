@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    A Dynamic Programming Tuturial | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-12-23-dp/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-12-23-dp/" rel="bookmark">A Dynamic Programming Tuturial</a>
+  </h2>
+  
+  <time datetime="2019-12-23T17:59:10-05:00">
+    23 December, 2019
+  </time>
+  
+</header>
+
+  <p>Well, it sounds old but for me, the true understanding of dynamic programming actually happended after I finished reading the book:</p>
+<blockquote>
+<p>Optimal Control Theory: An Introduction by Donald E. Kirk</p>
+</blockquote>
+<p>However, the book used an example that is too complicated for a beginner to understand (I think, for me it is.). So I wrote this article to help those who want to take a peek in the basics of dynamic programming, I will try my best to make it easy and you will see that dynamic programming is quite simple and intuitive.</p>
+<p><strong>Revised:</strong> After finishing the canonical book AI: A Modern Approach, I felt I was fooled by the former book, dynamic programming is as simple as BFS or DFS.</p>
+<h2 id="some-notations">Some notations</h2>
+<p>In the rest of the article, some notations will appear more than once and I do not want to confuse any of you about the notations, what they mean.</p>
+<p>The first two is state and policy:</p>
+<p>Dynamic programming is suitable for solving problems that contain a series of decisions and states.</p>
+<p>For example, if you are a postman and today your job is to deliver some packages in an area, a common postman will stick to the same route everyday or randomly drives the van. But a clever postman like you will try to find a path that can visit all the package addresses meanwhile has the shortest distance among all viable routes.</p>
+<p>And for your information, This problem has another name, called <a href="https://en.wikipedia.org/wiki/Travelling_salesman_problem">Traveling Salesman Problem (TSP)</a>.</p>
+<p>We can tear the problem into a series of decisions, i.e. which address to visit first, then, after you finish the first delivery, at the first address, you have to decide which address to visit next.</p>
+<p>So here the states here, at first glance (not right though), are the different addresses, in other words, different outcomes of your decision. And the policy is like a GPS navigation system installed on your car, it tells you what is your next decision once you reach a state (address). So if your policy is optimal, you can follow the policy and traverse these addresses and finish the given task in the shortest path (and use less gas!). So</p>
+<p>Policy:</p>
+<p>$$P(state)=action$$</p>
+<p>Policy works like a function, it accepts discrete states and outputs corresponding actions at given state.</p>
+<p>However in the postman problem discribed above, the state is not simply address because once you made a decision, the outcome is not a simply change of your location, you also have one less package to deliver, so the state in this problem also has information of the package you are carry at the certain address. If you are at Address #1, but you only carry 1 package (1 address to go), apparently the situation differs from that you carry 10 packages (10 addresses to go), the biggest difference is your action set next is not same (you have 1 choice versus 10 choices).</p>
+<p>So a state can be more complexed.</p>
+<h2 id="principle-of-optimality">Principle of Optimality</h2>
+<p>Since we have discussed state and policy, we can move on to the principle of optimality.</p>
+<p>We can tear the problem into a series of decisions and states, right? Image we start at State #1 and reach State #n, the pricinple of optimality ensure that, if the policy is optimal, and path from the beginning state (State #1) to the State #(n-1) provided by the policy is optimal. This is simple to proof, if you can find a better path from State #1 to State #(n-1), you can simply do the same last step (State #(n-1) to State #n) and get a better result!</p>
+<p>This may confuse you a little, I will show an example using the above postman problem. Imagine you have reached the Address #i and you only have no package to deliver (but you need to return to the post office). And you recall your history moves, &ldquo;Did I make the right moves?&rdquo;. Well if you can think of a better waythat can lead you into the same situation you are right now, the route you chose is definitely not optimal, becase the next move clearly makes no difference on the total distance cost.</p>
+<p>If we do the backward deduction several times (Since the path from State #1 to State #(n-1) is optimal, the path from State #1 to State #(n-2) is also optimal, and so on), then we can get a conclusion:</p>
+<blockquote>
+<p>If you get an optimal path to finish the task, all the sub-paths from the begginning state to any states inside the path are optimal.</p>
+</blockquote>
+<p>You may think, while, that is easy, we only need to find the optimal path from State #1 to State #2 and the optimal path from State #1 to State #3. Then we find State #1 to State #n.</p>
+<p>Yes, that is the gist of the dynamic programming. However, the hidden difficulty in the process is, once you get the optimal path from State #1 to State #2, how do you get the optimal path from State #1 to State #3.</p>
+<p>In some simple problems, like <a href="https://en.wikipedia.org/wiki/Knapsack_problem">Knapsack problem</a>. You can use this way to find the best result, becasue in such problems, states are heavily history related, (Forgive me for not able to think of a better description), so you can push your current state towards the ending.</p>
+<p>Some of the problems are not simple like that, you need to search for all probably states that can reach State #3 in one move and check which one is the best, (In terms, which costs least).</p>
+<p>So the forward programming process can be simply described in one formula:</p>
+<p>$$ J^\ast=\min(C_h^\ast+C_i)$$</p>
+<p>The J star is the best cost for current state, Ch star is the best history cost from beginning to the state before current state, Ci is the cost for taking action i in a given former state.</p>
+<p>If you record all Ci&rsquo;s, you get the optimal path one by one.</p>
+<h2 id="how-to-implement-dp">How to implement DP</h2>
+<p>Well, there are two ways to implement a dynamic programming algorithm for a problem, one is forward way, like I discribed above, and you can do it backward. For every iteration, you do not own a history when you do it backward, but you can evaluate it later, and just accumulate the action costs, until you reach the begginning state.</p>
+<p>However they do not differ very much, choose one you like or according to the problem! Because you can planning the path in any direction you like, but you have to execute the actions one by one once you finish planning!</p>
+<h2 id="a-tsp-example">A TSP Example</h2>
+<p>This example can be found at my github repository <a href="https://github.com/xiahualiu/TSP_example">here</a>. I used 3 different ways to solve the TSP problem but you only need the DP solution.</p>
+<p>So In this example the problem is stated as:</p>
+<blockquote>
+<p>There are 4 cities on the map. Their locations are (20,20) (20,40) (40,40) (40,20) respectively and they are are X Y values in the cartesian system. Find the shortest tour among those cities, each city must be at least visited once and you cannot visit a city twice, except the city where you start off, you need to return to the begin city after visiting all cities.</p>
+</blockquote>
+<p>In this problem, we can start at any arbitrary city because the tours are required to be closed circles as described, the optimal solution is same for every beginning choice.</p>
+<p>Imagine we chose City #1 (20,20) to begin with.</p>
+<p>The states in this problem need to carry such information:</p>
+<ol>
+<li><strong>Total Distance</strong>: How far did I go? (We need to know this while making comparsion in DP iteration)</li>
+<li><strong>Visited City Set</strong>: Unordered set of all cities I have visited. (Why this is needed was talked above)</li>
+<li><strong>Current City</strong>: Where am I now? (We need to know this before calculating the distance increments.)</li>
+</ol>
+<p>So we have the structure of the state in this problem, what we need now is <strong>evolving the intial state until the state reachs the final state</strong>. This may sound strange to you, but you will know what I am talking about later.</p>
+<p>I used a common notaion for our state.</p>
+<p>$$g(current_city | visited_set)=total_distance$$</p>
+<p>And we did the DP forward using our hand, what we get is a tree:</p>
+<p><img src="/img/2019-12-23-DP/p2.png" alt="DP tree"></p>
+<p>This problem is simple, we simply did a breath first searching first, and this is enough to lead us to find out all the candidates in the DP iteration formulas (Because the states are historically related so the candidates can always be found out at the former layers). How we did the DP iteration?</p>
+<p>For example, following path 1-3-4-2 and we reach the state where current location is City #2 and we have visited {4,3,2,1}. And later we find a better path 1-4-3-2 which lets us reach exactly the same state and offers a better distance cost. So we update the state and overwrite the new path to the state.</p>
+<p>Please know that this problem can be solved efficiently by BFS (not most efficiently though) does not mean every DP problems can all be solved with BFS. We can use another way to discover the candidate states, but the DP iteration process is same for any problem types.</p>
+<h2 id="some-comments">Some comments</h2>
+<p>To be honest, dynamic programming is not a very complicated method, it just systematically records all the solutions for the subproblems then increases the length to the original problem.</p>
+<p>DP essentially, we start with the smallest cases of the subproblem, becase when we find all optimal solutions to every possible subproblems, we can use the DP iteration to find optimal solutions to a bigger subproblem, then do this again and again we will reach the original problem.</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    Some Verilog HDL Modules | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2018-08-08-verilog-example/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2018-08-08-verilog-example/" rel="bookmark">Some Verilog HDL Modules</a>
+  </h2>
+  
+  <time datetime="2018-08-08T00:00:00Z">
+    8 August, 2018
+  </time>
+  
+</header>
+
+  <p>本文将会不定期更新一些常见的 Verilog HDL 模块实例供大家学习。如果对于数字电路不是很理解，或者对于语法不是很熟练，可以借鉴这里的例子，结合自己的项目进行模块开发。</p>
+<p>FPGA 设计模式分为组合逻辑设计和时序逻辑设计，我们将这两类分开讨论。</p>
+<h2 id="组合逻辑">组合逻辑</h2>
+<h3 id="8-位带进位端的加法器设计实例">8 位带进位端的加法器设计实例</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> adder_8(cout, sum, a, b, cin);
+    <span style="color:#66d9ef">output</span> cout;
+    <span style="color:#66d9ef">output</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] sum;
+    <span style="color:#66d9ef">input</span> cin;
+    <span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] a, b;
+    <span style="color:#66d9ef">assign</span> {cout, sum} <span style="color:#f92672">=</span> a <span style="color:#f92672">+</span> b <span style="color:#f92672">+</span> cin;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="指令译码电路设计实例always">指令译码电路设计实例（always）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#75715e">`define plus 3&#39;d0
+</span><span style="color:#75715e">`define minus 3&#39;d1
+</span><span style="color:#75715e">`define band 3&#39;d2
+</span><span style="color:#75715e">`define bor 3&#39;d3
+</span><span style="color:#75715e">`define unegate 3&#39;d4
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">module</span> alu(out, opcode, a, b);
+<span style="color:#66d9ef">output</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+<span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">2</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] opcode;
+<span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] a, b;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+
+<span style="color:#66d9ef">always</span> @(opcode <span style="color:#66d9ef">or</span> a <span style="color:#66d9ef">or</span> b)
+<span style="color:#66d9ef">begin</span>
+    <span style="color:#66d9ef">case</span>(opcode)
+        <span style="color:#66d9ef">`plus</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span>a<span style="color:#f92672">+</span>b;
+        <span style="color:#66d9ef">`minus</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span>a<span style="color:#f92672">-</span>b;
+        <span style="color:#66d9ef">`band</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span>a<span style="color:#f92672">&amp;</span>b;
+        <span style="color:#66d9ef">`bor</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span>a<span style="color:#f92672">|</span>b;
+        <span style="color:#66d9ef">`unegate</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=~</span>a;
+        <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span>&#39;hx;
+    <span style="color:#66d9ef">end</span> <span style="color:#66d9ef">case</span>
+<span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="信号重组组合逻辑task-和-always">信号重组组合逻辑（task 和 always）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> sort4(ra, rb, rc, rd, a, b, c, d);
+<span style="color:#66d9ef">parameter</span> t<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span>;
+<span style="color:#66d9ef">output</span> [t:<span style="color:#ae81ff">0</span>] ra, rb, rc, rd;
+<span style="color:#66d9ef">input</span> [t:<span style="color:#ae81ff">0</span>] a, b, c, d;
+<span style="color:#66d9ef">reg</span> [t:<span style="color:#ae81ff">0</span>] ra, rb, rc, rd;
+
+<span style="color:#66d9ef">always</span> @(a <span style="color:#66d9ef">or</span> b <span style="color:#66d9ef">or</span> c <span style="color:#66d9ef">or</span> d)
+<span style="color:#66d9ef">begin</span><span style="color:#f92672">:</span> local <span style="color:#75715e">//因为块有局部变量，块必须有名字
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">reg</span>[t:<span style="color:#ae81ff">0</span>] va, vb, vc, vd;
+    {va, vb, vc, vd}<span style="color:#f92672">=</span>{a, b, c, d};
+
+    sort2(va,vc);
+    sort2(vb,vd);
+    sort2(va,vb);
+    sort2(vc,vd);
+    sort2(vb,vc);
+
+    {ra, rb, rc, rd}<span style="color:#f92672">=</span>{va, vb, vc, vd};
+<span style="color:#66d9ef">end</span>
+
+<span style="color:#66d9ef">task</span> sort2;
+<span style="color:#66d9ef">inout</span> [t:<span style="color:#ae81ff">0</span>] x, y;
+<span style="color:#66d9ef">reg</span> [t:<span style="color:#ae81ff">0</span>] tmp;
+<span style="color:#66d9ef">if</span>(x<span style="color:#f92672">&gt;</span>y)
+    <span style="color:#66d9ef">begin</span>
+        tmp<span style="color:#f92672">=</span>x;
+        x<span style="color:#f92672">=</span>y;
+        t<span style="color:#f92672">=</span>tmp;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endtask</span>
+</code></pre></div><h3 id="比较器的设计实例利用赋值语句设计组合逻辑">比较器的设计实例（利用赋值语句设计组合逻辑）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> compare(equal, a, b);
+<span style="color:#66d9ef">parameter</span> size<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>;
+<span style="color:#66d9ef">output</span> equal;
+<span style="color:#66d9ef">input</span> [size<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] a, b;
+    <span style="color:#66d9ef">assign</span> equal<span style="color:#f92672">=</span>(a<span style="color:#f92672">==</span>b)<span style="color:#f92672">?</span><span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="3-8-译码器的实现利用赋值语句设计组合逻辑">3-8 译码器的实现（利用赋值语句设计组合逻辑）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> decoder(out, in);
+<span style="color:#66d9ef">output</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+<span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">2</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] in;
+    <span style="color:#66d9ef">assign</span> out<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span><span style="color:#f92672">&lt;&lt;</span>in;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="多路器的设计实例">多路器的设计实例</h3>
+<ol>
+<li>利用赋值设计组合逻辑</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> emux1(out, a, b, sel);
+    <span style="color:#66d9ef">output</span> out;
+    <span style="color:#66d9ef">input</span> a, b, sel;
+        <span style="color:#66d9ef">assign</span> out<span style="color:#f92672">=</span>sel<span style="color:#f92672">?</span>a:b;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><ol start="2">
+<li>利用 always case 设计组合逻辑</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> mux2(out, a, b, sel);
+    <span style="color:#66d9ef">output</span> out;
+    <span style="color:#66d9ef">input</span> a, b, sel;
+    <span style="color:#66d9ef">reg</span> out;
+
+    <span style="color:#66d9ef">always</span> @(a <span style="color:#66d9ef">or</span> b <span style="color:#66d9ef">or</span> sel)
+    <span style="color:#66d9ef">begin</span>
+        <span style="color:#66d9ef">case</span>(sel)
+            <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b1</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span>a;
+            <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span>b;
+            <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span> out<span style="color:#f92672">=</span> &#39;bx;
+        <span style="color:#66d9ef">endcase</span>
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><ol start="3">
+<li>利用 always if 设计组合逻辑</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> mux3(out, a, b, sel);
+    <span style="color:#66d9ef">output</span> out;
+    <span style="color:#66d9ef">input</span> a, b, sel;
+    <span style="color:#66d9ef">reg</span> out;
+
+    <span style="color:#66d9ef">always</span> @(a <span style="color:#66d9ef">or</span> b <span style="color:#66d9ef">or</span> sel)
+    <span style="color:#66d9ef">begin</span>
+        <span style="color:#66d9ef">if</span>(sel)
+            out<span style="color:#f92672">=</span>a;
+        <span style="color:#66d9ef">else</span>
+            out<span style="color:#f92672">=</span>b;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="奇偶校验位生成器设计实例">奇偶校验位生成器设计实例</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> parity(even_numbits, odd_numbits, input_bus);
+    <span style="color:#66d9ef">output</span> even_numbits, odd_numbits;
+    <span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] input_bus;
+
+    <span style="color:#66d9ef">assign</span> odd_numbits<span style="color:#f92672">=^</span>input_bus;
+    <span style="color:#75715e">//assign b=^a; equals assign b=a[0]^a[1]^a[2]^a[3]^a[4]^a[5]^a[6]^a[7];
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">assign</span> even_numbits<span style="color:#f92672">=~</span>odd_numbits;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="三态输出驱动器">三态输出驱动器</h3>
+<ol>
+<li>设计方案1。</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> trist1(out, in, enable);
+    <span style="color:#66d9ef">output</span> out;
+    <span style="color:#66d9ef">input</span> in, enable;
+        <span style="color:#66d9ef">assign</span> out<span style="color:#f92672">=</span>enable<span style="color:#f92672">?</span>in:&#39;bz;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><ol start="2">
+<li>设计方案2。</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> trist2(out, in, enable);
+    <span style="color:#66d9ef">output</span> out;
+    <span style="color:#66d9ef">input</span> in, enable;
+        <span style="color:#66d9ef">bufif1</span> mubuf1(out, in, enable);
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="三态双向驱动器设计实例">三态双向驱动器设计实例</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> bidir(tri_inout, out, in, en, b);
+<span style="color:#66d9ef">inout</span> tri_out;
+<span style="color:#66d9ef">output</span> out;
+<span style="color:#66d9ef">input</span> in, en, b;
+    <span style="color:#66d9ef">assign</span> tri_inout<span style="color:#f92672">=</span>en<span style="color:#f92672">?</span>in:&#39;bz;
+    <span style="color:#66d9ef">assign</span> out<span style="color:#f92672">=</span> tri_inout<span style="color:#f92672">^</span>b;
+    <span style="color:#75715e">//tri_inout 端口输出 in 信号，输入信号转交 out
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h2 id="时序逻辑电路设计实例">时序逻辑电路设计实例</h2>
+<h3 id="d-触发器设计实例">D 触发器设计实例</h3>
+<p>D 触发器目前正在逐渐替代已经淘汰的 JK 触发器，本设计以 D 触发器为设计对象。D 触发器在时钟上升沿同步输入输出。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> dff(q, data, clk);
+    <span style="color:#66d9ef">output</span> q;
+    <span style="color:#66d9ef">input</span> data, clk;
+    <span style="color:#66d9ef">reg</span> q;
+
+    <span style="color:#66d9ef">always</span> @(<span style="color:#66d9ef">posedge</span> clk)
+    <span style="color:#66d9ef">begin</span>
+        q<span style="color:#f92672">&lt;=</span>data;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="电平敏感型锁存器设计实例">电平敏感型锁存器设计实例</h3>
+<ol>
+<li>设计方案1</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> latch1(q, data, clk);
+    <span style="color:#66d9ef">output</span> q;
+    <span style="color:#66d9ef">input</span> data, clk;
+        <span style="color:#66d9ef">assign</span> q<span style="color:#f92672">=</span>clk<span style="color:#f92672">?</span>data:q;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><ol>
+<li>设计方案2</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> latch1(q, data, clk);
+    <span style="color:#66d9ef">output</span> q;
+    <span style="color:#66d9ef">input</span> data, clk;
+    <span style="color:#66d9ef">reg</span> q; <span style="color:#75715e">//因为要用 always 块
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">always</span> @(clk <span style="color:#66d9ef">or</span> data)
+    <span style="color:#66d9ef">begin</span>
+        <span style="color:#66d9ef">if</span>(clk)
+        q<span style="color:#f92672">=</span>data;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="带置位和复位端口的电平敏感型锁存器设计实例">带置位和复位端口的电平敏感型锁存器设计实例</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> latch2(q, data, clk, set, reset);
+    <span style="color:#66d9ef">output</span> q;
+    <span style="color:#66d9ef">input</span> data, clk, set, reset;
+        <span style="color:#66d9ef">assign</span> q<span style="color:#f92672">=</span>reset<span style="color:#f92672">?</span><span style="color:#ae81ff">0</span><span style="color:#f92672">:</span>(set<span style="color:#f92672">?</span><span style="color:#ae81ff">1</span><span style="color:#f92672">:</span>(clk<span style="color:#f92672">?</span>data:q));
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="移位寄存器设计实例">移位寄存器设计实例</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> shifter(din, clk, clr, dout);
+    <span style="color:#66d9ef">input</span> din, clk, clr;
+    <span style="color:#66d9ef">output</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] dout;
+    <span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] dout;
+
+    <span style="color:#66d9ef">always</span> @(posegde clk)
+    <span style="color:#66d9ef">begin</span>
+        <span style="color:#66d9ef">if</span>(clr)
+            dout<span style="color:#f92672">&lt;=</span><span style="color:#ae81ff">8</span><span style="color:#ae81ff">&#39;b0</span>;
+        <span style="color:#66d9ef">else</span>
+            <span style="color:#66d9ef">begin</span>
+            dout<span style="color:#f92672">&lt;=</span>dout<span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">1</span>;
+            dout[<span style="color:#ae81ff">0</span>]<span style="color:#f92672">&lt;=</span>din;
+            <span style="color:#66d9ef">end</span>
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><h3 id="8-位计数器的设计实例">8 位计数器的设计实例</h3>
+<ol>
+<li>设计实例1</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> counter1(out, cout, data, load, cin, clk);
+<span style="color:#66d9ef">output</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+<span style="color:#66d9ef">output</span> cout;
+<span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] data;
+<span style="color:#66d9ef">input</span> load, cin, clk;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+
+<span style="color:#66d9ef">always</span> @(<span style="color:#66d9ef">posedge</span> clk)
+    <span style="color:#66d9ef">begin</span>
+        <span style="color:#66d9ef">if</span>(load)
+            out<span style="color:#f92672">&lt;=</span>data;
+        <span style="color:#66d9ef">else</span>
+            out<span style="color:#f92672">&lt;=</span>out<span style="color:#f92672">+</span>cin;
+    <span style="color:#66d9ef">end</span>
+
+<span style="color:#66d9ef">assign</span> cout<span style="color:#f92672">=</span>(<span style="color:#f92672">&amp;</span>out)<span style="color:#f92672">&amp;</span>cin;
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div><ol start="2">
+<li>设计实例2</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> counter2(out, cout, data, load, cin, clk);
+<span style="color:#66d9ef">output</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+<span style="color:#66d9ef">output</span> cout;
+<span style="color:#66d9ef">input</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] data;
+<span style="color:#66d9ef">input</span> load, cin, clk;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] out;
+<span style="color:#66d9ef">reg</span> cout;
+<span style="color:#66d9ef">reg</span> [<span style="color:#ae81ff">7</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] preout;
+
+<span style="color:#66d9ef">always</span> @(posegde clk)
+    <span style="color:#66d9ef">begin</span>
+        out<span style="color:#f92672">&lt;=</span>preout;
+    <span style="color:#66d9ef">end</span>
+
+<span style="color:#66d9ef">always</span> @(out <span style="color:#66d9ef">or</span> data <span style="color:#66d9ef">or</span> load <span style="color:#66d9ef">or</span> cin)
+    <span style="color:#66d9ef">begin</span>
+        {cout, preout}<span style="color:#f92672">=</span>out<span style="color:#f92672">+</span>cin;
+        <span style="color:#66d9ef">if</span>(load)
+            preout<span style="color:#f92672">=</span>data;
+    <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">endmodule</span>
+</code></pre></div>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

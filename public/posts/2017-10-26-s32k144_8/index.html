@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 8 Systick | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-10-26-s32k144_8/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-10-26-s32k144_8/" rel="bookmark">S32K144EVB Notes 8 Systick</a>
+  </h2>
+  
+  <time datetime="2017-10-26T00:00:00Z">
+    26 October, 2017
+  </time>
+  
+</header>
+
+  <p>本章的内容是关于 Cortex M4F 内核中的 SysTick 时钟的运用，这是一个非常有用的模块，可以实现高精度的延时和快速中断的功能，但是这个内核功能在 MCU OEM 厂商的 Reference Manual 中一般都没有给出具体的实现方法，今天我们针对内核来进行分析。</p>
+<p>SysTick 在参考手册中提到的就是有关中断优先级的那一章，SysTick 类似于 LPIT 计时器，但是直接使用的是内核的时钟进行计数，中断优先级在内核中是最低的，但是相对于外围是高的。这个模块的使用主要集中在 4 个寄存器内。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/** S32_SysTick - Register Layout Typedef */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
+  __IO uint32_t CSR;                               <span style="color:#75715e">/**&lt; SysTick Control and Status Register, offset: 0x0 */</span>
+  __IO uint32_t RVR;                               <span style="color:#75715e">/**&lt; SysTick Reload Value Register, offset: 0x4 */</span>
+  __IO uint32_t CVR;                               <span style="color:#75715e">/**&lt; SysTick Current Value Register, offset: 0x8 */</span>
+  __I  uint32_t CALIB;                             <span style="color:#75715e">/**&lt; SysTick Calibration Value Register, offset: 0xC */</span>
+} S32_SysTick_Type, <span style="color:#f92672">*</span>S32_SysTick_MemMapPtr;
+</code></pre></div><p>这是 4 个 32 位的寄存器。</p>
+<h3 id="systick-control-and-status-register-systick_csr">SysTick Control and Status Register (SysTick_CSR)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">COUNTFLAG</td>
+<td style="text-align:left"><strong>SysTick 计数比较标志</strong> <!-- raw HTML omitted -->如果在上次读取本寄存器后，SysTick 已经数到了0，则该位为1<!-- raw HTML omitted -->如果读取该位，该位将自动清零</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">CLKSOURCE</td>
+<td style="text-align:left"><strong>SysTick 时钟源选择</strong> <!-- raw HTML omitted -->0 选择内核时钟<!-- raw HTML omitted -->1 选择内核时钟<!-- raw HTML omitted -->震惊不，事实就是这样</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">TICKINT</td>
+<td style="text-align:left"><strong>SysTick 中断使能位</strong> <!-- raw HTML omitted -->0 禁用<!-- raw HTML omitted -->1 开启</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">ENABLE</td>
+<td style="text-align:left"><strong>SysTick 使能位</strong> <!-- raw HTML omitted -->0 关闭 SysTick<!-- raw HTML omitted -->1 开启 SysTick</td>
+</tr>
+</tbody>
+</table>
+<h3 id="systick-reload-value-register-systick_rvr">SysTick Reload Value Register (SysTick_RVR)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">23-0</td>
+<td style="text-align:center">RELOAD</td>
+<td style="text-align:left"><strong>SysTick 重载寄存器</strong> <!-- raw HTML omitted -->如果 SysTick 已经数到了0<!-- raw HTML omitted -->则重新装载进此寄存器的值</td>
+</tr>
+</tbody>
+</table>
+<h3 id="systick-current-value-register-systick_cvr">SysTick Current Value Register (SysTick_CVR)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">23-0</td>
+<td style="text-align:center">CURRENT</td>
+<td style="text-align:left"><strong>SysTick 当前值寄存器</strong> <!-- raw HTML omitted -->读取时返回当前计数值并将其清零<!-- raw HTML omitted -->同时清除 COUNTFLAG</td>
+</tr>
+</tbody>
+</table>
+<h3 id="systick-calibration-value-register-systick_calib">SysTick Calibration Value Register (SysTick_CALIB)</h3>
+<p>校准寄存器，不知道咋用。好像在使用说明中说了这一部分的值必须取全 0。</p>
+<p>我们现在来讲解这个东西究竟怎么用啊，从上面的描述我们可以知道这就是一个内核层面的计时器，可以触发中断，我们可以声明一个全局变量作为计数值，在延时子程序中给这个变量传递一个值然后循环判断此值是否为 1，然后在中断服务程序中每次触发就将此值减一就可以做到精确延时的功能。</p>
+<p>我写一下我自己写的延时程序，已经验证能够使用。使用方法就是 <code>include</code> 你自己写的头文件然后使用 <code>delay_ms()</code> 即可。<em>头文件怎么写不用教吧&hellip;</em></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/* delay.c              Eggycat
+</span><span style="color:#75715e"> * Description:  Use SysTick function to perform millisecond-level (us-level also if you like) delay in S32K144 Landzo-FRDM
+</span><span style="color:#75715e"> * 2017 10 25 initial version
+</span><span style="color:#75715e"> */</span>
+
+<span style="color:#75715e">#include</span><span style="color:#75715e">&#34;S32K144.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span><span style="color:#75715e">&#34;delay.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+uint32_t Systok <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">// declare Systok as an extern parameter
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> idle_counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SysTick_init</span>(<span style="color:#66d9ef">void</span>){ <span style="color:#75715e">// clock frequency=80MHz,
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// configure NVIC register
+</span><span style="color:#75715e"></span>    S32_NVIC<span style="color:#f92672">-&gt;</span>ICPR[<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">31</span>; <span style="color:#75715e">/* IRQ-1-SysTick: clr any pending IRQ*/</span>
+    S32_NVIC<span style="color:#f92672">-&gt;</span>ISER[<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">31</span>; <span style="color:#75715e">/* IRQ-1-SysTick: enable IRQ */</span>
+    S32_NVIC<span style="color:#f92672">-&gt;</span>IP[<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0A</span>;
+
+    S32_SysTick<span style="color:#f92672">-&gt;</span>RVR <span style="color:#f92672">=</span> <span style="color:#ae81ff">80000</span>; <span style="color:#75715e">// Reload 80000 = 1ms if you want a us change this value to 80.
+</span><span style="color:#75715e"></span>    S32_SysTick<span style="color:#f92672">-&gt;</span>CVR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">// Initialize Current Value Register for a new reload on enable.
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">delay_ms</span>(uint32_t i){ <span style="color:#75715e">// delay_ms(time)
+</span><span style="color:#75715e"></span>    Systok <span style="color:#f92672">=</span> i;
+    S32_SysTick<span style="color:#f92672">-&gt;</span>CSR <span style="color:#f92672">=</span> <span style="color:#ae81ff">7</span>; <span style="color:#75715e">// TICKINT=1 enable SysTick interrupt;
+</span><span style="color:#75715e"></span>                        <span style="color:#75715e">// Enable=1 enable SysTick;
+</span><span style="color:#75715e"></span>                        <span style="color:#75715e">// CLKSOURCE=1 SysTick clock rate=80MHz=10MHz
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">while</span>(Systok<span style="color:#f92672">&gt;</span><span style="color:#ae81ff">0</span>){    <span style="color:#75715e">// Loop till Systok=0
+</span><span style="color:#75715e"></span>        idle_counter<span style="color:#f92672">++</span>; 
+    }
+    S32_SysTick<span style="color:#f92672">-&gt;</span>CSR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">// Disable SysTick interrupt.
+</span><span style="color:#75715e"></span>    idle_counter <span style="color:#f92672">=</span> S32_SysTick<span style="color:#f92672">-&gt;</span>CVR; <span style="color:#75715e">// Any reads from CVR clear both COUNTFLAG &amp; CVR
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SysTick_Handler</span>(<span style="color:#66d9ef">void</span>){
+    idle_counter <span style="color:#f92672">=</span> S32_SysTick<span style="color:#f92672">-&gt;</span>CVR; <span style="color:#75715e">// Any reads from CVR clear both COUNTFLAG &amp; CVR
+</span><span style="color:#75715e"></span>    Systok<span style="color:#f92672">--</span>;
+}
+</code></pre></div>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

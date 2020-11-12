@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 2 Clock Configurations | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-09-29-s32k144_2/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-09-29-s32k144_2/" rel="bookmark">S32K144EVB Notes 2 Clock Configurations</a>
+  </h2>
+  
+  <time datetime="2017-09-29T00:00:00Z">
+    29 September, 2017
+  </time>
+  
+</header>
+
+  <h1 id="本文简介">本文简介</h1>
+<p>本文主要详细叙述了 S32K144 的时钟模块相关内容。本文代码包含以下内容：</p>
+<ol>
+<li>一般的时钟初始化流程</li>
+<li>LPIT 通道计数器设置</li>
+</ol>
+<h1 id="时钟结构图">时钟结构图</h1>
+<p>在看代码之前，首先要熟悉时钟系统，下图为本程序所用到的时钟和模块示意图。</p>
+<p><img src="/img/2017-9-29-S32K144_2/hello_clock.png" alt="hello_clock.png"></p>
+<p>可以看到外部晶振输入 <strong>XTAL(External Crystal Oscillator)</strong> 和震荡器 <strong>OSC(System Oscillator)</strong> 相连，产生了一个时钟信号为 <strong>SOSC_CLK</strong> 该信号被 <strong>SCG_SOSCDIV</strong> 分频成为两个 <strong>SOSC_DIV1_CLK</strong> 和 <strong>SOSC_DIV2_CLK</strong> 时钟信号。<strong>SOSC_CLK</strong> 又被锁相环 <strong>PLL</strong> 升频到 <strong>SPLL_CLK</strong> 信号，<strong>SPLL_CLK</strong> 被 <strong>SCG_SPLLDIV</strong> 分频得到 <strong>SPLL_DIV1_CLK</strong> 或者得到 <strong>SPLL_DIV2_CLK</strong>。</p>
+<p><strong>FIRC(Fast Internal Reference Clock)</strong> 产生一个 48HMz 的时钟 <strong>FIRC_CLK</strong>, <strong>SIRC(Slow Internal Reference Clock)</strong> 产生一个 8MHz 的信号 <strong>SIRC_SLK</strong>, <strong>FIRC_CLK</strong> 和 <strong>SIRC_SLK</strong> 和 <strong>SPLL_CLK</strong> 和 <strong>SOSC_CLK</strong> 被 <strong>SCG_RCCR[SCS]</strong> 选择器选择信号，使用 <strong>DIVCORE</strong> 分频得到 <strong>CORE_CLK</strong>,<strong>SYSCLK</strong> ；使用 <strong>DIVBUS</strong> 分频得到 <strong>BUS_CLK</strong> ，使用 <strong>DIVSLOW</strong> 分频得到 <strong>FLASH_CLK</strong> 和 <strong>SCG_SLOW_CLK</strong> 在这个地方，分频器的倍率选择是有要求的：</p>
+<p><img src="/img/2017-9-29-S32K144_2/DIV_Requirement.png" alt="DIV_Requirement.png"></p>
+<p>主要是由于结构限制导致的。注意在设置分频器的时候，请在时钟源开启前进行，否则无法改变，分频器在时钟开启后才会被改变其值。</p>
+<p>Manual上关于该芯片的时钟模块描述：</p>
+<h3 id="1-系统时钟发生器-system-clock-generator-scg">1. 系统时钟发生器 System clock generator (SCG)</h3>
+<p>系统时钟发生器（下称 SCG ）给单片机提供了不同的时钟源，包含三个时钟分支：</p>
+<ul>
+<li><strong>SPLL(System Phase-locked Loop)</strong> 系统锁相环，一个压控震荡器。在其他地方也被称作 <strong>PLL</strong>
+<ul>
+<li>电压控制振荡器 VCO(Voltage-controlled oscillator)</li>
+<li>外部参考时钟是锁相环的时钟源</li>
+<li>模数 VCO 分频器</li>
+<li>相位/频率探测器</li>
+<li>可以被选做单片机的系统时钟源</li>
+<li>双路可编程控制的时钟输出，可以提供给片内外围器件时钟源</li>
+</ul>
+</li>
+<li><strong>FIRC/SIRC(Fast/Slow Internal Reference Clock)</strong> 两个内部参考时钟 IRC 发生器：
+<ul>
+<li>快速内部参考时钟 FIRC 可以程序控制高/低频率范围, 高为 48Mhz。</li>
+<li>快速内部参考时钟 FIRC 和慢速内部参考时钟 SIRC 都可以被选做单片机的系统时钟源</li>
+</ul>
+</li>
+<li><strong>SOSC(System Crystal Oscillator)</strong> 系统晶振振荡器，在其他地方也被称作 <strong>OSC</strong>
+<ul>
+<li>被当做系统 PLL 的时钟源</li>
+<li>可以被当做单片机的时钟源</li>
+</ul>
+</li>
+</ul>
+<h4 id="注意">注意：</h4>
+<ol>
+<li>SPLL，SOSC 时钟可以被时钟监测器检测，提供重启和中断请求。</li>
+<li>SPLL 可以被锁定监测器检测，提供中断请求。</li>
+<li>每一个时钟源都有一个参考分频器，给片内模块和外围器件提供分频功能，故时钟名中都有 DIV ，譬如：
+<ul>
+<li>SPLLDIV1_CLK / SPLLDIV2_CLK</li>
+<li>FIRCDIV1_CLK / SCG_FIRCDIV2_CLK</li>
+<li>SIRCDIV1_CLK / SIRCDIV2_CLK</li>
+<li>SOSCDIV1_CLK / SOSCDIV2_CLK</li>
+</ul>
+</li>
+</ol>
+<h3 id="2-低功率振荡器-low-power-oscillator-lpo">2. 低功率振荡器 Low Power Oscillator (LPO)</h3>
+<p>一个内部的低功率时钟，可以给工作在低功率模式下的器件提供时钟源。</p>
+<h3 id="3-外围时钟控制器-peripheral-clock-control-pcc">3. 外围时钟控制器 Peripheral Clock Control (PCC)</h3>
+<p>在上一节详细介绍过这个控制器，用于控制大多数器件的时钟选择。</p>
+<h1 id="代码">代码</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"> <span style="color:#f92672">*</span> hello_clocks.c              Copyright NXP <span style="color:#ae81ff">2016</span>
+ <span style="color:#f92672">*</span> Description: Example clock and LPIT channel initializations
+ <span style="color:#f92672">*</span> <span style="color:#ae81ff">2016</span> Mar <span style="color:#ae81ff">04</span> S Mihalik <span style="color:#f92672">-</span> Initial version
+ <span style="color:#f92672">*</span> <span style="color:#ae81ff">2016</span> Oct <span style="color:#ae81ff">27</span> SM <span style="color:#f92672">-</span> Updated <span style="color:#66d9ef">for</span> new header files in S32DS v <span style="color:#ae81ff">1.3</span>
+
+<span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34;            /* include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;clocks_and_modes.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> lpit0_ch0_flag_counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* LPIT0 timeout counter */</span>
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PORT_init</span> (<span style="color:#66d9ef">void</span>) {
+  PCC<span style="color:#f92672">-&gt;</span> PCCn[PCC_PORTD_INDEX] <span style="color:#f92672">=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clock for PORT D */</span>
+  PTD<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">0</span>;            <span style="color:#75715e">/* Port D0:  Data Direction= output */</span>
+  PORTD<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span>  <span style="color:#ae81ff">0x00000100</span>;  <span style="color:#75715e">/* Port D0:  MUX = ALT1, GPIO (to blue LED on EVB) */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">LPIT0_init</span> (<span style="color:#66d9ef">void</span>) {
+  PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_LPIT_INDEX] <span style="color:#f92672">=</span> PCC_PCCn_PCS(<span style="color:#ae81ff">6</span>);    <span style="color:#75715e">/* Clock Src = 6 (SPLL2_DIV2_CLK)*/</span>
+  PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_LPIT_INDEX] <span style="color:#f92672">|=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clk to LPIT0 regs */</span>
+  LPIT0<span style="color:#f92672">-&gt;</span>MCR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>;    <span style="color:#75715e">/* DBG_EN-0: Timer chans stop in Debug mode */</span>
+                              <span style="color:#75715e">/* DOZE_EN=0: Timer chans are stopped in DOZE mode */</span>
+                              <span style="color:#75715e">/* SW_RST=0: SW reset does not reset timer chans, regs */</span>
+                              <span style="color:#75715e">/* M_CEN=1: enable module clk (allows writing other LPIT0 regs) */</span>
+  LPIT0<span style="color:#f92672">-&gt;</span>TMR[<span style="color:#ae81ff">0</span>].TVAL <span style="color:#f92672">=</span> <span style="color:#ae81ff">40000000</span>;    <span style="color:#75715e">/* Chan 0 Timeout period: 40M clocks */</span>
+  LPIT0<span style="color:#f92672">-&gt;</span>TMR[<span style="color:#ae81ff">0</span>].TCTRL <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* T_EN=1: Timer channel is enabled */</span>
+                              <span style="color:#75715e">/* CHAIN=0: channel chaining is disabled */</span>
+                              <span style="color:#75715e">/* MODE=0: 32 periodic counter mode */</span>
+                              <span style="color:#75715e">/* TSOT=0: Timer decrements immediately based on restart */</span>
+                              <span style="color:#75715e">/* TSOI=0: Timer does not stop after timeout */</span>
+                              <span style="color:#75715e">/* TROT=0 Timer will not reload on trigger */</span>
+                              <span style="color:#75715e">/* TRG_SRC=0: External trigger soruce */</span>
+                              <span style="color:#75715e">/* TRG_SEL=0: Timer chan 0 trigger source is selected*/</span>
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SOSC_init_8MHz</span>(<span style="color:#66d9ef">void</span>) {
+  SCG<span style="color:#f92672">-&gt;</span>SOSCDIV<span style="color:#f92672">=</span><span style="color:#ae81ff">0x00000101</span>;  <span style="color:#75715e">/* SOSCDIV1 &amp; SOSCDIV2 =1: divide by 1 */</span>
+  SCG<span style="color:#f92672">-&gt;</span>SOSCCFG<span style="color:#f92672">=</span><span style="color:#ae81ff">0x00000024</span>;  <span style="color:#75715e">/* Range=2: Medium freq (SOSC betw 1MHz-8MHz)*/</span>
+                            <span style="color:#75715e">/* HGO=0:   Config xtal osc for low power */</span>
+                            <span style="color:#75715e">/* EREFS=1: Input is external XTAL */</span>
+  <span style="color:#66d9ef">while</span>(SCG<span style="color:#f92672">-&gt;</span>SOSCCSR <span style="color:#f92672">&amp;</span> SCG_SOSCCSR_LK_MASK); <span style="color:#75715e">/* Ensure SOSCCSR unlocked */</span>
+  SCG<span style="color:#f92672">-&gt;</span>SOSCCSR<span style="color:#f92672">=</span><span style="color:#ae81ff">0x00000001</span>;  <span style="color:#75715e">/* LK=0:          SOSCCSR can be written */</span>
+                            <span style="color:#75715e">/* SOSCCMRE=0:    OSC CLK monitor IRQ if enabled */</span>
+                            <span style="color:#75715e">/* SOSCCM=0:      OSC CLK monitor disabled */</span>
+                            <span style="color:#75715e">/* SOSCERCLKEN=0: Sys OSC 3V ERCLK output clk disabled */</span>
+                            <span style="color:#75715e">/* SOSCLPEN=0:    Sys OSC disabled in VLP modes */</span>
+                            <span style="color:#75715e">/* SOSCSTEN=0:    Sys OSC disabled in Stop modes */</span>
+                            <span style="color:#75715e">/* SOSCEN=1:      Enable oscillator */</span>
+  <span style="color:#66d9ef">while</span>(<span style="color:#f92672">!</span>(SCG<span style="color:#f92672">-&gt;</span>SOSCCSR <span style="color:#f92672">&amp;</span> SCG_SOSCCSR_SOSCVLD_MASK)); <span style="color:#75715e">/* Wait for sys OSC clk valid */</span>
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SPLL_init_160MHz</span>(<span style="color:#66d9ef">void</span>) {
+  <span style="color:#66d9ef">while</span>(SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">&amp;</span> SCG_SPLLCSR_LK_MASK); <span style="color:#75715e">/* Ensure SPLLCSR unlocked */</span>
+  SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>;  <span style="color:#75715e">/* SPLLEN=0: SPLL is disabled (default) */</span>
+  SCG<span style="color:#f92672">-&gt;</span>SPLLDIV <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000302</span>;  <span style="color:#75715e">/* SPLLDIV1 divide by 2; SPLLDIV2 divide by 4 */</span>
+  SCG<span style="color:#f92672">-&gt;</span>SPLLCFG <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00180000</span>;  <span style="color:#75715e">/* PREDIV=0: Divide SOSC_CLK by 0+1=1 */</span>
+                              <span style="color:#75715e">/* MULT=24:  Multiply sys pll by 4+24=40 */</span>
+                              <span style="color:#75715e">/* SPLL_CLK = 8MHz / 1 * 40 / 2 = 160 MHz */</span>
+  <span style="color:#66d9ef">while</span>(SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">&amp;</span> SCG_SPLLCSR_LK_MASK); <span style="color:#75715e">/* Ensure SPLLCSR unlocked */</span>
+  SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* LK=0:        SPLLCSR can be written */</span>
+                             <span style="color:#75715e">/* SPLLCMRE=0:  SPLL CLK monitor IRQ if enabled */</span>
+                             <span style="color:#75715e">/* SPLLCM=0:    SPLL CLK monitor disabled */</span>
+                             <span style="color:#75715e">/* SPLLSTEN=0:  SPLL disabled in Stop modes */</span>
+                             <span style="color:#75715e">/* SPLLEN=1:    Enable SPLL */</span>
+  <span style="color:#66d9ef">while</span>(<span style="color:#f92672">!</span>(SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">&amp;</span> SCG_SPLLCSR_SPLLVLD_MASK)); <span style="color:#75715e">/* Wait for SPLL valid */</span>
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">NormalRUNmode_80MHz</span> (<span style="color:#66d9ef">void</span>) {  <span style="color:#75715e">/* Change to normal RUN mode with 8MHz SOSC, 80 MHz PLL*/</span>
+  SCG<span style="color:#f92672">-&gt;</span>RCCR<span style="color:#f92672">=</span>SCG_RCCR_SCS(<span style="color:#ae81ff">6</span>)      <span style="color:#75715e">/* PLL as clock source*/</span>
+    <span style="color:#f92672">|</span>SCG_RCCR_DIVCORE(<span style="color:#ae81ff">0</span>b01)      <span style="color:#75715e">/* DIVCORE=1, div. by 2: Core clock = 160/2 MHz = 80 MHz*/</span>
+    <span style="color:#f92672">|</span>SCG_RCCR_DIVBUS(<span style="color:#ae81ff">0</span>b01)       <span style="color:#75715e">/* DIVBUS=1, div. by 2: bus clock = 40 MHz*/</span>
+    <span style="color:#f92672">|</span>SCG_RCCR_DIVSLOW(<span style="color:#ae81ff">0</span>b10);     <span style="color:#75715e">/* DIVSLOW=2, div. by 2: SCG slow, flash clock= 26 2/3 MHz*/</span>
+  <span style="color:#66d9ef">while</span> (((SCG<span style="color:#f92672">-&gt;</span>CSR <span style="color:#f92672">&amp;</span> SCG_CSR_SCS_MASK) <span style="color:#f92672">&gt;&gt;</span> SCG_CSR_SCS_SHIFT ) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">6</span>) {}
+                                 <span style="color:#75715e">/* Wait for sys clk src = SPLL */</span>
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">WDOG_disable</span> (<span style="color:#66d9ef">void</span>){
+    WDOG<span style="color:#f92672">-&gt;</span>CNT<span style="color:#f92672">=</span><span style="color:#ae81ff">0xD928C520</span>;   <span style="color:#75715e">/*Unlock watchdog*/</span>
+    WDOG<span style="color:#f92672">-&gt;</span>TOVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0x0000FFFF</span>; <span style="color:#75715e">/*Maximum timeout value*/</span>
+    WDOG<span style="color:#f92672">-&gt;</span>CS <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00002100</span>;  <span style="color:#75715e">/*Disable watchdog*/</span>
+}
+
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>) {
+  WDOG_disable();
+  PORT_init();            <span style="color:#75715e">/* Configure ports */</span>
+  SOSC_init_8MHz();       <span style="color:#75715e">/* Initialize system oscilator for 8 MHz xtal */</span>
+  SPLL_init_160MHz();     <span style="color:#75715e">/* Initialize SPLL to 160 MHz with 8 MHz SOSC */</span>
+  NormalRUNmode_80MHz();  <span style="color:#75715e">/* Init clocks: 80 MHz sysclk &amp; core, 40 MHz bus, 20 MHz flash */</span>
+  LPIT0_init();           <span style="color:#75715e">/* Initialize PIT0 for 1 second timeout  */</span>
+
+  <span style="color:#66d9ef">for</span> (;;) {                     <span style="color:#75715e">/* Toggle output to LED every LPIT0 timeout */</span>
+    <span style="color:#66d9ef">while</span> (<span style="color:#ae81ff">0</span> <span style="color:#f92672">==</span> (LPIT0<span style="color:#f92672">-&gt;</span>MSR <span style="color:#f92672">&amp;</span> LPIT_MSR_TIF0_MASK)) {} <span style="color:#75715e">/* Wait for LPIT0 CH0 Flag */</span>
+    lpit0_ch0_flag_counter<span style="color:#f92672">++</span>;         <span style="color:#75715e">/* Increment LPIT0 timeout counter */</span>
+    PTD<span style="color:#f92672">-&gt;</span>PTOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">0</span>;                <span style="color:#75715e">/* Toggle output on port D0 (blue LED) */</span>
+    LPIT0<span style="color:#f92672">-&gt;</span>MSR <span style="color:#f92672">|=</span> LPIT_MSR_TIF0_MASK; <span style="color:#75715e">/* Clear LPIT0 timer flag 0 */</span>
+  }
+}
+
+</code></pre></div><h1 id="代码详解">代码详解</h1>
+<p>老样子，还是从 <code>main()</code> 内开始：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">PORT_init();    <span style="color:#75715e">/* Configure ports */</span>
+</code></pre></div><p>这一行用于初始化端口，函数内部打开 CGC，配置 GPIO ,设置 PCR MUX 和被动滤波。由于第一节已经有了详细介绍，在这里不做过多描述。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">SOSC_init_8MHz();   <span style="color:#75715e">/* Initialize system oscilator for 8 MHz xtal */</span>
+SPLL_init_160MHz(); <span style="color:#75715e">/* Initialize SPLL to 160 MHz with 8 MHz SOSC */</span>
+NormalRUNmode_80MHz();  <span style="color:#75715e">/* Init clocks: 80 MHz sysclk &amp; core, 40 MHz bus, 20 MHz flash */</span>
+</code></pre></div><p>这三个放在一起，因为他们都用到了一个指针来进行修改，这个指针就是 <code>SCG</code> , 在头文件中 <code>SCG</code> 有以下的含义：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/** SCG - Register Layout Typedef */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
+  __I  uint32_t VERID;                             <span style="color:#75715e">/**&lt; Version ID Register, offset: 0x0 */</span>
+  __I  uint32_t PARAM;                             <span style="color:#75715e">/**&lt; Parameter Register, offset: 0x4 */</span>
+       uint8_t RESERVED_0[<span style="color:#ae81ff">8</span>];
+  __I  uint32_t CSR;                               <span style="color:#75715e">/**&lt; Clock Status Register, offset: 0x10 */</span>
+  __IO uint32_t RCCR;                              <span style="color:#75715e">/**&lt; Run Clock Control Register, offset: 0x14 */</span>
+  __IO uint32_t VCCR;                              <span style="color:#75715e">/**&lt; VLPR Clock Control Register, offset: 0x18 */</span>
+  __IO uint32_t HCCR;                              <span style="color:#75715e">/**&lt; HSRUN Clock Control Register, offset: 0x1C */</span>
+  __IO uint32_t CLKOUTCNFG;                        <span style="color:#75715e">/**&lt; SCG CLKOUT Configuration Register, offset: 0x20 */</span>
+       uint8_t RESERVED_1[<span style="color:#ae81ff">220</span>];
+  __IO uint32_t SOSCCSR;                           <span style="color:#75715e">/**&lt; System OSC Control Status Register, offset: 0x100 */</span>
+  __IO uint32_t SOSCDIV;                           <span style="color:#75715e">/**&lt; System OSC Divide Register, offset: 0x104 */</span>
+  __IO uint32_t SOSCCFG;                           <span style="color:#75715e">/**&lt; System Oscillator Configuration Register, offset: 0x108 */</span>
+       uint8_t RESERVED_2[<span style="color:#ae81ff">244</span>];
+  __IO uint32_t SIRCCSR;                           <span style="color:#75715e">/**&lt; Slow IRC Control Status Register, offset: 0x200 */</span>
+  __IO uint32_t SIRCDIV;                           <span style="color:#75715e">/**&lt; Slow IRC Divide Register, offset: 0x204 */</span>
+  __IO uint32_t SIRCCFG;                           <span style="color:#75715e">/**&lt; Slow IRC Configuration Register, offset: 0x208 */</span>
+       uint8_t RESERVED_3[<span style="color:#ae81ff">244</span>];
+  __IO uint32_t FIRCCSR;                           <span style="color:#75715e">/**&lt; Fast IRC Control Status Register, offset: 0x300 */</span>
+  __IO uint32_t FIRCDIV;                           <span style="color:#75715e">/**&lt; Fast IRC Divide Register, offset: 0x304 */</span>
+  __IO uint32_t FIRCCFG;                           <span style="color:#75715e">/**&lt; Fast IRC Configuration Register, offset: 0x308 */</span>
+       uint8_t RESERVED_4[<span style="color:#ae81ff">756</span>];
+  __IO uint32_t SPLLCSR;                           <span style="color:#75715e">/**&lt; System PLL Control Status Register, offset: 0x600 */</span>
+  __IO uint32_t SPLLDIV;                           <span style="color:#75715e">/**&lt; System PLL Divide Register, offset: 0x604 */</span>
+  __IO uint32_t SPLLCFG;                           <span style="color:#75715e">/**&lt; System PLL Configuration Register, offset: 0x608 */</span>
+} SCG_Type, <span style="color:#f92672">*</span>SCG_MemMapPtr;
+
+<span style="color:#75715e">/** Peripheral SCG base address */</span>
+<span style="color:#75715e">#define SCG_BASE    (0x40064000u)
+</span><span style="color:#75715e"></span><span style="color:#75715e">/** Peripheral SCG base pointer */</span>
+<span style="color:#75715e">#define SCG    ((SCG_Type *)SCG_BASE)
+</span></code></pre></div><p>这是一个相当庞大的结构，翻阅 Manual 瞅一瞅各个小寄存器吧。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Register name</th>
+<th style="text-align:center">Width<!-- raw HTML omitted -->(in bits)</th>
+<th style="text-align:center">Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Version ID Register (SCG_VERID)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">R</td>
+</tr>
+<tr>
+<td style="text-align:left">Parameter Register (SCG_PARAM)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">R</td>
+</tr>
+<tr>
+<td style="text-align:left">Clock Status Register (SCG_CSR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">R</td>
+</tr>
+<tr>
+<td style="text-align:left">Run Clock Control Register (SCG_RCCR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">VLPR Clock Control Register (SCG_VCCR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">HSRUN Clock Control Register (SCG_HCCR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">SCG CLKOUT Configuration Register (SCG_CLKOUTCNFG)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">System OSC Control Status Register (SCG_SOSCCSR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">System OSC Divide Register (SCG_SOSCDIV)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">System Oscillator Configuration Register (SCG_SOSCCFG)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">Slow IRC Control Status Register (SCG_SIRCCSR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">Slow IRC Divide Register (SCG_SIRCDIV)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">Slow IRC Configuration Register (SCG_SIRCCFG)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">Fast IRC Control Status Register (SCG_FIRCCSR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">Fast IRC Divide Register (SCG_FIRCDIV)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">Fast IRC Configuration Register (SCG_FIRCCFG)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">System PLL Control Status Register (SCG_SPLLCSR)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">System PLL Divide Register (SCG_SPLLDIV)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+<tr>
+<td style="text-align:left">System PLL Configuration Register (SCG_SPLLCFG)</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">RW</td>
+</tr>
+</tbody>
+</table>
+<h3 id="version-id-register-scg_verid">Version ID Register (SCG_VERID)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">VERSION</td>
+<td style="text-align:center">SCG Version Number</td>
+<td style="text-align:left">SCG 的版本号</td>
+</tr>
+</tbody>
+</table>
+<h3 id="parameter-register-scg_param">Parameter Register (SCG_PARAM)</h3>
+<ul>
+<li><strong>写入会导致错误。</strong></li>
+</ul>
+<p>字面意思是参数寄存器，其中 32 位的定义如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">31-27</td>
+<td style="text-align:center">DIVPRES</td>
+<td style="text-align:left"><strong>指示现在的 SCG 分频器使用状态</strong><!-- raw HTML omitted --><code>DIVPRES[27]=1</code> DIVSLOW 正在被使用<!-- raw HTML omitted --><code>DIVPRES[28]=1</code> DIVBUS 正在被使用<!-- raw HTML omitted --><code>DIVPRES[31]=1</code> DIVCORE 正在被使用</td>
+</tr>
+<tr>
+<td style="text-align:center">7-0</td>
+<td style="text-align:center">CLKPRES</td>
+<td style="text-align:left"><strong>指示当前状态下哪个时钟正在被当做 SCG 时钟源</strong><!-- raw HTML omitted -->CLKPRES[0] Reserved<!-- raw HTML omitted -->CLKPRES<a href="/img/2017-9-29-S32K144_2/hello_clock.png">1</a>=1 System OSC (SOSC) 正在被使用<!-- raw HTML omitted -->CLKPRES<a href="/img/2017-9-29-S32K144_2/DIV_Requirement.png">2</a>=1 Slow IRC (SIRC) 正在被使用<!-- raw HTML omitted -->CLKPRES[3]=1 Fast IRC (FIRC) 正在被使用<!-- raw HTML omitted -->CLKPRES[6]=1 System PLL (SPLL) 正在被使用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="clock-status-register-scg_csr">Clock Status Register (SCG_CSR)</h3>
+<ul>
+<li><strong>写入会导致错误。</strong></li>
+</ul>
+<p>这个寄存器返回当前的系统时钟源和系统时钟分频器配置，镜像 SCG_RCCR, SCG_VCCR, SCG_HCCR 三个时钟控制器其中之一的配置。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">27-24</td>
+<td style="text-align:center">SCS</td>
+<td style="text-align:left"><strong>返回当前配置的系统时钟发生器来源</strong><!-- raw HTML omitted -->0001 System OSC (SOSC_CLK)<!-- raw HTML omitted -->0010 Slow IRC (SIRC_CLK)<!-- raw HTML omitted -->0011 Fast IRC (FIRC_CLK)<!-- raw HTML omitted -->0110 System PLL (SPLL_CLK)<!-- raw HTML omitted -->其余的值无效</td>
+</tr>
+<tr>
+<td style="text-align:center">19-16</td>
+<td style="text-align:center">DIVCORE</td>
+<td style="text-align:left"><strong>指示现在的核心时钟分频比率</strong><!-- raw HTML omitted -->* 若 SPLL 被选做时钟源，则最大比率是 4<!-- raw HTML omitted --> 分频比率 = <code>DIVCORE+1</code></td>
+</tr>
+<tr>
+<td style="text-align:center">7-4</td>
+<td style="text-align:center">DIVBUS</td>
+<td style="text-align:left"><strong>返回现在的总线（BUS）时钟分频比率</strong><!-- raw HTML omitted -->分频比率 = <code>DIVBUS+1</code></td>
+</tr>
+<tr>
+<td style="text-align:center">3-0</td>
+<td style="text-align:center">DIVSLOW</td>
+<td style="text-align:left"><strong>返回现在的慢速时钟分频比率</strong><!-- raw HTML omitted -->分频比率 = <code>DIVSLOW+1</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="run-clock-control-register-scg_rccr">Run Clock Control Register (SCG_RCCR)</h3>
+<p>这个寄存器给核心，平台，外围，总线控制系统时钟源和系统时钟分频器，只在 Run 模式下起作用，这个寄存器写入的时候只能一次写入 32 位。在 Run 模式下选择一个不同的时钟源需要时钟源在系统时钟调整到时钟源前就要开启并且保证有效。如果系统时钟分频器比率改变的同时选择了一个不同的时钟模式，则新的分频器比率只有在新的时钟源有效后才会发生改变。</p>
+<p>寄存器见 <code>SCG_CSR</code>。</p>
+<h3 id="vlpr-clock-control-register-scg_vccr">VLPR Clock Control Register (SCG_VCCR)</h3>
+<p>SCG_VCCR 控制的是 VLPR 模式下的，而不是 Run 模式下的，其他的寄存器地图什么的和 SCG_RCCR 一样。写入的时候只能一次写入 32 位。</p>
+<p>寄存器见 <code>SCG_CSR</code>。</p>
+<h3 id="hsrun-clock-control-register-scg_hccr">HSRUN Clock Control Register (SCG_HCCR)</h3>
+<p>在 HSRUN 模式下的时钟控制寄存器，同上。</p>
+<p>寄存器见 <code>SCG_CSR</code>。</p>
+<h3 id="scg-clkout-configuration-register-scg_clkoutcnfg">SCG CLKOUT Configuration Register (SCG_CLKOUTCNFG)</h3>
+<p>这个寄存器控制哪一个 SCG 时钟源被输出到 <strong>CLKOUT</strong> 管脚。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">27-24</td>
+<td style="text-align:center">SCS</td>
+<td style="text-align:left"><strong>选择 SCG 系统时钟作为 CLKOUT</strong><!-- raw HTML omitted -->0001 System OSC (SOSC_CLK)<!-- raw HTML omitted -->0010 Slow IRC (SIRC_CLK)<!-- raw HTML omitted -->0011 Fast IRC (FIRC_CLK)<!-- raw HTML omitted -->0110 System PLL (SPLL_CLK)<!-- raw HTML omitted -->其余的值无效</td>
+</tr>
+</tbody>
+</table>
+<h3 id="system-osc-control-status-register-scg_sosccsr">System OSC Control Status Register (SCG_SOSCCSR)</h3>
+<p>这个寄存器控制 SCG 模块中的 SOSC 工作状态。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">26</td>
+<td style="text-align:center">SOSCERR</td>
+<td style="text-align:left"><strong>System OSC Clock Error</strong><!-- raw HTML omitted -->此位只能被单片机的上电复位重置，但是软件也可以通过向此位写入 1 清零<!-- raw HTML omitted -->0 SOSC 检测器被关闭或者没有检测到错误<!-- raw HTML omitted -->1 SOSC  检测器被开启并且检测到一个错误</td>
+</tr>
+<tr>
+<td style="text-align:center">25</td>
+<td style="text-align:center">SOSCSEL</td>
+<td style="text-align:left"><strong>System OSC Selected 此位不可写入</strong><!-- raw HTML omitted -->0 SOSC 不是系统时钟源<!-- raw HTML omitted -->1 SOSC 是系统时钟源</td>
+</tr>
+<tr>
+<td style="text-align:center">24</td>
+<td style="text-align:center">SOSCVLD</td>
+<td style="text-align:left"><strong>System OSC Valid 此位不可写入</strong><!-- raw HTML omitted -->0 SOSC 无效或者没有启用<!-- raw HTML omitted -->1 SOSC 有效并且输出有效</td>
+</tr>
+<tr>
+<td style="text-align:center">23</td>
+<td style="text-align:center">LK</td>
+<td style="text-align:left"><strong>Lock Register</strong><!-- raw HTML omitted -->此位可以在任何时候清零或者置 1 <!-- raw HTML omitted -->0 CSR 寄存器可以写入<!-- raw HTML omitted -->1 CSR 寄存器不可以写入</td>
+</tr>
+<tr>
+<td style="text-align:center">17</td>
+<td style="text-align:center">SOSCCMRE</td>
+<td style="text-align:left"><strong>System OSC Clock Monitor Reset Enable</strong><!-- raw HTML omitted -->SOSC 监测器中断/重置开关<!-- raw HTML omitted -->0 当错误被检测，监测器产生中断<!-- raw HTML omitted -->1 当错误被检测，监测器产生重启</td>
+</tr>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">SOSCCM</td>
+<td style="text-align:left"><strong>System OSC Clock Monitor</strong><!-- raw HTML omitted -->SOSC 监测器开关<!-- raw HTML omitted -->0 SOSC 监测器关<!-- raw HTML omitted -->1 SOSC 监测器开</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">SOSCEN</td>
+<td style="text-align:left"><strong>System OSC Enable</strong><!-- raw HTML omitted -->SOSC 使能<!-- raw HTML omitted -->0 SOSC 关<!-- raw HTML omitted -->1 SOSC 开</td>
+</tr>
+</tbody>
+</table>
+<h3 id="system-osc-divide-register-scg_soscdiv">System OSC Divide Register (SCG_SOSCDIV)</h3>
+<p>这个寄存器控制两个时钟输出，既可以用作外围器件的功能时钟，也可以作为时钟模块使用，每一路输出都有分频器提供分频，应该在 SOSC 被关闭的情况下更改该寄存器的值以避免输出的值出现错误。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">10-8</td>
+<td style="text-align:center">SOSCDIV2</td>
+<td style="text-align:left"><strong>System OSC Clock Divide 2</strong><!-- raw HTML omitted -->设置 SOSC 第二路输出的分频比率<!-- raw HTML omitted -->分频比率 = <code>2^(SOSCDIV2-1)</code> <!-- raw HTML omitted --> 0 时关闭时钟输出</td>
+</tr>
+<tr>
+<td style="text-align:center">2-1</td>
+<td style="text-align:center">SOSCDIV1</td>
+<td style="text-align:left"><strong>System OSC Clock Divide 1</strong><!-- raw HTML omitted -->设置 SOSC 第一路输出的分频比率<!-- raw HTML omitted -->分频比率 = <code>2^(SOSCDIV1-1)</code> <!-- raw HTML omitted --> 0 时关闭时钟输出</td>
+</tr>
+</tbody>
+</table>
+<h3 id="system-oscillator-configuration-register-scg_sosccfg">System Oscillator Configuration Register (SCG_SOSCCFG)</h3>
+<p>此寄存器控制振荡器的工作状态，在 SOSC 运行的时候无法被写入，强行写入会被忽略并不会报赋值错误。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">5-4</td>
+<td style="text-align:center">RANGE</td>
+<td style="text-align:left"><strong>System OSC Range Select</strong><!-- raw HTML omitted -->选择 SOSC 外接晶振的频率范围<!-- raw HTML omitted -->10 中频 (4 MHz to 8MHz)<!-- raw HTML omitted -->11 高频 (8 MHz to 40 MHz)</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td style="text-align:center">HGO</td>
+<td style="text-align:left"><strong>High Gain Oscillator Select</strong><!-- raw HTML omitted -->高增益振荡器选择<!-- raw HTML omitted -->0 低增益运行振荡器<!-- raw HTML omitted -->1 高增益运行振荡器</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">EREFS</td>
+<td style="text-align:left"><strong>External Reference Select</strong><!-- raw HTML omitted -->外部参考时钟选择<!-- raw HTML omitted -->0 外部参考时钟<!-- raw HTML omitted -->1 SOSC 内部晶体振荡器</td>
+</tr>
+</tbody>
+</table>
+<h3 id="slow-irc-control-status-register-scg_sirccsr">Slow IRC Control Status Register (SCG_SIRCCSR)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">25</td>
+<td style="text-align:center">SIRCSEL</td>
+<td style="text-align:left"><strong>Slow IRC Selected</strong><!-- raw HTML omitted -->选择 SIRC 是否作为系统时钟源<!-- raw HTML omitted -->0 Slow IRC 是系统时钟源<!-- raw HTML omitted -->1 Slow IRC 不是系统时钟源</td>
+</tr>
+<tr>
+<td style="text-align:center">24</td>
+<td style="text-align:center">SIRCVLD</td>
+<td style="text-align:left"><strong>Slow IRC Valid</strong><!-- raw HTML omitted -->Slow IRC 有效位<!-- raw HTML omitted -->0 Slow IRC 无效或者没有启动<!-- raw HTML omitted -->1 Slow IRC 启动并且有效</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">SIRCLPEN</td>
+<td style="text-align:left"><strong>Slow IRC Low Power Enable</strong><!-- raw HTML omitted -->Slow IRC 低功率模式开关<!-- raw HTML omitted -->0 Slow IRC 在 VLP 模式不启动下<!-- raw HTML omitted -->1 Slow IRC 在 VLP 模式下启动</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">SIRCSTEN</td>
+<td style="text-align:left"><strong>Slow IRC Stop Enable</strong><!-- raw HTML omitted -->Slow IRC 停止模式开关<!-- raw HTML omitted -->0 Slow IRC 在 Stop modes 下不工作<!-- raw HTML omitted -->1 Slow IRC 在 Stop modes 下工作</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">SIRCEN</td>
+<td style="text-align:left"><strong>Slow IRC Enable</strong><!-- raw HTML omitted -->Slow IRC 使能<!-- raw HTML omitted -->0 Slow IRC 关闭<!-- raw HTML omitted -->1 Slow IRC 开启</td>
+</tr>
+</tbody>
+</table>
+<h3 id="slow-irc-divide-register-scg_sircdiv">Slow IRC Divide Register (SCG_SIRCDIV)</h3>
+<p>该寄存器控制 SIRC 的分频器工作状态，请确保该寄存器在改变前，SIRC 是关闭着的，以防止出现错误。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">10-8</td>
+<td style="text-align:center">SIRCDIV2</td>
+<td style="text-align:left"><strong>Slow IRC Clock Divide 2</strong><!-- raw HTML omitted -->提供给需要异步时钟的模块的分频器 2<!-- raw HTML omitted -->分频比率 = <code>2^(SIRCDIV2-1)</code> <!-- raw HTML omitted --> 0 时关闭时钟输出</td>
+</tr>
+<tr>
+<td style="text-align:center">2-0</td>
+<td style="text-align:center">SIRCDIV1</td>
+<td style="text-align:left"><strong>Slow IRC Clock Divide 1</strong><!-- raw HTML omitted -->提供给需要异步时钟的模块的分频器 1<!-- raw HTML omitted -->分频比率 = <code>2^(SIRCDIV1-1)</code> <!-- raw HTML omitted --> 0 时关闭时钟输出</td>
+</tr>
+</tbody>
+</table>
+<h3 id="slow-irc-configuration-register-scg_sirccfg">Slow IRC Configuration Register (SCG_SIRCCFG)</h3>
+<p>此寄存器控制振荡器的工作状态，在 SIRC 运行的时候无法被写入，强行写入会被忽略并不会报赋值错误。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">RANGE</td>
+<td style="text-align:left"><strong>Frequency Range</strong><!-- raw HTML omitted -->频率范围<!-- raw HTML omitted -->0 Slow IRC low range clock (2 MHz)<!-- raw HTML omitted -->1 Slow IRC high range clock (8 MHz)</td>
+</tr>
+</tbody>
+</table>
+<p>剩余的 FIRC 跟这个差不多，但是有一部分细微的变化，到用的时候请查询对应的用户手册。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

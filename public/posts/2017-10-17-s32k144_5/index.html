@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 5 NVIC | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-10-17-s32k144_5/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-10-17-s32k144_5/" rel="bookmark">S32K144EVB Notes 5 NVIC</a>
+  </h2>
+  
+  <time datetime="2017-10-17T00:00:00Z">
+    17 October, 2017
+  </time>
+  
+</header>
+
+  <p>这一节的内容是根据对于例程的探索，了解 S32K 上的 ADC 模块的使用方法</p>
+<h1 id="本节程序包含的步骤">本节程序包含的步骤：</h1>
+<ul>
+<li>SOSC 8MHz，SPLL 160Mhz，系统时钟 80MHz，开启 RUN 模式。</li>
+<li>初始化管脚：
+<ul>
+<li>在 PCC 使能 Port D</li>
+<li>PTD0: GPIO output - connects to blue LED</li>
+<li>PTD15: GPIO output - connects to red LED</li>
+<li>PTD16: GPIO output - connects to green LED</li>
+<li>（因为重启后，模拟管脚不需要初始化）</li>
+</ul>
+</li>
+<li>初始化 ADC：
+<ul>
+<li>选择 SOSCDIV2_CLK 作为功能始终并且在模块中启用它</li>
+<li>关闭模块并且关闭中断请求</li>
+<li>设置 ADC 模块为 12 位转换使用 SOSCDIV_CLK, 分频因子是 1</li>
+<li>设置取样时间是 13 ADCK 时钟周期</li>
+<li>设置软件触发转换，不适用比较功能，不使用 DMA 并且使用默认的电压值参考管脚 - 也就是 $V_{REFH}$ 和 $V_{REFL}$</li>
+<li>关闭连续转换（也就是一次转换使用一次软件触发），关闭硬件平均功能，关闭初始状态矫正。</li>
+</ul>
+</li>
+<li>循环体：
+<ul>
+<li>
+<p>发出 ADC 转换指令给 通道 12（使用 <code>ADC_SC1[0]</code> 作为软件触发）</p>
+</li>
+<li>
+<p>等待转换完成标志</p>
+<ul>
+<li>读取结果并且将其转换成为 0-5000mv 的范围（对于所有的软件触发带来的结果都在 <code>ADC_R[0]</code> 内）</li>
+<li>根据电压范围点亮 LED</li>
+</ul>
+</li>
+<li>
+<p>发出 ADC 转换指令读取 ADC 高参考电压（使用 <code>ADC_SC1[0]</code> 作为软件触发）；</p>
+</li>
+<li>
+<p>等待转换完成标志，当转换完成的时候</p>
+<ul>
+<li>读取结果并且将其转换成为 0-5000mv 的范围（对于所有的软件触发带来的结果都在 <code>ADC_R[0]</code> 内）</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h1 id="代码">代码：</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34; /* include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;clocks_and_modes.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;ADC.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define PTD15 15 </span><span style="color:#75715e">/* RED LED*/</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define PTD16 16 </span><span style="color:#75715e">/* GREEN LED*/</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define PTD0 0 </span><span style="color:#75715e">/* BLUE LED */</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PORT_init</span> (<span style="color:#66d9ef">void</span>) {
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_PORTD_INDEX ]<span style="color:#f92672">|=</span>PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clock for PORTD */</span>
+PORTD<span style="color:#f92672">-&gt;</span>PCR[PTD0] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000100</span>; <span style="color:#75715e">/* Port D0: MUX = GPIO */</span>
+PORTD<span style="color:#f92672">-&gt;</span>PCR[PTD15] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000100</span>; <span style="color:#75715e">/* Port D15: MUX = GPIO */</span>
+PORTD<span style="color:#f92672">-&gt;</span>PCR[PTD16] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000100</span>; <span style="color:#75715e">/* Port D16: MUX = GPIO */</span>
+PTD<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0; <span style="color:#75715e">/* Port D0: Data Direction= output */</span>
+PTD<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD15; <span style="color:#75715e">/* Port D15: Data Direction= output */</span>
+PTD<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD16; <span style="color:#75715e">/* Port D16: Data Direction= output */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">WDOG_disable</span> (<span style="color:#66d9ef">void</span>){
+WDOG<span style="color:#f92672">-&gt;</span>CNT<span style="color:#f92672">=</span><span style="color:#ae81ff">0xD928C520</span>; <span style="color:#75715e">/* Unlock watchdog */</span>
+WDOG<span style="color:#f92672">-&gt;</span>TOVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0x0000FFFF</span>; <span style="color:#75715e">/* Maximum timeout value */</span>
+WDOG<span style="color:#f92672">-&gt;</span>CS <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00002100</span>; <span style="color:#75715e">/* Disable watchdog */</span>
+}
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>)
+{
+uint32_t adcResultInMv<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+WDOG_disable(); <span style="color:#75715e">/* Disable WDOG*/</span>
+SOSC_init_8MHz(); <span style="color:#75715e">/* Initialize system oscillator for 8 MHz xtal */</span>
+SPLL_init_160MHz(); <span style="color:#75715e">/* Initialize SPLL to 160 MHz with 8 MHz SOSC */</span>
+NormalRUNmode_80MHz(); <span style="color:#75715e">/* Init clocks: 80 MHz sysclk &amp; core, 40 MHz bus, 20 MHz flash */</span>
+PORT_init(); <span style="color:#75715e">/* Init port clocks and gpio outputs */</span>
+ADC_init(); <span style="color:#75715e">/* Init ADC resolution 12 bit*/</span>
+<span style="color:#66d9ef">for</span>(;;) {
+convertAdcChan(<span style="color:#ae81ff">12</span>); <span style="color:#75715e">/* Convert Channel AD12 to pot on EVB */</span>
+<span style="color:#66d9ef">while</span>(adc_complete()<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>){} <span style="color:#75715e">/* Wait for conversion complete flag */</span>
+adcResultInMv <span style="color:#f92672">=</span> read_adc_chx(); <span style="color:#75715e">/* Get channel&#39;s conversion results in mv */</span>
+<span style="color:#66d9ef">if</span> (adcResultInMv <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">3750</span>) { <span style="color:#75715e">/* If result &gt; 3.75V */</span>
+PTD<span style="color:#f92672">-&gt;</span>PSOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD16; <span style="color:#75715e">/* turn off blue, green LEDs */</span>
+PTD<span style="color:#f92672">-&gt;</span>PCOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD15; <span style="color:#75715e">/* turn on red LED */</span>
+}
+<span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (adcResultInMv <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">2500</span>) { <span style="color:#75715e">/* If result &gt; 3.75V */</span>
+PTD<span style="color:#f92672">-&gt;</span>PSOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD15; <span style="color:#75715e">/* turn off blue, red LEDs */</span>
+PTD<span style="color:#f92672">-&gt;</span>PCOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD16; <span style="color:#75715e">/* turn on green LED */</span>
+}
+<span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (adcResultInMv <span style="color:#f92672">&gt;</span><span style="color:#ae81ff">1250</span>) { <span style="color:#75715e">/* If result &gt; 3.75V */</span>
+PTD<span style="color:#f92672">-&gt;</span>PSOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD15 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD16; <span style="color:#75715e">/* turn off red, green LEDs */</span>
+PTD<span style="color:#f92672">-&gt;</span>PCOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0; <span style="color:#75715e">/* turn on blue LED */</span>
+}
+<span style="color:#66d9ef">else</span> {
+PTD<span style="color:#f92672">-&gt;</span>PSOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD0 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span> PTD15 <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span>PTD16; <span style="color:#75715e">/* Turn off all LEDs */</span>
+}
+convertAdcChan(<span style="color:#ae81ff">29</span>); <span style="color:#75715e">/* Convert chan 29, Vrefsh */</span>
+<span style="color:#66d9ef">while</span>(adc_complete()<span style="color:#f92672">==</span><span style="color:#ae81ff">0</span>){} <span style="color:#75715e">/* Wait for conversion complete flag */</span>
+adcResultInMv <span style="color:#f92672">=</span> read_adc_chx(); <span style="color:#75715e">/* Get channel&#39;s conversion results in mv */</span>
+}
+}
+</code></pre></div><p>ADC 子函数部分：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;ADC.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">ADC_init</span>(<span style="color:#66d9ef">void</span>) {
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_ADC0_INDEX] <span style="color:#f92672">&amp;=~</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Disable clock to change PCS */</span>
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_ADC0_INDEX] <span style="color:#f92672">|=</span> PCC_PCCn_PCS(<span style="color:#ae81ff">1</span>); <span style="color:#75715e">/* PCS=1: Select SOSCDIV2 */</span>
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_ADC0_INDEX] <span style="color:#f92672">|=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable bus clock in ADC */</span>
+ADC0<span style="color:#f92672">-&gt;</span>SC1[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00001F</span>; <span style="color:#75715e">/* ADCH=1F: Module is disabled for conversions*/</span>
+<span style="color:#75715e">/* AIEN=0: Interrupts are disabled */</span>
+ADC0<span style="color:#f92672">-&gt;</span>CFG1 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x000000004</span>; <span style="color:#75715e">/* ADICLK=0: Input clk=ALTCLK1=SOSCDIV2 */</span>
+<span style="color:#75715e">/* ADIV=0: Prescaler=1 */</span>
+<span style="color:#75715e">/* MODE=1: 12-bit conversion */</span>
+ADC0<span style="color:#f92672">-&gt;</span>CFG2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000C</span>; <span style="color:#75715e">/* SMPLTS=12(default): sample time is 13 ADC clks */</span>
+ADC0<span style="color:#f92672">-&gt;</span>SC2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* ADTRG=0: SW trigger */</span>
+<span style="color:#75715e">/* ACFE,ACFGT,ACREN=0: Compare func disabled */</span>
+<span style="color:#75715e">/* DMAEN=0: DMA disabled */</span>
+<span style="color:#75715e">/* REFSEL=0: Voltage reference pins= VREFH, VREEFL */</span>
+ADC0<span style="color:#f92672">-&gt;</span>SC3 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* CAL=0: Do not start calibration sequence */</span>
+<span style="color:#75715e">/* ADCO=0: One conversion performed */</span>
+<span style="color:#75715e">/* AVGE,AVGS=0: HW average function disabled */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">convertAdcChan</span>(uint16_t adcChan) { <span style="color:#75715e">/* For SW trigger mode, SC1[0] is used */</span>
+ADC0<span style="color:#f92672">-&gt;</span>SC1[<span style="color:#ae81ff">0</span>]<span style="color:#f92672">&amp;=~</span>ADC_SC1_ADCH_MASK; <span style="color:#75715e">/* Clear prior ADCH bits */</span>
+ADC0<span style="color:#f92672">-&gt;</span>SC1[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> ADC_SC1_ADCH(adcChan); <span style="color:#75715e">/* Initiate Conversion*/</span>
+}
+uint8_t <span style="color:#a6e22e">adc_complete</span>(<span style="color:#66d9ef">void</span>) {
+<span style="color:#66d9ef">return</span> ((ADC0<span style="color:#f92672">-&gt;</span>SC1[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">&amp;</span> ADC_SC1_COCO_MASK)<span style="color:#f92672">&gt;&gt;</span>ADC_SC1_COCO_SHIFT); <span style="color:#75715e">/* Wait for completion */</span>
+}
+uint32_t <span style="color:#a6e22e">read_adc_chx</span>(<span style="color:#66d9ef">void</span>) {
+uint16_t adc_result<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>;
+adc_result<span style="color:#f92672">=</span>ADC0<span style="color:#f92672">-&gt;</span>R[<span style="color:#ae81ff">0</span>]; <span style="color:#75715e">/* For SW trigger mode, R[0] is used */</span>
+<span style="color:#66d9ef">return</span> (uint32_t) ((<span style="color:#ae81ff">5000</span><span style="color:#f92672">*</span>adc_result)<span style="color:#f92672">/</span><span style="color:#ae81ff">0xFFF</span>); <span style="color:#75715e">/* Convert result to mv for 0-5V range */</span>
+}
+</code></pre></div><p>关于程序部分，需要注意的就是 ADC 初始化过程中使用的一系列寄存器，比较多比较复杂，我在这里简单介绍一下本程序涉及的寄存器。</p>
+<h3 id="adc-status-and-control-registers-1-adc1_sc1n">ADC Status and Control Registers 1 (ADC1_SC1n)</h3>
+<p>使用 <code>ADC0-&gt;SC1[n]</code> 访问，n 数字对应字母 ABCDEFG&hellip;P。</p>
+<p>这个寄存器一共有 16 个，在参考手册上面分别叫做 ADC1_SC1(A-P), 我刚开始看的时候对于这一点非常困惑，因为这 16 个寄存器的定义一模一样，而且只能有一个寄存器内部的配置是在工作的，最后在网上另外一款的飞思卡尔单片机中找的了为什么有平行的寄存器。这 16 个寄存器对应 16 个配置，就像是存档一样，我们知道该款 ADC 一共有 16 个通道，而由于模块的硬件因素，ADC 在同一时间只能处理一个通道中断，如果想要切换通道就要频繁切换配置，所以这里我们可以提前直接写好各个要使用到的通道的采样配置，这样在使用触发命令（trigger 和 pre-trigger）时，只要指定是按照 ADC 哪一个配置采样就可以了。</p>
+<p>这个也提醒了我，这个配置和对应的结果寄存器，也是相互对应的，也就是说这，一共有 16 个结果寄存器，也是按照 A-P 排列的，哪一个配置产生的结果就放在哪一个寄存器里面，这也就解释了为什么软件触发的结果都在 0 号寄存器里面的了，因为软件只能触发 A 配置。
+（下列标题中的数字为对应的寄存器地址段，未注明的地址段为 Reserved 地址段）</p>
+<h5 id="7---cococonversion-complete-flag">7 - COCO(Conversion Complete Flag):</h5>
+<p>这是一个只能读取的寄存器，这个寄存器在转换完成的时候会置 1，当下列的某一个或者多个条件成立的时候：</p>
+<ul>
+<li>比较功能已经关闭</li>
+<li><code>SC2[ACFE]=0</code> 并且硬件平均功能已经关闭</li>
+<li><code>SC3[AVGE]=0</code></li>
+</ul>
+<p>如果比较结果是真的情况下，COCO 寄存器在转换完成的时候会置 1，当下列的某一个或者多个条件成立的时候：</p>
+<ul>
+<li>比较功能已经开启</li>
+<li><code>SC2[ACFE]=1</code></li>
+</ul>
+<p>COCO 也可以进行在选定的转换完成的时候进行置位（由 <code>AVGS</code> 决定）如果下列的一个或者多个条件成立的时候:</p>
+<ul>
+<li>硬件的平均功能已经开启</li>
+<li><code>SC3[AVGE]=1</code></li>
+</ul>
+<p>在 <code>SC1A</code> 中的 COCO 还会在校准序列结束后置位</p>
+<p>COCO 寄存器会在以下条件达成的时候被复位：</p>
+<ul>
+<li>对应的 <code>SC1n</code> 寄存器被写入</li>
+<li>对应的 <code>Rn</code> 寄存器被读取</li>
+</ul>
+<h5 id="6---aieninterrupt-enable">6 - AIEN(Interrupt Enable)</h5>
+<p>使能位，允许转换完成的时候发起中断，当此位被置 1，且当 COCO 置 1 的时候，一个中断就会被生成。</p>
+<h5 id="4-0---adchinput-channel-select">(4-0) - ADCH(Input channel select)</h5>
+<p>输入通道选择，在新的参考手册中这个一共有 6 位。在老版本的 RM 中，这个位只有 5 位，但是老版本的该寄存器地址段只有 4 位，不知道编这个 RM 的作者是想表达什么意思。<br>
+最后我参考了一下头文件里面的声明：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define ADC_SC1_ADCH_WIDTH    5u
+</span></code></pre></div><p>所以应该是 5 位的宽度，我们就按照老的 RM 的数据来进行解读：</p>
+<ul>
+<li>00000 AD0 is selected as input.</li>
+<li>00001 AD1 is selected as input.</li>
+<li>00010 AD2 is selected as input.</li>
+<li>00011 AD3 is selected as input.</li>
+<li>00100 AD4 is selected as input.</li>
+<li>00101 AD5 is selected as input.</li>
+<li>00110 AD6 is selected as input.</li>
+<li>00111 AD7 is selected as input.</li>
+<li>01000 AD8 is selected as input.</li>
+<li>01001 AD9 is selected as input.</li>
+<li>01010 AD10 is selected as input.</li>
+<li>01011 AD11 is selected as input.</li>
+<li>01100 AD12 is selected as input.</li>
+<li>01101 AD13 is selected as input.</li>
+<li>01110 AD14 is selected as input.</li>
+<li>01111 AD15 is selected as input.</li>
+<li>10000 Reserved.</li>
+<li>10001 Reserved.</li>
+<li>10010 AD18 is selected as input.</li>
+<li>10011 AD19 is selected as input.</li>
+<li>10100 Reserved.</li>
+<li>10101 AD21 is selected as input.</li>
+<li>10110 AD22 is selected as input.</li>
+<li>10111 AD23 is selected as input.</li>
+<li>11000 ATX Force</li>
+<li>11001 ATX Sense</li>
+<li>11010 Temp Sensor</li>
+<li>11011 Band Gap</li>
+<li>11100 AD28 is selected as input.</li>
+<li>11101 VREFSH is selected as input. Voltage reference selected is determined by SC2[REFSEL].</li>
+<li>11110 VREFSL is selected as input. Voltage reference selected is determined by SC2[REFSEL].</li>
+<li>11111 Module is disabled.</li>
+</ul>
+<p>只要牢记一件事就是这个寄存器如果全部取 1 的时候，相当于关闭 ADC 模块。其他的选择通道时使用 <code>ADC_SC1_ADCH(x)</code> 这个定义在头文件的函数可以直接将通道改为对应的 ADCH 值。</p>
+<h3 id="adc-configuration-register-1-adcx_cfg1">ADC Configuration Register 1 (ADCx_CFG1)</h3>
+<p>使用 <code>ADC0-&gt;CFG1</code> 访问。主要涉及的内容有，ADC 工作模式，时钟源，时钟分频。</p>
+<p>（下列标题中的数字为对应的寄存器地址段，未注明的地址段为保留 0 段）</p>
+<h5 id="6-5---adivclock-divide-select">(6-5) - ADIV(Clock Divide Select)</h5>
+<p>选择 ADC 的时钟分频，用于产生 ADCK 内部时钟。</p>
+<ul>
+<li>00 时钟分频为 1 ，时钟速度就是输入时钟的速度</li>
+<li>01 时钟分频为 2 ，时钟速度就是输入时钟的 1/2</li>
+<li>10 时钟分频为 4 ，时钟速度就是输入时钟的 1/4</li>
+<li>11 时钟分频为 8 ，时钟速度就是输入时钟的 1/8</li>
+</ul>
+<h5 id="3-2---modeconversion-mode-selection">(3-2) - MODE(Conversion mode selection)</h5>
+<p>选择 ADC 的分辨率。</p>
+<ul>
+<li>00 8-bit 转换</li>
+<li>01 12-bit 转换</li>
+<li>10 10-bit 转换</li>
+<li>11 Reserved</li>
+</ul>
+<h5 id="1-0---adiclkinput-clock-select">(1-0) - ADICLK(Input Clock Select)</h5>
+<p>选择输入时钟源来产生内部时钟 ADCK。</p>
+<ul>
+<li>00 Alternate clock 1 (ADC_ALTCLK1)</li>
+<li>01 Alternate clock 2 (ADC_ALTCLK2)</li>
+<li>10 Alternate clock 3 (ADC_ALTCLK3)</li>
+<li>11 Alternate clock 4 (ADC_ALTCLK4)</li>
+</ul>
+<h3 id="adc-configuration-register-2-adcx_cfg2">ADC Configuration Register 2 (ADCx_CFG2)</h3>
+<p>使用 <code>ADC0-&gt;CFG2</code> 访问。 主要涉及的内容有，在“长取样模式”下选择取样时长。</p>
+<h5 id="7-0-smpltssample-time-select">(7-0) SMPLTS(Sample Time Select)</h5>
+<p>选其一系列从 2-256 个 ADCK 周期的取样时长，在这个 8 位的寄存器中写的值加一就是相应的取样时长，长的取样时间可以有效提高精确性，但是短的取样时间可以加快取样速度并且减少取样消耗的功率。在单次采样的时候，建议采用长时间采样，如果是连续采样，建议选择一个较短的采样时间。</p>
+<h3 id="adc-data-result-register-adcx_rn">ADC Data Result Register (ADCx_Rn)</h3>
+<p>使用 <code>ADC0-&gt;R[n]</code> 访问。
+这个就是 ADC 结果寄存器了，跟配置寄存器对应，使用哪一个配置的 <code>SC[n]</code>, 结果就保存在 对应的 <code>R[n]</code>。</p>
+<h5 id="11-0-data-result-d">(11-0) Data result (D)</h5>
+<p>一共有 12 位，在使用 12-bit 转换的时候就是全部使用，在使用 10-bit 或者 8-bit 转换的时候只使用到了最低的 10,8 位。</p>
+<h3 id="compare-value-registers-adcx_cvn">Compare Value Registers (ADCx_CVn)</h3>
+<p>这个的寄存器配置和 Rn 一样，唯一的区别就是里面存放的是一个需要比较的数值。使用这个寄存器需要打开 ADC 的比较功能，也即是 <code>SC2[ACREN]=1</code>。</p>
+<h3 id="status-and-control-register-2-adcx_sc2">Status and Control Register 2 (ADCx_SC2)</h3>
+<p>使用 <code>ADC0-&gt;SC2</code> 访问。
+这个寄存器虽然叫 SC2，但是和 SC1 完全不一样，每个 ADC 只有 1 个配置。它涉及的内容有：转换状态显示，软/硬转换触发选择，以及比较功能的开关，还有超级比较功能开关（可以比较范围之外的电压），比较模式的电压范围，DMA 功能开启，参考电压的选择。</p>
+<p>具体寄存器内容请查阅 RM。太多了不好写。</p>
+<h3 id="status-and-control-register-3-adcx_sc3">Status and Control Register 3 (ADCx_SC3)</h3>
+<p>使用 <code>ADC0-&gt;SC3</code> 访问。
+本寄存器主要涉及，校准序列的开启，连续转换开关的开启，硬件平均功能的开启，硬件平均采取的被平均取样量选择。</p>
+<p>其他的寄存器都和校准有关系，但是我感觉校准现在也用不太到，所以准备到时候使用到的时候在进行研究。</p>
+<p>使用过程，如果使用软件出发的时候就只能使用 <code>SC1A</code> 配置，因为软件触发源是向 <code>SC1A</code> 写入的时候自动触发 ADC 转换。</p>
+<p>读取 ADC ，如果没有中断的话就是等待对应的配置 COCO 位变成 1 之后再读取对应的 <code>R[n]</code> 里面的数值，如果有中断的话就可以直接在中断服务程序中取下对应的 <code>R[n]</code> 值。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

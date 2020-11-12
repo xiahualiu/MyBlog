@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 6 DMA | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-10-19-s32k144_6/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-10-19-s32k144_6/" rel="bookmark">S32K144EVB Notes 6 DMA</a>
+  </h2>
+  
+  <time datetime="2017-10-19T00:00:00Z">
+    19 October, 2017
+  </time>
+  
+</header>
+
+  <p>这一节的内容是根据对于例程的探索，了解 S32K 上的 DMA 功能的使用方法。</p>
+<h3 id="本章的代码涉及的内容">本章的代码涉及的内容:</h3>
+<p>首先介绍一下，DMA 的主要结构：</p>
+<p><img src="/img/2017-10-19-S32K144_6/DMA_layout.png" alt="DMA_layout.png"></p>
+<p>本程序将初始化一个 eDMA 通道的 Transfer Control Descriptor (TCD) 传输一个字符串 <code>“Hello world”</code> 从向量 SRAM 空间到特定的 RAM 地址。这个过程仿真了一个常见的 DMA 使用过程，将一串数据或者命令写入外围的寄存器，这个例程的目的是说明如何创建一个 DMA 传输过程。</p>
+<p>当使用外围元件和 DMA 进行交流的时候，需要设置 DMA MUX，对应的外围元件号在 RM 附录中可以查询到，当然在软件触发的传输过程中，不需要 DMA MUX 的设置。</p>
+<p>中断过程在这个例子中并没有使用，但是在常见的传输过程中，是非常有用的特别是当传输结束后或者进行中进行操作。其中的一个使用例子就是使用 ADC 之类的外围元件，在转换完成后产生于一个 DMA 请求，DMA 控制器就可以自动将转换结果传输至 SRAM。当经过了一段时间的传输之后，DMA 会产生中断通知 CPU 对于传输的数据进行操作。</p>
+<p>当然还有更高级的使用方法，例如 Channel linking 和 Scatter-Gather (SGA)，能够使一个 DMA 请求完成不同的传输任务，或者是使用不同的 TCD 针对每一个 DMA 请求，这些强大的特性可以使外围实现类似状态机器类型的子系统，一个输入的信号可以传输不同的数据，用于同时初始化多个外围元件。Minor loop mapping 一般不在 MCU 的层面上进行使用，但是在图像的 45° 旋转中非常有用。下面会介绍到这个功能。</p>
+<p>因为没有外围的元件参与这个例子，自动的 DMA 握手不会发生。相反的，这里使用的软件握手需要一些额外的设置：</p>
+<ul>
+<li>发起一个 DMA 服务请求（将需要传输通道的 START 位置位）</li>
+<li>等待局部传输完毕</li>
+<li>重复以上的两个步骤直到主环循环结束</li>
+</ul>
+<p>这两个步骤比较麻烦，因为一次就传输一个字节，但是在使用外部元件的时候，软件并不需要完成以上的步骤，他们是被硬件自动完成的。</p>
+<p>START 位在一般情况下是被外围的元件请求服务置位的。只要 DMA 处理引擎在通道激活，ACTIVE 位就会被置位，如果 DMA 在忙碌的时候，清零 START 可以终止传输过程，再检查一遍 ACTIVE 确认没有服务正在执行。</p>
+<p>作为一个小的练习，TCD 可以被修改，所以如果想让目标地址是一个向量而不是一个字节地址。可以声明目标地址是一个数组并且修改 <code>DOFF=1</code> 目标地址偏移量达到。</p>
+<p>再来说一下 TCD(DMA Transfer Control Descriptor) 是什么，TCD 就像是一个 DMA 任务说明，他控制被传输的数据和传输的过程，每一个 TCD 占据 8 个 32-bit 的位置在内存里面，并且具有以下的结构。</p>
+<p><img src="/img/2017-10-19-S32K144_6/TCD.png" alt="TCD.png"></p>
+<p>他的初始化方法有：</p>
+<p><img src="/img/2017-10-19-S32K144_6/TCD_init.png" alt="TCD_init.png"></p>
+<p>可见使用 DMA 是多么的复杂。:sweat_smile:
+不要觉得沮丧，其实上面这个图根本就不用详细了解。看完本篇文章你就知道了所有的 TCD 和 DMA 寄存器的设置，等到那个时候再看这个图就觉得简单了。</p>
+<h3 id="步骤">步骤：</h3>
+<ul>
+<li>关狗</li>
+<li>系统时钟设置， SOSC 8MHz，SYSCLK 80MHz，RUN mode</li>
+<li>初始化 DMA 控制器：
+<ul>
+<li>开启时钟到 DMA MUX 模块（其实在软件模拟中并不需要因为我们手动写入了 START 位）</li>
+<li>开启需要的通道（软件模拟中并不需要，因为我们手动写入了 START 位）</li>
+</ul>
+</li>
+<li>初始化 DMA TCD（在这里只用到了 TCD0 也就是通道 0 对应的 TCD）：
+<ul>
+<li>数据来源
+<ul>
+<li>Source address (SADDR): Use address of a string “Hello World”</li>
+<li>Source offset (SOFF): Increment source address by 1 byte for each transfer</li>
+<li>Source modulo (SMOD): Feature not used here</li>
+<li>Source size (SSIZE): Read 1 byte at a time</li>
+<li>Source last address adjustment (SLAST): Decrement source address by 11 after major loop</li>
+</ul>
+</li>
+<li>目标
+<ul>
+<li>Destination address (DADDR): Use address of a single byte</li>
+<li>Destination offset (DOFF): Do not add offset to destination address after minor loop</li>
+<li>Destination modulo (DMOD): Feature not used here</li>
+<li>Destination size (DSIZE): Write 1 byte at a time</li>
+<li>Destination last address adjustment (DLAST): Do not adjust address after major loop</li>
+</ul>
+</li>
+<li>每个 DMA 请求的传送字节数（minor lopps）
+<ul>
+<li>Number of bytes to be transferred per DMA request (NBYTES): One byte</li>
+<li>Number of iterations/minor loops in major loop (CITER and BITER): 11</li>
+<li>Channel to channel linking for additional iterations after minor loop (BITER ELINK and CITER ELINK): Disabled</li>
+</ul>
+</li>
+<li>控制与状态
+<ul>
+<li>Disable channel after major loop completes (DREQ): Disable channel</li>
+<li>Generate interrupt request half way through major loop (INTHALF): Disabled</li>
+<li>Generate interrupt request after completing major loop (INTMAJOR): Disabled</li>
+<li>Enable Scatter-Gather (ESG): Disabled. No other TCDs loaded to channel</li>
+<li>Enable channel link after major loop (MAJORLINK): Disabled</li>
+<li>Channel link number after major loop (MAJORLINKCH): Null - feature disabled</li>
+<li>Band Width Control (BWC): Set to 0 so there are no stalls after R/W</li>
+<li>Clear initial values of status flags (START, ACTIVE, DONE): Set to zero</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>开启第一个传输过程（置 START 为 1），等待传输完成（START=0，ACTIVE=0）</li>
+<li>循环：当通道的 DONE 未置位：
+<ul>
+<li>开始下一个传输（置 START 为 1），等待传输完成（START=0，ACTIVE=0）</li>
+</ul>
+</li>
+<li>清空频道的 DONE 状态位</li>
+</ul>
+<h3 id="代码">代码</h3>
+<h5 id="mainc">main.c</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34; /* Include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;dma.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;clocks_and_modes.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">WDOG_disable</span> (<span style="color:#66d9ef">void</span>){
+WDOG<span style="color:#f92672">-&gt;</span>CNT<span style="color:#f92672">=</span><span style="color:#ae81ff">0xD928C520</span>; <span style="color:#75715e">/* Unlock watchdog */</span>
+WDOG<span style="color:#f92672">-&gt;</span>TOVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0x0000FFFF</span>; <span style="color:#75715e">/* Maximum timeout value */</span>
+WDOG<span style="color:#f92672">-&gt;</span>CS <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00002100</span>; <span style="color:#75715e">/* Disable watchdog */</span>
+}
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>) {
+WDOG_disable();
+SOSC_init_8MHz(); <span style="color:#75715e">/* Initialize system oscillator for 8 MHz xtal */</span>
+SPLL_init_160MHz(); <span style="color:#75715e">/* Initialize SPLL to 160 MHz with 8 MHz SOSC */</span>
+NormalRUNmode_80MHz(); <span style="color:#75715e">/* Init clocks: 80 MHz SPLL &amp; core, 40 MHz bus, 20 MHz flash */</span>
+DMA_init(); <span style="color:#75715e">/* Init DMA controller */</span>
+DMA_TCD_init(); <span style="color:#75715e">/* Init DMA Transfer Control Descriptor(s) */</span>
+DMA<span style="color:#f92672">-&gt;</span>SSRT <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* Set chan 0 START bit to initiate first minor loop */</span>
+<span style="color:#66d9ef">while</span> (((DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">&gt;&gt;</span> DMA_TCD_CSR_START_SHIFT) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Wait for START = 0 */</span>
+((DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">&gt;&gt;</span> DMA_TCD_CSR_ACTIVE_SHIFT) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>)) {} <span style="color:#75715e">/* and ACTIVE = 0 */</span>
+<span style="color:#75715e">/* Now minor loop has completed */</span>
+<span style="color:#66d9ef">while</span> (<span style="color:#f92672">!</span>((DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">&gt;&gt;</span> DMA_TCD_CSR_DONE_SHIFT) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>) ) { <span style="color:#75715e">/* Loop till DONE = 1 */</span>
+<span style="color:#75715e">/* Place breakpoint at next instruction &amp; observe expressions TCD0_Source, TCD0_Dest */</span>
+DMA<span style="color:#f92672">-&gt;</span>SSRT <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* Set chan 0 START bit to initiate next minor loop */</span>
+<span style="color:#66d9ef">while</span> (((DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">&gt;&gt;</span> DMA_TCD_CSR_START_SHIFT) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Wait for START = 0 */</span>
+((DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">&gt;&gt;</span> DMA_TCD_CSR_ACTIVE_SHIFT) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>)) {} <span style="color:#75715e">/* and ACTIVE = 0 */</span>
+<span style="color:#75715e">/* Now minor loop has completed */</span>
+}
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">&amp;=</span> <span style="color:#f92672">~</span>(DMA_TCD_CSR_DONE_MASK); <span style="color:#75715e">/* Clear DONE bit */</span>
+<span style="color:#66d9ef">while</span> (<span style="color:#ae81ff">1</span>) {} <span style="color:#75715e">/* Wait forever */</span>
+}
+</code></pre></div><h5 id="dmac">DMA.c</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34; /* include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;dma.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>uint8_t TCD0_Source[] <span style="color:#f92672">=</span> {<span style="color:#e6db74">&#34;Hello World&#34;</span>}; <span style="color:#75715e">/* TCD 0 source (11 byte string) */</span>
+uint8_t <span style="color:#66d9ef">volatile</span> TCD0_Dest <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* TCD 0 destination (1 byte) */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">DMA_init</span>(<span style="color:#66d9ef">void</span>) {
+<span style="color:#75715e">/* This is an initialization place holder for: */</span>
+<span style="color:#75715e">/* 1. Enabling DMA MUX clock PCC_PCCn[PCC_DMAMUX_INDEX] (not needed when START bit used) */</span>
+<span style="color:#75715e">/* 2. Enabling desired channels by setting ERQ bit (not needed when START bit used) */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">DMA_TCD_init</span>(<span style="color:#66d9ef">void</span>) {
+<span style="color:#75715e">/* TCD0: Transfers string to a single memory location */</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].SADDR <span style="color:#f92672">=</span> DMA_TCD_SADDR_SADDR((uint32_t <span style="color:#66d9ef">volatile</span>) <span style="color:#f92672">&amp;</span>TCD0_Source); <span style="color:#75715e">/* Src */</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].SOFF <span style="color:#f92672">=</span> DMA_TCD_SOFF_SOFF(<span style="color:#ae81ff">1</span>); <span style="color:#75715e">/* Src addr add 1 byte after transfer*/</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].ATTR <span style="color:#f92672">=</span> DMA_TCD_ATTR_SMOD(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Src modulo feature not used */</span>
+DMA_TCD_ATTR_SSIZE(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Src read 2**0 =1 byte per transfer*/</span>
+DMA_TCD_ATTR_DMOD(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Dest modulo feature not used */</span>
+DMA_TCD_ATTR_DSIZE(<span style="color:#ae81ff">0</span>); <span style="color:#75715e">/* Dest write 2**0 =1 byte per trans.*/</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].NBYTES.MLNO <span style="color:#f92672">=</span> DMA_TCD_NBYTES_MLNO_NBYTES(<span style="color:#ae81ff">1</span>); <span style="color:#75715e">/* Transfer 1 byte /minor loop*/</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].SLAST <span style="color:#f92672">=</span> DMA_TCD_SLAST_SLAST(<span style="color:#f92672">-</span><span style="color:#ae81ff">11</span>); <span style="color:#75715e">/* Src addr change after major loop*/</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].DADDR <span style="color:#f92672">=</span> DMA_TCD_DADDR_DADDR((uint32_t <span style="color:#66d9ef">volatile</span>) <span style="color:#f92672">&amp;</span>TCD0_Dest);<span style="color:#75715e">/* Dest. */</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].DOFF <span style="color:#f92672">=</span> DMA_TCD_DOFF_DOFF(<span style="color:#ae81ff">0</span>); <span style="color:#75715e">/* No dest adr offset after transfer*/</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CITER.ELINKNO<span style="color:#f92672">=</span> DMA_TCD_CITER_ELINKNO_CITER(<span style="color:#ae81ff">11</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* 11 minor loop iterations*/</span>
+DMA_TCD_CITER_ELINKNO_ELINK(<span style="color:#ae81ff">0</span>); <span style="color:#75715e">/* No minor loop chan link */</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].DLASTSGA <span style="color:#f92672">=</span> DMA_TCD_DLASTSGA_DLASTSGA(<span style="color:#ae81ff">0</span>); <span style="color:#75715e">/* No dest chg after major loop*/</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].CSR <span style="color:#f92672">=</span> DMA_TCD_CSR_START(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Clear START status flag */</span>
+DMA_TCD_CSR_INTMAJOR(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* No IRQ after major loop */</span>
+DMA_TCD_CSR_INTHALF(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* No IRQ after 1/2 major loop */</span>
+DMA_TCD_CSR_DREQ(<span style="color:#ae81ff">1</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Disable chan after major loop*/</span>
+DMA_TCD_CSR_ESG(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Disable Scatter Gather */</span>
+DMA_TCD_CSR_MAJORELINK(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* No major loop chan link */</span>
+DMA_TCD_CSR_ACTIVE(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Clear ACTIVE status flag */</span>
+DMA_TCD_CSR_DONE(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Clear DONE status flag */</span>
+DMA_TCD_CSR_MAJORLINKCH(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Chan # if major loop ch link */</span>
+DMA_TCD_CSR_BWC(<span style="color:#ae81ff">0</span>); <span style="color:#75715e">/* No eDMA stalls after R/W */</span>
+DMA<span style="color:#f92672">-&gt;</span>TCD[<span style="color:#ae81ff">0</span>].BITER.ELINKNO<span style="color:#f92672">=</span> DMA_TCD_BITER_ELINKNO_BITER(<span style="color:#ae81ff">11</span>) <span style="color:#f92672">|</span> <span style="color:#75715e">/* Initial iteration count*/</span>
+DMA_TCD_BITER_ELINKNO_ELINK(<span style="color:#ae81ff">0</span>); <span style="color:#75715e">/* No minor loop chan link */</span>
+}
+</code></pre></div><p>哇，这个大家自己对照那个表来看吧，太麻烦了。
+DMA 只要发出指令后，CPU 是不需要任何操作的，可以看到在主函数里面有几个空循环等待 DMA 完成。</p>
+<p>DMA 是个大工程，要是想理解的话需要一定的时间，一开始的时候我看这一节很头大，因为需要理解的东西太多了。</p>
+<p>首先先从硬件上的 DMA MUX 开始讲起，DMA MUX 是一个模块，它的作用就是用来路由一共 64 个 DMA 源，也叫做槽，到 16 个 DMA 通道的任意一个位置上面。在进行硬件 DMA 请求的时候，其实请求源是先经过 DMAMUX ，并被映射到 16 个 DMA 通道上面，所以我们要进行 DMA 操作的时候要首先设置 DMAMUX，不然 DMA 请求根本就无法到达 DMA。</p>
+<p><img src="/img/2017-10-19-S32K144_6/DMAMUX.png" alt="DMAMUX.png"></p>
+<h3 id="dmamux-的工作模式">DMAMUX 的工作模式：</h3>
+<h4 id="关闭模式">关闭模式</h4>
+<p>在这个模式下，DMA 通道是关闭的。因为关闭或者开启 DMA 通道是在修改 DMA 相关寄存器需要首先操作的，所以这个模式主要是用于将一个 DMA 通道的状态修改为默认状态。还有一个用途就是，当你重新设置系统设置时候用于暂时挂起一个 DMA 通道，如你要修改 DMA 触发器周期。</p>
+<h4 id="正常模式">正常模式</h4>
+<p>在这种状态下，DMA 源是被路由到特定的 DMA 通道上。在这个模式下的 DMA MUX 的路由功能是自动的，可以视作一个不存在的模块。</p>
+<h4 id="周期触发模式">周期触发模式</h4>
+<p>在这种状态下，DMA 源将会周期性请求一个 DMA 请求，例如是一个接收 Buffer 装满或者是发送 Buffer 已经被清空。</p>
+<p>设置周期是通过修改 LPIT 的寄存器数据进行修改的。这个模式仅仅能够在 0-3 这四个通道进行的。</p>
+<h3 id="设置-dmamux">设置 DMAMUX：</h3>
+<h4 id="channel-configuration-register-dmamux_chcfgnn0-15">Channel Configuration register (DMAMUX_CHCFGn)(n=0-15)</h4>
+<p><strong>每一个 DMA 通道都只能单独的对应一个源</strong>。如果设置多个 CHCFG 寄存器的值对应同一个源的话会导致不可预料的错误，甚至是你将其中相同映射通道关闭还是会导致错误的出现。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">ENBL</td>
+<td style="text-align:left"><strong>DMA Channel Enable</strong> <!-- raw HTML omitted -->通道是能开关<!-- raw HTML omitted -->0 是关闭通道，1 是开启通道</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">TRIG</td>
+<td style="text-align:left"><strong>DMA Channel Trigger Enable</strong> <!-- raw HTML omitted -->开启周期性开关<!-- raw HTML omitted -->0 关闭周期性开关，通道将会正常开<!-- raw HTML omitted -->1 是开启触发模式，只有当接收到出发的时候，DMA MUX 才会正常工作</td>
+</tr>
+<tr>
+<td style="text-align:center">5-0</td>
+<td style="text-align:center">SOURCE</td>
+<td style="text-align:left"><strong>此位用于设置对应源的序号</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="功能的描述">功能的描述：</h3>
+<p>DMAMUX 的功能是为了提供给系统灵活的 DMA 使用权，通过 DMA 通道。</p>
+<p>DMAMUX 的通道可以划分成为一下的几个类别：</p>
+<ul>
+<li>通道可以正常的在路由配置下进行路由</li>
+<li>通道只有在触发信号和路由配置下进行路由</li>
+</ul>
+<p>而且 DMAMUX 有两个源地址是常开的，它的作用是一直允许数据传输，这个特性在读写 GPIO 数据，或者是为了保证数据传输速的情况下非常有用。（也可以使用软件激活 DMA 传输，不需要频繁的开关 DMA 通道）</p>
+<h3 id="使用控制-dma-源的过程">使用，控制 DMA 源的过程</h3>
+<h4 id="使用一个周期性触发的源">使用一个周期性触发的源：</h4>
+<ol>
+<li>决定使用哪一个 DMA 源，在这个时候应当注意只有前 4 个通道是周期性通道。</li>
+<li>清空对应通道的 <code>CHCFG[ENBL]</code> 和 <code>CHCFG[TRIG]</code>  。</li>
+<li>确定在 DMA 中，相应的通道已经被设置完成，这个时候可以控制开启 DMA 通道。</li>
+<li>设置对应的时钟。</li>
+<li>选择合适的源到 DMA 通道上面去，写入相对应的 <code>CHCFG[ENBL]</code> 和 <code>CHCFG[TRIG]</code>。</li>
+</ol>
+<h5 id="举个例子以便于大家理解">举个例子以便于大家理解：</h5>
+<p>我们现在要设置 5# 源使用 DMA 通道 1，并且使用周期性触发的功能：</p>
+<ol>
+<li>向 <code>CHCFG1</code> 写入 0x00</li>
+<li>设置通道 1 在 DMA 设置中，包括开启该通道</li>
+<li>设置一个时钟给所需要的触发间隔</li>
+<li>向 <code>CHCFG1</code> 写入相应的值</li>
+</ol>
+<p>最后一步设置 DMAMUX 的代码可以写成如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">DMAMUX_Init</span> (uint8_t DMA_CH, uint8_t DMAMUX_SOURCE)
+{
+    DMAMUX_0.CHCFG[DMA_CH].B.SOURCE <span style="color:#f92672">=</span> DMAMUX_SOURCE;
+    DMAMUX_0.CHCFG[DMA_CH].B.ENBL <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+    DMAMUX_0.CHCGF[DMA_CH].B.TRIG <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+}
+</code></pre></div><h5 id="使用一个不是周期性触发的通道">使用一个不是周期性触发的通道：</h5>
+<ol>
+<li>决定使用哪一个 DMA 源，在这个时候应当注意只有前 4 个通道是周期性通道。</li>
+<li>清空对应通道的 <code>CHCFG[ENBL]</code> 和 <code>CHCFG[TRIG]</code>  。</li>
+<li>确定在 DMA 中，相应的通道已经被设置完成，这个时候可以控制开启 DMA 通道。</li>
+<li>选择合适的源到 DMA 通道上面去，写入相对应的 <code>CHCFG[ENBL]</code> 和 <code>CHCFG[TRIG]</code>。</li>
+</ol>
+<p>少了一个配置时钟的环节。</p>
+<p>以上是 DMAMUX 也即是 DMA 多路复用器的设置方法，下面我们介绍一下 eDMA(Enhanced Direct Memory Access) 模块，结构功能和使用方法。</p>
+<h3 id="edma-组件">eDMA 组件</h3>
+<p>eDMA 分为两个主要的模块，一个是 eDMA 引擎和 TCD。</p>
+<p><img src="/img/2017-10-19-S32K144_6/DMA_module.png" alt="DMA_module.png"></p>
+<h3 id="edma-工作特点">eDMA 工作特点</h3>
+<ul>
+<li>
+<p>数据移动过程涉及到两个地址：从源地址读取数据，写入目标地址</p>
+<ul>
+<li>可控制的源地址和目标地址和传输数据大小</li>
+<li>支持加强的地址模式</li>
+</ul>
+</li>
+<li>
+<p>16 通道执行器，可以实现复杂的数据传输</p>
+<ul>
+<li>内部数据缓存器，可以暂时储存 16 或者 32 字节的传输</li>
+<li>连接在纵横开关（多端口选择开关）连接在占据总线和数据移动</li>
+</ul>
+</li>
+<li>
+<p>Transfer control descriptor (TCD) 被升级成为支持两种内嵌的深度传输操作</p>
+<ul>
+<li>每一个通道都对应一个 32-byte TCD 储存在内存中</li>
+<li>内部数据传输副循环被定义</li>
+<li>外部数据传输主循环被定义</li>
+</ul>
+</li>
+<li>
+<p>通道激活通过以下三种方式：</p>
+<ul>
+<li>直接软件初始化</li>
+<li>通过通道连接机制激活</li>
+<li>外部步进请求硬件激活</li>
+</ul>
+</li>
+<li>
+<p>固定优先级和轮询仲裁</p>
+</li>
+<li>
+<p>通道数据传输完成后可产生中断请求</p>
+<ul>
+<li>一个通道一个中断源，可以实现在主循环完成后发起中断</li>
+<li>可编程错误终止，并且产生相应的中断给中断控制器</li>
+</ul>
+</li>
+</ul>
+<h1 id="dma-工作流程">DMA 工作流程</h1>
+<p>首先，外围设备发出 DMA 请求要求通道 n 提供 DMA 服务。首先是通道激活阶段。 eDMA
+请求的输入信号先做 DMA 的内部登记，然后被传送到 eDMA 引擎：首先通过控制模块，然
+后进入编程模块进行裁决。下一步，开始根据固定优先级或轮流的方法对 DMA 请求裁决。
+裁决完毕，被激活的通道号通过地址路径并被转换成访问内存的地址。下一步， TCD 存储器
+被访问，对应的 TCD 描述符被读取并载入到 eDMA 引擎中。</p>
+<h3 id="edma-相关的寄存器重中之重">eDMA 相关的寄存器！重中之重</h3>
+<p>这个是 eDMA 的一个典型的工作流程，请先保证自己对于副循环和主循环有一个了解在进行寄存器方面的设置
+<img src="/img/2017-10-19-S32K144_6/DMA_process.png" alt="DMA_process.png"></p>
+<h4 id="control-register-dma_cr">Control Register (DMA_CR)</h4>
+<p>这个寄存器定义了一些基本的设置。当写入这个寄存器的时候，请保证 DMA 通道不处于活跃状态。</p>
+<p>在此寄存器可以进行仲裁机制的设置，仲裁机制可以被设置成为使用一个固定的优先级的或者是轮询的方式。当时用轮询方式进行 DMA 仲裁的时候，优先级将会被忽略，按照通道的序号从高到低进行。</p>
+<p>副循环偏移量是指当副循环完成的时候，源地址或者是目标地址的偏移量，这个偏移量如果被开启的状态下，当一次副循环结束，TCD 内目标源地址 <code>TCDn_SADDR</code> 或者是目标地址 <code>TCDn_DADDR</code> 亦或是两者，都会在加上一个 minor loop offset (MLOFF) 后被送回内存。</p>
+<p>主循环偏移量，和副循环偏移量基本一致，但是要注意，主循环最后完成的副循环，其设置的副循环偏移量将会被忽视，取而代之的是主循环偏移量。</p>
+<p>其中副循环量就是在该寄存器的 7-EMLM 其中设置 1 开启 Mapping 功能。在一般的操作中，这个功能基本上用不到，但是必须知道，不然没法设置寄存器。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">17</td>
+<td style="text-align:center">CX</td>
+<td style="text-align:left"><strong>Cancel Transfer</strong> <!-- raw HTML omitted -->此位写入 1 后将会强行停止通道并且强制副循环结束<!-- raw HTML omitted -->结束后，将会自动清零</td>
+</tr>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">ECX</td>
+<td style="text-align:left"><strong>Error Cancel Transfer</strong> <!-- raw HTML omitted -->这位的功能和 CX 一致<!-- raw HTML omitted -->DMA 将会视作终止是由于错误产生的<!-- raw HTML omitted --><code>Error Status register (DMAx_ES)</code> 将会被置 1 并且可以产生一个中断</td>
+</tr>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">EMLM</td>
+<td style="text-align:left"><strong>Enable Minor Loop Mapping</strong> <!-- raw HTML omitted -->副循环偏移量使能位<!-- raw HTML omitted -->副循环偏移量使能位，当为 1 的时候，TCDn.word2 会有不同的内容，具体在下边</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">CLM</td>
+<td style="text-align:left"><strong>Continuous Link Mode</strong> <!-- raw HTML omitted --><strong>注意</strong>：请不要设置主循环内只有一个副循环的通道成为连续模式<!-- raw HTML omitted -->如果置 1，则副循环结束后，可以不经过通道仲裁再次被激活 <!-- raw HTML omitted -->如果置 0，则副循环结束后，必须在经过一个通道仲裁才可以继续运行</td>
+</tr>
+<tr>
+<td style="text-align:center">5</td>
+<td style="text-align:center">HALT</td>
+<td style="text-align:left"><strong>Halt DMA Operations</strong> <!-- raw HTML omitted -->置 1 后暂停所有新的通道<!-- raw HTML omitted -->执行中的通道将会继续运行至结束 <!-- raw HTML omitted -->再次置 0 可以恢复正常</td>
+</tr>
+<tr>
+<td style="text-align:center">4</td>
+<td style="text-align:center">HOE</td>
+<td style="text-align:left"><strong>Halt On Error</strong> <!-- raw HTML omitted -->和上边的 HALT 寄存器一致，但是拥有错误属性</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">ERCA</td>
+<td style="text-align:left"><strong>Enable Round Robin Channel Arbitration</strong> <!-- raw HTML omitted -->置 1 允许通道的轮询模式进行仲裁</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">EDBG</td>
+<td style="text-align:left"><strong>Enable Debug</strong> <!-- raw HTML omitted -->置 1 后，新的通道请求将会被暂停，直到退出 Debug 模式</td>
+</tr>
+</tbody>
+</table>
+<h4 id="error-status-register-dma_es">Error Status Register (DMA_ES)</h4>
+<p>错误寄存器，储存各种 DMA 通道错误。我们可以用 OpenSDA 调试查看这个寄存器的值，平时用不到，先不介绍。错误类型一般有 非法 TCD，错误的优先级寄存器，总线读写错误。</p>
+<h4 id="enable-request-register-dma_erq">Enable Request Register (DMA_ERQ)</h4>
+<p>这个寄存器控制 16 个通道的请求信号是否被接收。写入这个寄存器中相应的位可以直接控制，也可以通过后续的 <code>DMA_SERQ</code> 和 <code>DMA_CERQ</code> 操作寄存器间接影响这个寄存器的值。</p>
+<p>但是如果没有 DMA 请求产生的 DMA 服务（譬如软件控制 DMA）则此位的状态无论如何都可以产生 DMA 服务。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">ERQn</td>
+<td style="text-align:left"><strong>Enable DMA Request n</strong> <!-- raw HTML omitted -->置 1 开启相对应的通道请求接收</td>
+</tr>
+</tbody>
+</table>
+<h4 id="enable-error-interrupt-register-dma_eei">Enable Error Interrupt Register (DMA_EEI)</h4>
+<p>这个寄存器控制 16 个通道是否产生错误中断。写入这个寄存器中相应的位可以直接控制，也可以通过后续的 <code>DMA_SEEI</code> 和 <code>DMA_CEEI</code> 操作寄存器间接影响这个寄存器的值。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">EEIn</td>
+<td style="text-align:left"><strong>Enable Error Interrupt n</strong> <!-- raw HTML omitted -->置 1 开启相对应的通道错误中断</td>
+</tr>
+</tbody>
+</table>
+<h5 id="interrupt-request-register-dma_int">Interrupt Request Register (DMA_INT)</h5>
+<p>这个寄存器控制各个通道的中断请求是否产生，中断的产生条件是写在对应的通道的 TCD 中，然而在中断产生后，我们需要及时的关闭它，常常在 <code>CINT</code> 操作寄存器中进行清零操作，在下面我们会介绍很多操作寄存器。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">n</td>
+<td style="text-align:center">INTn</td>
+<td style="text-align:left"><strong>Interrupt Request n</strong> <!-- raw HTML omitted -->1 目前通道的中断被激活<!-- raw HTML omitted -->0 目前通道中断未激活</td>
+</tr>
+</tbody>
+</table>
+<h4 id="channel-n-priority-register-dma_dchprin">Channel n Priority Register (DMA_DCHPRIn)</h4>
+<p>DMA 通道优先级寄存器</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">ECP</td>
+<td style="text-align:left"><strong>Enable Channel Preemption</strong> <!-- raw HTML omitted -->这个是被抢占的开关，也就是置 1 后，该通道会被更高优先级的通道抢断</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">DPA</td>
+<td style="text-align:left"><strong>Disable Preempt Ability</strong> <!-- raw HTML omitted -->这个是不能抢占的开关，也就是置 1 后，该通道被剥夺抢占低优先级通道的权利</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td style="text-align:center">CHPRI</td>
+<td style="text-align:left"><strong>Channel n Arbitration Priority</strong> <!-- raw HTML omitted -->这个就是传统意义上的通道优先级了</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h1 id="下面是-dma-操作寄存器">下面是 DMA 操作寄存器</h1>
+<p>这个寄存器有很多类似的，基本的功能不是 Clear 就是 Set，为什么我称之为操作寄存器就是修改里面的值，带来的结果是对应的配置寄存器的值的改变，其本身不对应配置。</p>
+<h4 id="clear-enable-error-interrupt-register-dma_ceei">Clear Enable Error Interrupt Register (DMA_CEEI)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">NOP</td>
+<td style="text-align:left"><strong>No Op enable</strong> <!-- raw HTML omitted -->置 1 后，该寄存器所有操作均被忽视</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">CAFE</td>
+<td style="text-align:left"><strong>Clear All Enable Error Interrupt</strong> <!-- raw HTML omitted -->置 1 后，<code>DMA_EEI</code> 所有 EEI 位均被清零</td>
+</tr>
+<tr>
+<td style="text-align:center">3-0</td>
+<td style="text-align:center">CEEI</td>
+<td style="text-align:left"><strong>Clear Enable Error Interrupt</strong> <!-- raw HTML omitted -->在这个域内填写（0-15）将会导致对应的 EEIn 清零</td>
+</tr>
+</tbody>
+</table>
+<h4 id="set-enable-error-interrupt-register-dma_seei">Set Enable Error Interrupt Register (DMA_SEEI)</h4>
+<p>和上面的一样，只不过是清零改成置位。</p>
+<h4 id="clear-enable-request-register-dma_cerq">Clear Enable Request Register (DMA_CERQ)</h4>
+<p>清零 ERQ 位。</p>
+<h4 id="set-enable-request-register-dma_serq">Set Enable Request Register (DMA_SERQ)</h4>
+<p>置位 ERQ 位。</p>
+<h4 id="clear-done-status-bit-register-dma_cdne">Clear DONE Status Bit Register (DMA_CDNE)</h4>
+<p>清零通道的 TCD 中的 DONE 位。</p>
+<h4 id="set-start-bit-register-dma_ssrt">Set START Bit Register (DMA_SSRT)</h4>
+<p>将通道 TCD 中的 START 位置位。</p>
+<h4 id="clear-error-register-dma_cerr">Clear Error Register (DMA_CERR)</h4>
+<p>将通道中的错误寄存器清零。</p>
+<h4 id="clear-interrupt-request-register-dma_cint">Clear Interrupt Request Register (DMA_CINT)</h4>
+<p>将通道中的中断请求清零。</p>
+<h2 id="tcd相关寄存器">TCD相关寄存器</h2>
+<p>注意，以下寄存器均有 16 个，对应 16 个通道。</p>
+<h3 id="tcd-source-address-dma_tcdn_saddr">TCD Source Address (DMA_TCDn_SADDR)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">SADDR</td>
+<td style="text-align:left"><strong>Source Address</strong> <!-- raw HTML omitted -->存放指向源数据的地址</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-signed-source-address-offset-dma_tcdn_soff">TCD Signed Source Address Offset (DMA_TCDn_SOFF)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">SOFF</td>
+<td style="text-align:left"><strong>Source address signed offset</strong> <!-- raw HTML omitted -->每次读取源地址后产生的偏移量</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-transfer-attributes-dma_tcdn_attr">TCD Transfer Attributes (DMA_TCDn_ATTR)</h3>
+<p>这个寄存器只有 16-bit，目的是确认一次性的 DMA 传输多少数据，应该和副循环中的 <code>NBYTES</code> 区分开，一个副循环内部可能需要多次的读写过程。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">15-11</td>
+<td style="text-align:center">SMOD</td>
+<td style="text-align:left"><strong>Source Address Modulo</strong> <!-- raw HTML omitted -->源地址模值 <!-- raw HTML omitted -->SMOD 定义了一个地址范围，该范围可用 2^SMOD 来表示 <!-- raw HTML omitted -->每次传送，也就是内部完成一次读/写 <!-- raw HTML omitted -->下一次读取源地址将从 SADDR+SOFF 开始<!-- raw HTML omitted -->如果这个地址到达了 SMOD 指定的范围，则将从头开始<!-- raw HTML omitted --></td>
+</tr>
+<tr>
+<td style="text-align:center">10-8</td>
+<td style="text-align:center">SSIZE</td>
+<td style="text-align:left"><strong>Source data transfer size</strong> <!-- raw HTML omitted -->源数据读取大小设置 <!-- raw HTML omitted -->000 - 8-bit<!-- raw HTML omitted -->001 - 16-bit<!-- raw HTML omitted -->010 - 32-bit <!-- raw HTML omitted -->011 - Reserved<!-- raw HTML omitted -->100 - 16-byte burst<!-- raw HTML omitted -->101 - 32-byte burst<!-- raw HTML omitted -->110 - Reserved<!-- raw HTML omitted -->111 - Reserved <!-- raw HTML omitted -->（请不要使用保留的值，会导致配置错误）</td>
+</tr>
+<tr>
+<td style="text-align:center">7-3</td>
+<td style="text-align:center">DMOD</td>
+<td style="text-align:left"><strong>Destination Address Modulo</strong> <!-- raw HTML omitted -->看上面的 SMOD</td>
+</tr>
+<tr>
+<td style="text-align:center">2-0</td>
+<td style="text-align:center">DSIZE</td>
+<td style="text-align:left"><strong>Destination data transfer size</strong> <!-- raw HTML omitted -->看上面的 SSIZE</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-minor-byte-count-minor-loop-mapping-disabled-dma_tcdn_nbytes_mlno">TCD Minor Byte Count (Minor Loop Mapping Disabled) (DMA_TCDn_NBYTES_MLNO)</h3>
+<p>之前我写了一个有关的，在 <code>DMA_CR.MLME=1</code> 会改变 TCDn.word2 的改变，这个就是当 <code>DMA_CR.MLME=0</code>，也即是 Minor Loop Mapping 处于关闭状态下的 NBYTES 寄存器。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">NBYTES</td>
+<td style="text-align:left"><strong>Minor Byte Transfer Count</strong> <!-- raw HTML omitted --> 这个寄存器里面的值就是一次副循环的 <strong>字节数</strong> <!-- raw HTML omitted --> 在 DMA 传输过程中，副循环是 <strong>最小</strong> 的数据传输单位<!-- raw HTML omitted -->在主循环传输过程中不可打断<!-- raw HTML omitted -->当一个 DMA 通道被激活后，相关的 TCD 内容将会被加载进 eDMA 引擎中<!-- raw HTML omitted -->经过一段时间的读/写数据，直到传输了 NBYTES 个字节<!-- raw HTML omitted -->此时 一次副循环完成，主循环计数器减一存入 TCD</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-signed-minor-loop-offset-minor-loop-mapping-enabled-and-offset-disabled-dma_tcdn_nbytes_mloffno">TCD Signed Minor Loop Offset (Minor Loop Mapping Enabled and Offset Disabled) (DMA_TCDn_NBYTES_MLOFFNO)</h3>
+<p>这个寄存器的形态条件：</p>
+<ul>
+<li>Minor loop mapping 开启 (<code>CR[EMLM] = 1</code>) 并且</li>
+<li><code>SMLOE = 0</code> <strong>and</strong> <code>DMLOE = 0</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">31</td>
+<td style="text-align:center">SMLOE</td>
+<td style="text-align:left"><strong>Source Minor Loop Offset Enable</strong> <!-- raw HTML omitted --> 选择是否进行源地址副循环偏移</td>
+</tr>
+<tr>
+<td style="text-align:center">30</td>
+<td style="text-align:center">DMLOE</td>
+<td style="text-align:left"><strong>Destination Minor Loop Offset enable</strong> <!-- raw HTML omitted --> 选择是否进行目标地址副循环偏移</td>
+</tr>
+<tr>
+<td style="text-align:center">29-0</td>
+<td style="text-align:center">NBYTES</td>
+<td style="text-align:left"><strong>Minor Byte Transfer Count</strong> <!-- raw HTML omitted --> 这个寄存器里面的值就是一次主循环的 <strong>字节数</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-signed-minor-loop-offset-minor-loop-mapping-and-offset-enabled-dma_tcdn_nbytes_mloffyes">TCD Signed Minor Loop Offset (Minor Loop Mapping and Offset Enabled) (DMA_TCDn_NBYTES_MLOFFYES)</h3>
+<p>这个寄存器的形态条件：</p>
+<ul>
+<li>Minor loop mapping 开启 (<code>CR[EMLM] = 1</code>) 并且</li>
+<li><code>SMLOE = 1</code> <strong>or</strong> <code>DMLOE = 1</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">31</td>
+<td style="text-align:center">SMLOE</td>
+<td style="text-align:left"><strong>Source Minor Loop Offset Enable</strong> <!-- raw HTML omitted --> 选择是否进行源地址副循环偏移</td>
+</tr>
+<tr>
+<td style="text-align:center">30</td>
+<td style="text-align:center">DMLOE</td>
+<td style="text-align:left"><strong>Destination Minor Loop Offset enable</strong> <!-- raw HTML omitted --> 选择是否进行目标地址副循环偏移</td>
+</tr>
+<tr>
+<td style="text-align:center">29-10</td>
+<td style="text-align:center">MLOFF</td>
+<td style="text-align:left"><strong>拓展副循环偏移量设置</strong> <!-- raw HTML omitted --> 这个偏移量是同时作用在源地址和目标地址上的</td>
+</tr>
+<tr>
+<td style="text-align:center">9-0</td>
+<td style="text-align:center">NBYTES</td>
+<td style="text-align:left"><strong>Minor Byte Transfer Count</strong> <!-- raw HTML omitted --> 这个寄存器里面的值就是一次主循环的 <strong>字节数</strong></td>
+</tr>
+</tbody>
+</table>
+<p>注意 MLOFF 和 SOFF DOFF 其实是一样功能的，只是 MLOFF 设置后会在副循环完成的时候叠在在地址上。</p>
+<h3 id="tcd-last-source-address-adjustment-dma_tcdn_slast">TCD Last Source Address Adjustment (DMA_TCDn_SLAST)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">SLAST</td>
+<td style="text-align:left"><strong>Last Source Address Adjustment</strong> <!-- raw HTML omitted --> 最后源地址调整量 <!-- raw HTML omitted --> 当主循环结束后，将会在旧源地址上加入此调整量 <!-- raw HTML omitted --></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-tcd-destination-address-dma_tcdn_daddr">TCD TCD Destination Address (DMA_TCDn_DADDR)</h3>
+<p>这个跟上边那个 SADDR 一样，不详细写了。</p>
+<h3 id="tcd-signed-destination-address-offset-dma_tcdn_doff">TCD Signed Destination Address Offset (DMA_TCDn_DOFF)</h3>
+<p>决定当每个主循环结束后，目标地址的偏移量。16-bit</p>
+<h3 id="tcd-current-minor-loop-link-major-loop-count-dma_tcdn_citer_elinkyes">TCD Current Minor Loop Link, Major Loop Count (DMA_TCDn_CITER_ELINKYES)</h3>
+<p>该寄存器为 16-bit。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">15</td>
+<td style="text-align:center">ELINK</td>
+<td style="text-align:left"><strong>Enable channel-to-channel linking on minor-loop complete</strong> <!-- raw HTML omitted --> 开启后即是开启通道连接功能，当副循环完成的时候 <!-- raw HTML omitted --> 该位置 1 将会导致 <code>LINKCH</code> 对应通道内的 <code>TCDn_CSR[START]=1</code> 激活该通道</td>
+</tr>
+<tr>
+<td style="text-align:center">12-9</td>
+<td style="text-align:center">LINKCH</td>
+<td style="text-align:left"><strong>Minor Loop Link Channel Number</strong> <!-- raw HTML omitted --> <code>ELINK=1</code> 的情况下，此寄存器才会存在 <!-- raw HTML omitted --> <code>ELINK=0</code> 此寄存器的位置被 <code>CITER</code> 占据</td>
+</tr>
+<tr>
+<td style="text-align:center">(14-0) or (8-0)</td>
+<td style="text-align:center">CITER</td>
+<td style="text-align:left"><strong>Current Major Iteration Count</strong> <!-- raw HTML omitted --> 主循环计数器 <!-- raw HTML omitted --> 15-bit —— <code>ELINK=0</code> <!-- raw HTML omitted -->  9-bit —— <code>ELINK=1</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-last-destination-address-adjustmentscatter-gather">TCD Last Destination Address Adjustment/Scatter Gather</h3>
+<p>Address (DMA_TCDn_DLASTSGA)</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-</td>
+<td style="text-align:center">DLASTSGA</td>
+<td style="text-align:left"><strong>这个寄存其有两个含义</strong> <!-- raw HTML omitted --> 在 <code>TCDn_CSR[ESG] = 0</code> 情况下，当做主循环目标地址偏移量 <!-- raw HTML omitted -->如果 <code>TCDn_CSR[ESG] != 0</code> 则寄存器指向一个 TCD</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tcd-control-and-status-dma_tcdn_csr">TCD Control and Status (DMA_TCDn_CSR)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">15-14</td>
+<td style="text-align:center">BWC</td>
+<td style="text-align:left"><strong>带宽控制</strong> <!-- raw HTML omitted --> 00 无 eDMA 引擎停止 <!-- raw HTML omitted -->01 Reserved<!-- raw HTML omitted -->10 eDMA 引擎每 4 次读写停止<!-- raw HTML omitted -->11 eDMA 引擎每 8 次读写停止</td>
+</tr>
+<tr>
+<td style="text-align:center">11-8</td>
+<td style="text-align:center">MAJORLINKCH</td>
+<td style="text-align:left"><strong>主循环通道连接序号</strong> <!-- raw HTML omitted --> 设置当主循环结束后，触发的另一个通道号</td>
+</tr>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">DONE</td>
+<td style="text-align:left"><strong>通道完成位</strong> <!-- raw HTML omitted --> 当 CITER 计数器完成时自动置位<!-- raw HTML omitted -->软件清零或者当下一次激活通道的时候自动清零</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td style="text-align:center">ACTIVE</td>
+<td style="text-align:left"><strong>通道激活位</strong> <!-- raw HTML omitted --> 指示当前通道的执行状态</td>
+</tr>
+<tr>
+<td style="text-align:center">5</td>
+<td style="text-align:center">MAJORELINK</td>
+<td style="text-align:left"><strong>使能主循环通道连接位</strong> <!-- raw HTML omitted --> 0 关闭 <!-- raw HTML omitted --> 1 开启</td>
+</tr>
+<tr>
+<td style="text-align:center">4</td>
+<td style="text-align:center">ESG</td>
+<td style="text-align:left"><strong>聚散处理使能位</strong> <!-- raw HTML omitted --> 0 关闭 TCD 正常 <!-- raw HTML omitted --> 1 开启 TCD.DLASTSGA 将会指向下一个 TCD</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td style="text-align:center">DREQ</td>
+<td style="text-align:left"><strong>关闭请求位</strong> <!-- raw HTML omitted --> 1 通道 ERQ 位会在主循环后自动清零 <!-- raw HTML omitted --> 0 通道 ERQ 位不会自动清零</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">INTHALF</td>
+<td style="text-align:left"><strong>允许当主循环一半时发起中断</strong> <!-- raw HTML omitted --> 0 关闭 <!-- raw HTML omitted --> 1 开启</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">INTMAJOR</td>
+<td style="text-align:left"><strong>允许当主循环完成时发起中断</strong> <!-- raw HTML omitted --> 0 关闭 <!-- raw HTML omitted --> 1 开启</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">START</td>
+<td style="text-align:left"><strong>通道开启位</strong> <!-- raw HTML omitted --> 0 关闭 <!-- raw HTML omitted --> 1 开启 <!-- raw HTML omitted --> 开启后硬件自动清零</td>
+</tr>
+</tbody>
+</table>
+<p>最后，还有一个 BITER 寄存器，其结构和 CITER 平行，直接将 BITER 设置成为和 CITER 一样就可以了，但是要注意一定要设置 BITER 哦，不然会发生 DMA 设置错误。</p>
+<p>到这个时候，再看看例程，是不是觉得十分简单呢？</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

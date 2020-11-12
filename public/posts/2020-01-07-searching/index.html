@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    Searching Methods - AI: A Modern Approach Notes | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2020-01-07-searching/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2020-01-07-searching/" rel="bookmark">Searching Methods - AI: A Modern Approach Notes</a>
+  </h2>
+  
+  <time datetime="2020-01-07T13:02:01-05:00">
+    7 January, 2020
+  </time>
+  
+</header>
+
+  <h2 id="abstract">Abstract</h2>
+<p>This article is my personal version summary of the famous book, Artificial Intelligence: A Modern Approach Chapter 3.</p>
+<h2 id="tree-search-and-graph-search">Tree Search and Graph Search</h2>
+<p>Tree search expands all child nodes and adds them into frontier even some of them have been visited.</p>
+<p>Graph search maintains a explored list where stores all visited nodes, it only adds unexplored nodes into frontier.</p>
+<h2 id="uninformed-search">Uninformed Search</h2>
+<p>There are many types of uninformed search algorithms:</p>
+<h3 id="step-cost-problem">Step-cost Problem</h3>
+<p>This kind of problems have the same step cost, we only need to find the minimal steps from initial state to goal state.</p>
+<h4 id="breath-first-search">Breath first search:</h4>
+<p>This method uses a FIFO (first-input-first-output) queue to implement. And is not sensitive to the choice between tree search or graph search.</p>
+<h5 id="advantage-of-bfs">Advantage of BFS:</h5>
+<ul>
+<li>It can find the optimal solution naturally without generating overhead nodes.</li>
+<li>It generates the fewest nodes before finding a solution for step-cost problem.</li>
+</ul>
+<h5 id="distadvantage-of-bfs">Distadvantage of BFS:</h5>
+<ul>
+<li>It needs to store all the nodes on last layer.</li>
+</ul>
+<h4 id="depth-first-search">Depth first search:</h4>
+<p>DFS can be implement by two ways, one is using a LIFO (last input first output) stack, the other is calling <code>child()</code> function recursively.</p>
+<p>Natural DFS under tree search (not the graph search) condition is incomplete, because the depth is infinite. The DFS itself is not an optimal algrithm.</p>
+<h5 id="advantage-of-dfs">Advantage of DFS:</h5>
+<ul>
+<li>It frees node memory once it finishs digging a branch, all the nodes on the branch can be deleted. So it can run on a memory-limited machine.</li>
+</ul>
+<h5 id="disadvantage-of-dfs">Disadvantage of DFS:</h5>
+<ul>
+<li>It generates excessive nodes compared with BFS.</li>
+</ul>
+<h4 id="varaints-of-dfs">Varaints of DFS:</h4>
+<h5 id="backtracking-search">Backtracking search</h5>
+<p>It is more memory economical. Every generated node on searching tree has a successor information on its depth, so we only need to store <em>m</em> nodes (m equals the depth of the frontier) at any time.</p>
+<p>It is suitable when a node is super large in memory.</p>
+<h5 id="iterative-deeping-depth-first-search">Iterative deeping depth-first search</h5>
+<p>It is simply a DFS with depth limitation. After each episode of IDS, the depth limit increases by 1.</p>
+<p>Two types of return result:</p>
+<ul>
+<li>cutoff: Current episode reached depth limit.</li>
+<li>failure: Current episode ends before reaching depth limit.</li>
+</ul>
+<h3 id="uniform-cost-problem">Uniform-cost Problem</h3>
+<p>Uniform-cost problems have a postive cost for each step, however costs for different steps varys.</p>
+<h4 id="uniform-cost-search">Uniform-cost search</h4>
+<p>It is origin from the two-point shortest-path algorithm of Dijkstra.</p>
+<p>It relys on a priority queue, instead expanding randomly, it always expands the lowest path cost node on the present searching tree.</p>
+<p>Two modification:</p>
+<ul>
+<li>
+<p>The goal test is applied to a node when it is selected for expansion (fetched from the priority queue). This seems inefficient but it is essential. Once a node is generated, we cannot ensure that it will be pushed back to the top of priority queue, but the second time we met it, it must be the optimal solution, beacuse the path cost can only increase in uniformed cost problem case.</p>
+</li>
+<li>
+<p>The second modification is similar to dynamic programming, a test is added and when we enter the same state multiple times, rather than storing all of the nodes, we only store the best node that reach this state.</p>
+</li>
+</ul>
+<h3 id="bidirection-search">Bidirection search</h3>
+<p>Bidirection search is based on the simple math:</p>
+<p>$$2\ast branch^{depth/2} \quad  \text{is much less than} \quad branch^{depth}$$</p>
+<p>It needs a test to check whether the frontiers of two searches intersect.</p>
+<p>But calculating the predecessors needs substantial ingenuity.</p>
+<h2 id="informed-heuristic-search">Informed (Heuristic) Search</h2>
+<p>The difference between informed and uninformed search is whether we can find a heuristic function.</p>
+<p>$$h(n)=\text{heuristic function of a node}$$</p>
+<h3 id="greedy-best-first-search">Greedy best-first search</h3>
+<p>It chooses to expand the node that is most likely to lead to a solution. In two-point shortest route finding problem, the heuristic function is the 2-norm between the current address and goal address.</p>
+<p>In this case:</p>
+<p>$$h(n)=norm(n,goal)$$</p>
+<h3 id="a-search">A* search</h3>
+<p>Unlike uniform-cost search&rsquo;s only considering path cost from start, and greedy best-first search&rsquo;s only considering heuristic function value. A* combines them both.</p>
+<p>$$f(n)=g(n)+h(n)$$</p>
+<h4 id="variants-of-a-search">Variants of A* search</h4>
+<p>The biggest problem of A* is that A* stores all the nodes before finding a optimal solution.</p>
+<p>So the variants of A* mainly optimize the memory efficiency.</p>
+<h5 id="iterative-deepening-a-search">Iterative-deepening A* search</h5>
+<p>Cutoff <em>f</em>-cost is the smallest <em>f</em>-cost node that exceeded the cutoff on the previous iteration.</p>
+<p>Honestly, iterative deepening search only works efficiently for BFS, algorithms like iterative-deeping depth first search or iterative-deeping depth A* search all suffer from the cost of repeating expanding upper layers in each iteration.</p>
+<h5 id="recursive-best-first-search-rbfs">Recursive best-first search (RBFS)</h5>
+<p>If a node&rsquo;s children all cost more than a node&rsquo;s peer, we can just label the node with the best children cost then delete all the decendants, then move the peer node.</p>
+<h5 id="memory-bounded-a-ma-and-simplified-ma-sma">Memory-bounded A* (MA*) and simplified MA* (SMA*)</h5>
+<p>SMA* behaves same as A* before exhausting all the memory, after no node can be added to the memory, it removes the worst node in the tree and adds new node.</p>
+<h3 id="how-to-choose-heuristic-function">How to choose heuristic function</h3>
+<ul>
+<li>Generating admissible heuristics from relaxed problem.</li>
+<li>Generating admissible heuristics from subproblems.</li>
+<li>Learning heuristics from experience.</li>
+</ul>
+<h4 id="parallel-search">Parallel search</h4>
+<p>Not covered but useful for computer cluster.</p>
+
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

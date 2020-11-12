@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    Sorting Algorithms | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2018-07-27-sorting/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2018-07-27-sorting/" rel="bookmark">Sorting Algorithms</a>
+  </h2>
+  
+  <time datetime="2018-07-27T00:00:00Z">
+    27 July, 2018
+  </time>
+  
+</header>
+
+  <p>本文的内容是总结数据结构与算法中常见的几种排序算法，算是程序员的基本功之一。首先会从几种简单的排序算法开始，最后会逐渐涉及较为复杂的排序算法。</p>
+<p>在本文中，我们首先要约定，我们要排序的元素个数为 N，元素在数组中并且数组以下标 0 开始放置元素。</p>
+<h2 id="插入排序">插入排序</h2>
+<p>最简单的排序算法实现，在循环的第 N 步，确保前 N 个元素是排序的，相当于每次循环从尾部增加一个元素，并将该元素放置到正确的位置上去。</p>
+<p>代码实现：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">InsertionSort</span>(ElementType A[], <span style="color:#66d9ef">int</span> N) {
+	<span style="color:#66d9ef">int</span> j, P;
+
+	ElementType Tmp;
+	<span style="color:#66d9ef">for</span> (P <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; P <span style="color:#f92672">&lt;</span> N; P<span style="color:#f92672">++</span>) {
+		Tmp <span style="color:#f92672">=</span> A[P];
+		<span style="color:#66d9ef">for</span> (j <span style="color:#f92672">=</span> P; j <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> A[j <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">&gt;</span> Tmp; j<span style="color:#f92672">--</span>)
+			A[j] <span style="color:#f92672">=</span> A[j <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>];
+		A[j] <span style="color:#f92672">=</span> Tmp;
+	}
+}
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:center">初始</th>
+<th style="text-align:center">34</th>
+<th style="text-align:center">8</th>
+<th style="text-align:center">64</th>
+<th style="text-align:center">51</th>
+<th style="text-align:center">32</th>
+<th style="text-align:center">21</th>
+<th style="text-align:center">移动的次数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">p=1 后</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">34</td>
+<td style="text-align:center">64</td>
+<td style="text-align:center">51</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">21</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">p=2 后</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">34</td>
+<td style="text-align:center">64</td>
+<td style="text-align:center">51</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">21</td>
+<td style="text-align:center">0</td>
+</tr>
+<tr>
+<td style="text-align:center">p=3 后</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">34</td>
+<td style="text-align:center">51</td>
+<td style="text-align:center">64</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">21</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">p=4 后</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">34</td>
+<td style="text-align:center">51</td>
+<td style="text-align:center">64</td>
+<td style="text-align:center">21</td>
+<td style="text-align:center">3</td>
+</tr>
+<tr>
+<td style="text-align:center">p=5 后</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">21</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">34</td>
+<td style="text-align:center">51</td>
+<td style="text-align:center">64</td>
+<td style="text-align:center">4</td>
+</tr>
+</tbody>
+</table>
+<p>这种排序的方式代表了所有的简单排序，包括了选择排序和冒泡排序，它们的时间复杂度可以从代码上显而易见的看出来是 <em>O(N^2)</em>。而至于为什么简单排序不能突破 N^2 时间界，有一个很有意思的数学证明。</p>
+<p>对于一个需要排序的数组 A，它之中存在一个逆序，当数组中 i&lt;j, 并且 A[i]&gt;A[j]。例如对于上面的表格，存在 9 个逆序，分别是 (34, 8), (34, 32), (34, 21), (64, 32), (64, 21), (51, 32), (51, 21) 以及 (32, 21)。对于每次的相邻元素的交换，都仅仅消除一个逆序，而保证其他的逆序不发生变化。</p>
+<blockquote>
+<p>定理：对于 N 个互异数的数组的平均逆序数是 N(N-1)/4。</p>
+</blockquote>
+<p>这条定理证明：如果一个数组逆序数为 N，将该数组从尾到头重新构造一个反序数组，其逆序数和 N 互补，和为总的元素两两组合的数量，即为 N(N-1)/2。所以平均逆序数为和的一半，也就是 N(N-1)/4。</p>
+<p>而因此，我们在简单排序算法中，每次元素交换只能减少一个逆序，平均需要的时间就是 N(N-1)/4 = Ω(N^2) 时间。</p>
+<p>所以根据我们理论推导，若是一个排序算法想要超过 N^2 的时间界，就必须每次交换超过一个逆序数，这就要求交换的两个对象尽可能远。</p>
+<p>在代码中，我们使用到了如下的一个技巧：<strong>在排序中避免使用交换</strong>，交换是一个相对低效的方法，特别在连续相邻元素的交换中。我们可以先用一个临时变量储存起来需要插入的新值，然后从后向前比较与元素值的大小，若当前循环元素大于要插入的新值，则向后移一位，直到比较到小于新值的元素停止，并在该位置插入新值。</p>
+<h2 id="希尔排序shellsort">希尔排序(Shellsort)</h2>
+<p>希尔排序又被称为缩小增量排序，每次交换的元素之间存在一个距离。在第 k 次循环中，比较元素的间隔为 <em>hk</em>，我们保证对于任意 i，A[i]&lt;=A[i+hk]，我们就称数组是 hk-排序的 (hk-sorted)。希尔排序的重要性质是，在接下来的循环中，尽管 h(k-1) 小于 hk，数组依旧能够保持 hk-排序的性质。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">初始</th>
+<th style="text-align:center">81</th>
+<th style="text-align:center">94</th>
+<th style="text-align:center">11</th>
+<th style="text-align:center">96</th>
+<th style="text-align:center">12</th>
+<th style="text-align:center">35</th>
+<th style="text-align:center">17</th>
+<th style="text-align:center">95</th>
+<th style="text-align:center">28</th>
+<th style="text-align:center">58</th>
+<th style="text-align:center">41</th>
+<th style="text-align:center">75</th>
+<th style="text-align:center">15</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">5-排序后</td>
+<td style="text-align:center">35</td>
+<td style="text-align:center">17</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">28</td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">41</td>
+<td style="text-align:center">75</td>
+<td style="text-align:center">15</td>
+<td style="text-align:center">96</td>
+<td style="text-align:center">58</td>
+<td style="text-align:center">81</td>
+<td style="text-align:center">94</td>
+<td style="text-align:center">95</td>
+</tr>
+<tr>
+<td style="text-align:center">3-排序后</td>
+<td style="text-align:center">28</td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">35</td>
+<td style="text-align:center">15</td>
+<td style="text-align:center">41</td>
+<td style="text-align:center">58</td>
+<td style="text-align:center">17</td>
+<td style="text-align:center">94</td>
+<td style="text-align:center">75</td>
+<td style="text-align:center">81</td>
+<td style="text-align:center">96</td>
+<td style="text-align:center">95</td>
+</tr>
+<tr>
+<td style="text-align:center">1-排序后</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">15</td>
+<td style="text-align:center">17</td>
+<td style="text-align:center">28</td>
+<td style="text-align:center">35</td>
+<td style="text-align:center">41</td>
+<td style="text-align:center">58</td>
+<td style="text-align:center">75</td>
+<td style="text-align:center">81</td>
+<td style="text-align:center">94</td>
+<td style="text-align:center">95</td>
+<td style="text-align:center">96</td>
+</tr>
+</tbody>
+</table>
+<p>希尔排序中对于 hk 的选择决定了其时间界的大小，而对于一个较为简单的选择，我们可以选择一开始的 h 为元素数量的一半，而每次循环的 hk 都是上一次的一半，实现的代码如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Shellsort</span>(ElementType A[], <span style="color:#66d9ef">int</span> N) {
+	<span style="color:#66d9ef">int</span> i, j, Increment;
+	ElementType Tmp;
+
+	<span style="color:#66d9ef">for</span> (Increment <span style="color:#f92672">=</span> N <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>; Increment <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>; Increment <span style="color:#f92672">/=</span> <span style="color:#ae81ff">2</span>)
+		<span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> Increment; i <span style="color:#f92672">&lt;</span> N; i<span style="color:#f92672">++</span>) {
+			Tmp <span style="color:#f92672">=</span> A[i];
+			<span style="color:#66d9ef">for</span> (j <span style="color:#f92672">=</span> i; j <span style="color:#f92672">&gt;=</span> Increment <span style="color:#f92672">&amp;&amp;</span> A[j<span style="color:#f92672">-</span>Increment] <span style="color:#f92672">&gt;</span> Tmp; j <span style="color:#f92672">-=</span> Increment)
+					A[j] <span style="color:#f92672">=</span> A[j <span style="color:#f92672">-</span> Increment];
+			A[j] <span style="color:#f92672">=</span> Tmp;
+		}
+}
+</code></pre></div><p>这次依旧使用了之前插入排序中使用的 <strong>避免交换</strong> 的方法。代码类似于插入排序，只不过比较时加上了间隔 Increment 变量。每次 Increment 确定后，其实之后做的事情就是一个间隔 Increment 元素序列的插入排序。</p>
+<h3 id="如何选择-hk">如何选择 hk</h3>
+<p>想要更好地选择 hk 的值，可以使用 Hibbard 增量。Hibbard 增量的列为形如：1，3，7 &hellip; 2^k-1 的序列，这些序列相邻之前没有公因子，而且有研究证明，使用 Hibbard 增量的最差情况运行时间为 <em>O(N^(3/2))</em>。证明这个时间常量需要使用到堆垒数论中某些众为所知的结果，我们不在这里详细描述。</p>
+<h2 id="堆排序">堆排序</h2>
+<p>在先前的章节（<a href="https://eggycat.coding.me/2018/07/24/Priority_Queue/">优先队列（堆）知识点</a>）中介绍了几种常见的堆模型，我们知道堆中的 DeleteMin 排序时间边界为 <em>O(N*logN)</em>（每次为 logN，共 N 次），而构造堆的时间花费最坏情况为 <em>O(N)</em>。所以我们有总时间<em>O(N+N*logN)</em>，也就是 <em>O(N*logN)</em> 的时间边界，这样的边界是我们目前看到的最好的时间值，但是在实践中却低于 <em>Sedgewick</em> 增量序列的希尔排序。</p>
+<p>但是使用二叉堆排序有一个问题，就是需要一个额外的数组用于构建二叉堆，这造成了空间上的花费。从排序后的二叉堆数组拷贝回原数组时时间为 <em>O(N)</em>，不会显著影响运行时间。</p>
+<p>具体的实现过程就是先使用原数组的数据，构建一个二叉堆，在这个过程中，时间花费为 O(N)。然后逐步的 DeleteMax（之前二叉树是递增树，但是可以很简单的改成递减树），这个地方有一个小技巧，我们只用到二叉树的下滤操作，每次将二叉堆堆首元素与堆尾交换，然后对于堆头进行下滤操作，将二叉堆堆序性恢复，并且最大值被放置在了堆尾，缩减二叉堆的大小，我们就将最大值固定在了最后。逐步循环就得到了递增的排序。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#define LeftChild(i) (2 * (i) + 1)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PercDown</span>(ElementType A[], <span style="color:#66d9ef">int</span> i, <span style="color:#66d9ef">int</span> N) {
+	<span style="color:#66d9ef">int</span> Child;
+	ElementType Tmp;
+
+	<span style="color:#66d9ef">for</span> (Tmp <span style="color:#f92672">=</span> A[i]; LeftChild(i) <span style="color:#f92672">&lt;</span> N; i <span style="color:#f92672">=</span> Child) {
+		Child <span style="color:#f92672">=</span> LeftChild(i);
+		<span style="color:#66d9ef">if</span> (Child <span style="color:#f92672">!=</span> N <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&amp;&amp;</span> A[Child <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">&gt;</span> A[Child])
+			Child<span style="color:#f92672">++</span>;
+		<span style="color:#66d9ef">if</span> (Tmp <span style="color:#f92672">&lt;</span> A[Child])
+			A[i] <span style="color:#f92672">=</span> A[Child];
+		<span style="color:#66d9ef">else</span>
+			<span style="color:#66d9ef">break</span>;
+	}
+	A[i] <span style="color:#f92672">=</span> Tmp;
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Heapsort</span>(ElementType A[], <span style="color:#66d9ef">int</span> N) {
+	<span style="color:#66d9ef">int</span> i;
+
+	<span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> N <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>; i <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">0</span>; i<span style="color:#f92672">--</span>) <span style="color:#75715e">/* Build Heap Question: WHY i=N/2 */</span>
+		PercDown(A, i, N);
+	<span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> N <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>; i <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>; i<span style="color:#f92672">--</span>) { <span style="color:#75715e">/* DeleteMax */</span>
+		Swap(<span style="color:#f92672">&amp;</span>A[<span style="color:#ae81ff">0</span>], <span style="color:#f92672">&amp;</span>A[i]);
+		PercDown(A, <span style="color:#ae81ff">0</span>, i);
+	}
+}
+</code></pre></div><h4 id="堆排序的分析">堆排序的分析</h4>
+<p>堆排序第一阶段最多用到 2N 次比较，第二阶段最多用到 2[logi] 次比较。堆排序是一个非常稳定的算法：它平均使用的比较和最坏情形接近，只是略少。直到最近，也没有人能够指出堆序排序平均运行时间的非平凡界。</p>
+<h2 id="归并排序">归并排序</h2>
+<p>归并排序以 <em>O(N*logN)</em> 最坏情形运行时间运行，但是比较的次数几乎是最优的。它是递归算法的一个很好的实例。</p>
+<p>我们首先假设我们拥有了两个已经排序完成的表 A B，因为这两个表是已经排序完成的，若将其两个表合并成为一个排序的表 C 可以简单地通过一趟比较完成，对于一开始两个指针 Aptr 和 Bptr 被分别放在两个表的开头，然后比较指向的数据大小，较小的值会被放入 C，然后将较小值指针 +1，继续排序，当两个输入表有一个被用完的时候，则将另外一个表的剩余内容直接拷贝入 C。</p>
+<p><img src="/img/2018-7-27-Sorting/mergesort.png" alt=""></p>
+<p>合并两个已排序表的时间是线性的，因为最多进行了 N-1 次比较，每次比较都至少添加进一个元素，而最后的那一次添加可以直接添加两个元素进去。</p>
+<p>用递归表示归并排序：如果 N = 1，那么 A B 加起来就一个元素，直接将元素放置进 C 即可。否则，将前半部分和后半部分各自使用归并排序，并将结果使用合并算法合并。</p>
+<p>归并排序的原理并不难，理解起来也较为容易，但是在递归的时候很容易就陷入 <strong>尾递归</strong> 的困境，我们下边的代码采用了一个共享的 <code>TmpArray</code> 数组，数据归并的过程中的过程数据都会暂时储存在这里，暂存数组的大小和原数组大小一致就可以，在迭代的过程中，所有的 Merge 都使用同一个暂存数组。这样我们迭代的过程中没有临时数组变量的产生，也就减少了内存的消耗，但是这样也造成了一个缺点，我们每次迭代的时候，Merge 函数都要输入这个暂存数组的指针，这个指针需要在不同的迭代次数之间传递。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">MSort</span>(ElementType A[], ElementType TmpArray[], <span style="color:#66d9ef">int</span> Left, <span style="color:#66d9ef">int</span> Right) {
+	<span style="color:#66d9ef">int</span> Center;
+	<span style="color:#66d9ef">if</span> (Left <span style="color:#f92672">&lt;</span> Right) {
+		Center <span style="color:#f92672">=</span> (Left <span style="color:#f92672">+</span> Right) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>;
+		MSort(A, TmpArray, Left, Center);
+		MSort(A, TmpArray, Center <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, Right);
+		Merge(A, TmpArray, Left, Center <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, Right);
+	}
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Merge</span>(ElementType A[], ElementType TmpArray[], <span style="color:#66d9ef">int</span> Lpos, <span style="color:#66d9ef">int</span> Rpos, <span style="color:#66d9ef">int</span> RightEnd) {
+	<span style="color:#66d9ef">int</span> i, LeftEnd, NumElements, TmpPos;
+	LeftEnd <span style="color:#f92672">=</span> Rpos <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>;
+	TmpPos <span style="color:#f92672">=</span> Lpos;
+	NumElements <span style="color:#f92672">=</span> RightEnd <span style="color:#f92672">-</span> Lpos <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+
+	<span style="color:#75715e">/* Main Loop */</span>
+	<span style="color:#66d9ef">while</span> (Lpos <span style="color:#f92672">&lt;=</span> LeftEnd<span style="color:#f92672">&amp;&amp;</span>Rpos <span style="color:#f92672">&lt;=</span> RightEnd)
+		<span style="color:#66d9ef">if</span> (A[Lpos] <span style="color:#f92672">&lt;=</span> A[Rpos])
+			TmpArray[TmpPos<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> A[Lpos<span style="color:#f92672">++</span>];
+		<span style="color:#66d9ef">else</span>
+			TmpArray[TmpPos<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> A[Rpos<span style="color:#f92672">++</span>];
+
+	<span style="color:#66d9ef">while</span> (Lpos <span style="color:#f92672">&lt;=</span> LeftEnd)
+		TmpArray[TmpPos<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> A[Lpos<span style="color:#f92672">++</span>];
+	<span style="color:#66d9ef">while</span> (RightEnd <span style="color:#f92672">&lt;=</span> RightEnd)
+		TmpArray[TmpPos<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> A[Rpos<span style="color:#f92672">++</span>];
+
+	<span style="color:#75715e">/* Copy back */</span>
+	<span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> NumElements; i<span style="color:#f92672">++</span>, RightEnd<span style="color:#f92672">--</span>) {
+		A[RightEnd] <span style="color:#f92672">=</span> Tmp[RightEnd];
+	}
+}
+</code></pre></div><h4 id="归并排序的分析">归并排序的分析</h4>
+<p>通过分析归并排序，我们可以学习到分析递归程序的经典实例：我们必须根据运行的时间写出一个递归的关系。对于 N 个数归并的时间等于两个对半归并排序的时间加上复制的时间 O(N)。</p>
+<p>下面是公式的显示，公式用了 MathJax 这个 JS 插件，如果你是手机浏览的，可以通过长按公式修改 Math Setting-&gt;Scale All Math 值缩放公式。</p>
+<p>$$ T(1)=1 $$</p>
+<p>$$ T(N)=2T(N/2)+N $$</p>
+<p>我们将等式两边同时除以 N。</p>
+<p>$$ \frac{T(N)}{N}=\frac{T(N/2)}{N/2}+1 $$</p>
+<p>该等式对于任意 N 均成立，所以我们带入 N/2, N/4&hellip; ，并将它们左右式分别叠加。</p>
+<p>$$ \frac{T(N)}{N} + \frac{T(N/2)}{N/2} + &hellip; =\frac{T(N/2)}{N/2}+ 1 + \frac{T(N/4)}{N/4} + 1 +&hellip; $$</p>
+<p>消去左右都有的项，我们可以得到：</p>
+<p>$$ \frac{T(N)}{N}=\frac{T(1)}{1} + \log_2 N $$</p>
+<p>化简可以得到
+$$T(N)=N\log_2N+N=O(N\log_{}N)$$</p>
+<p>虽然归并排序的运行时间是 <em>O(NlogN)</em>，但是由于它需要一个和原本数据一样大的缓冲区作为数据暂存，所以在主存排序中很难应用。而且额外的拷贝操作也依赖于硬件的实现速度，在拷贝速度较慢的场合，将会大大拖慢排序速度。归并排序常常应用于外部排序当中，对于内部排序，人们还是会选择快速排序算法。</p>
+<h2 id="快速排序">快速排序</h2>
+<p>快速排序是目前在实践中已知的最快的排序算法。它的平均运行时间是 <em>O(NlogN)</em>。该算法之所以特别快的原因是它具有非常精炼和高度优化的内部循环。</p>
+<p>快速排序是采用了类似于归并排序类似的分治算法。原理是在集合中寻找一个枢纽元，然后将集合分为大于枢纽元的部分和小于枢纽元的部分。然后将两部分继续使用快速排序，直到最后的集合中有一个或者无元素，直接返回。</p>
+<h2 id="选取枢纽元">选取枢纽元</h2>
+<h4 id="一种错误的做法">一种错误的做法</h4>
+<p>一种想当然的做法是将输入的第一个元素用于枢纽元。这对于输入是随机的情况下是可用的，但是大部分情况下，对于预排序的输入，这种只会让快速排序每次运行在最坏的状态下。</p>
+<h4 id="安全的做法">安全的做法</h4>
+<p>安全的做法是随机选取枢纽元。一般来说这种策略是非常有效的，除非随机数生成器产生了问题。但是随机数的产生是昂贵的，根本减少不了算法其余部分的平均运行时间。</p>
+<p>事实上，完全随机的枢纽元的选择其实对于算法时间并没有什么帮助，因为最佳的选择是每一次都选中了正好能将数据分成两个数量相等的枢纽元，也就是集合的中值。但是选择中值的问题在于，我们无法获得中值位置，这需要大量的时间。所以我们采用了一种 <strong>三数中值分割法</strong> 的方法，我们从集合头，集合中部，集合尾各取一个元素，并且使用这三个元素的中间值作为枢纽元。</p>
+<h2 id="流程">流程</h2>
+<h4 id="集合分割">集合分割</h4>
+<p>在选取完枢纽元后，需要对于集合进行分割，重新整理成为两部分，这里的思路是先将集合中的枢纽元放在末尾，并且一个指针从头到尾滑过小于枢纽元的元素，一个指针从尾到头滑过大于枢纽元的元素，直到两个指针停下来，这时交换两个指针的元素，最后指针跨过另外一个指针，结束，将枢纽元从末尾和其中一个指针交换即可。</p>
+<p>但是如果出现了等于枢纽元的元素，就要注意了，因为如果我们在此位置停下来，进行交换，其实是无意义的交换，但是这样有一个好处就是可以保证指针不会一次性滑过较多元素而导致两个最后划分的集合不均衡，所以我们的策略是遇到与枢纽元值相等的元素，依旧会停下指针，等待交换。</p>
+<h4 id="小数组">小数组</h4>
+<p>在递归的过程中，会产生很多小的数组，对于很小的数组（N&lt;20)，快速排序的效率甚至不如插入排序，这时因为快速排序采用了递归的方法。所以我们可以在快速排序中使用插入排序来处理小数组，而使用快速排序来处理大问题，这样不仅仅能够解决效率的问题，而且可以避免诸如三数中值分割法出现只有两个或一个元素的问题。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">ElementType <span style="color:#a6e22e">Median3</span>(ElementType A[], <span style="color:#66d9ef">int</span> Left, <span style="color:#66d9ef">int</span> Right) {
+	<span style="color:#66d9ef">int</span> Center <span style="color:#f92672">=</span> (Left <span style="color:#f92672">+</span> Right) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>;
+	<span style="color:#66d9ef">if</span> (A[Left] <span style="color:#f92672">&gt;</span> A[Center])
+		Swap(<span style="color:#f92672">&amp;</span>A[Left], <span style="color:#f92672">&amp;</span>A[Center]);
+	<span style="color:#66d9ef">if</span> (A[Left] <span style="color:#f92672">&gt;</span> A[Right])
+		Swap(<span style="color:#f92672">&amp;</span>A[Left], <span style="color:#f92672">&amp;</span>A[Right]);
+	<span style="color:#66d9ef">if</span> (A[Center] <span style="color:#f92672">&gt;</span> A[Right])
+		Swap(<span style="color:#f92672">&amp;</span>A[Center], <span style="color:#f92672">&amp;</span>A[Right]);
+
+	Swap(<span style="color:#f92672">&amp;</span>A[Center], <span style="color:#f92672">&amp;</span>A[Right <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>]);
+	<span style="color:#66d9ef">return</span> A[Right <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>];
+}
+
+<span style="color:#75715e">#define Cutoff(3)
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Qsort</span>(ElementType A[], <span style="color:#66d9ef">int</span> Left, <span style="color:#66d9ef">int</span> Right) {
+	<span style="color:#66d9ef">int</span> i, j;
+	ElementType Pivot;
+
+	<span style="color:#66d9ef">if</span> (Left <span style="color:#f92672">+</span> Cutoff <span style="color:#f92672">&lt;=</span> Right) {
+		Pivot <span style="color:#f92672">=</span> Median3(A, Left, Right);
+		i <span style="color:#f92672">=</span> Left; j <span style="color:#f92672">=</span> Right <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>;
+		<span style="color:#66d9ef">for</span> (;;) {
+			<span style="color:#66d9ef">while</span> (A[<span style="color:#f92672">++</span>j] <span style="color:#f92672">&lt;</span> Pivot) {}
+			<span style="color:#66d9ef">while</span> (A[<span style="color:#f92672">--</span>j] <span style="color:#f92672">&gt;</span> Pivot) {}
+			<span style="color:#66d9ef">if</span> (i <span style="color:#f92672">&lt;</span> j)
+				Swap(<span style="color:#f92672">&amp;</span>A[i], <span style="color:#f92672">&amp;</span>A[j]);
+			<span style="color:#66d9ef">else</span>
+				<span style="color:#66d9ef">break</span>;
+		}
+		Swap(<span style="color:#f92672">&amp;</span>A[i], <span style="color:#f92672">&amp;</span>A[Right <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>]);
+
+		Qsort(A, Left, i <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>);
+		Qsort(A, i <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, Right);
+	}
+	<span style="color:#66d9ef">else</span>
+		InsertSort(A <span style="color:#f92672">+</span> Left, Right <span style="color:#f92672">-</span> Left <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+}
+</code></pre></div><h2 id="对于大型结构的排序">对于大型结构的排序</h2>
+<p>对于大型结构的排序，首先因为结构的性质使得复制的操作很难以进行，我们可以使用一个序列指针的方法，将指向结构的指针放置在一个数字中并对指针排序即可。这种排序被称作 <strong>间接排序</strong>。</p>
+<h2 id="桶式排序">桶式排序</h2>
+<p>桶式排序是一个很神奇的排序方法，因为他只需要线性的时间就可以对于数组进行排序。但是桶式排序的要求比较严格，被排序的元素必须是整数且是不大于 M 的，我们用另外一个大小为 M 初始化为 0 的数组，对于集合中任意一个元素，数组中都有一个下标与之对应，我们顺序记录元素在桶中不同位置的出现次数，譬如对于 3,8,2,4,5,1,3 序列使用一个 M=8 的数组，输入 3 则 M[3]++，输入 8，M[8]++。直到最后，按照值作为次数，打印出数组中的下标即可。桶式排序在较小的整数输入中效率很高。</p>
+<p>为什么桶式排序能够打破 <em>O(NlogN)</em> 下界，其实很简单，因为桶式排序其实原理上使用的是一个 M-路选择器，和我们之前的两元比较不同，桶式排序一次性进行了 M 元比较，并最终确定了元素的位置。</p>
+<h2 id="外部排序">外部排序</h2>
+<p>我们先前的排序，都是指内部排序，也就是集合储存在内存中，不考虑数据的读取和写入的时间消耗，但实际上，如果我们要将位于硬盘上的数据排序，或者位于磁盘上的数据进行排序，读取时间和写入时间会成为排序算法的瓶颈。</p>
+<h3 id="简单算法">简单算法</h3>
+<p>简单的外部排序算法是使用归并排序中的 Merge 程序，我们需要用到两个磁带或者存储器件，设内存一次可以存储 M 个元素，我们就先从一个磁带中读取 M 个元素，使用内部排序将这些数据排序后，再把这些排过序的记录交替的写在两个磁盘上，这些排过序的记录叫做 <strong>顺串</strong>。当我们获得顺串之后，使用归并排序中的合并操作，将顺串成对合并即可。</p>
+<h3 id="多路合并">多路合并</h3>
+<p>如果我们有好几个外部存储设备，这时候可以使用多路合并，也就是一次性对于多个顺串使用归并排序，将两路归并拓展到多路是很简单的，所以我们不做特别的描述。</p>
+<h2 id="总结">总结</h2>
+<p>对于一般的内部排序应用，我们的选择只有三种，插入排序，希尔排序，快速排序，它们的选择主要是根据输入的规模决定的。归并排序的效率较低，但是它却是外部排序的关键思想。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

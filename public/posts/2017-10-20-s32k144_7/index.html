@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 7 SPI | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-10-20-s32k144_7/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-10-20-s32k144_7/" rel="bookmark">S32K144EVB Notes 7 SPI</a>
+  </h2>
+  
+  <time datetime="2017-10-20T00:00:00Z">
+    20 October, 2017
+  </time>
+  
+</header>
+
+  <p>本节针对了我在工程上需要亟待着手解决的一个方面也就是使用外接 SPI 网卡进行高速传输的一个问题，在这里打算进行仔细的解读一下有关 SPI 协议使用的部分。但是还是老样子，我们根据例程进行分析相关的寄存器和使用方法。</p>
+<p>本例程来自 NXP 官方给出的 AN5413 Cookbook 上面的程序。</p>
+<h3 id="介绍">介绍</h3>
+<p>这是一个简单的 LPSPI 程序在执行过程中使用了 FIFO 可以有效提高吞吐量。经过初始化，一个 16-bit 的帧将会以 1Mbps 的速度进行传输。在这里使用了软件上下拉标志位进行读取，而不是使用中断和 DMA。</p>
+<p>S32K144 评估板使用 LPSPI 的说明：在例程中使用了 LPSPI1 和外部芯片选择 3，链接在 MC33903 或者是 UGA1169TK/F 这两个 SBC(System Basis Chip) 芯片上面(默认是使用前者)，如果这个芯片收到数据被激活后，会返回一个 Reading Status Register 的值，我们就可以知道我们在 LPSPI 上的数据是否被发送到。为了给这个 SBC 供电，必须要连接一个 12V 的电源供应到 EVB 并且连接 1-2 管脚在 J107 跳线部分。在这个时候仍旧可以使用一个 USB 连接在 EVB 上面以允许 EVB 调试功能开启。如果 SBC 没有被供电的话，所有的 LPSPI 收到的数据都会是 0。</p>
+<p>使用 LPSPI1 要首先在 PCC 中选择时钟，然后根据 择的时钟进行分频，波特率计算，在 LPSPI1 中有两个 FIFO 寄存器，分别管理输入和输出队列。LPSPI 下方有一个 SBC 芯片，用作 Slave 器件，接收来自 LPSPI1 的数据。</p>
+<h3 id="设计流程">设计流程：</h3>
+<ul>
+<li>关狗</li>
+<li>系统时钟设置：初始化 SOSC 为 8MHz，系统时钟为 80MHz，RUN 模式为 80MHz</li>
+<li>初始化 LPSPI1：
+<ul>
+<li>模块控制：
+<ul>
+<li>关闭模块以允许设置</li>
+</ul>
+</li>
+<li>设置 LPSPI1 为主机(Master)：</li>
+<li>初始化时钟所需要的配置为 10MHz 为预分频功能时钟(100 微秒周期)
+<ul>
+<li>预分频功能时钟的频率 = 功能性时钟 / 预分频因子 = 40MHz/4 = 10MHz</li>
+<li>SCK 波特率 = (Functional clock / PRESCALE) / (SCKDIV+2) = (40 MHz / 4) / (8 + 2) = 10 MHz / 10 = 1 MHz</li>
+<li>SCK 和 PCS 间隔 = 5 prescaled functional clocks = 50 nesc</li>
+<li>PCS 和 CSK 间隔 = 10 prescaled functional clocks = 1 usec</li>
+<li>相邻两次传输的时间间隔 = 10 prescaled functional clocks = 1 usec</li>
+</ul>
+</li>
+<li>FIFO 控制
+<ul>
+<li>RxFIFO: Receive Data Flag (RDF) 接收数据标志位 置位，当 FIFO&gt;0</li>
+<li>TxFIFO: Transmit Data Flag (TDF) 发送数据标志位 置位，当 FIFO&lt;=3</li>
+</ul>
+</li>
+<li>设置发送命令（可以使用一些其他的设置在这里，例如使用不同的片选信号和每帧字节）
+<ul>
+<li>预分频因子为 8，(80 MHz / 8 = 10 MHz 预分频时钟)</li>
+<li>帧长度 = 16 bits</li>
+<li>PCS3 被用作片选信号</li>
+<li>SCK 极性为 Active Low</li>
+<li>相位：数据在 SCK 前沿改变，在后沿捕获</li>
+<li>MSB 首先（最高位先发），字节交换关闭，连续传输关闭</li>
+<li>单位宽度传送</li>
+<li>正常的 FIFO 配置：收到的数据在 Rx FIFO，发送的数据在 Tx FIFO</li>
+</ul>
+</li>
+<li>模块使能
+<ul>
+<li>使能模块，包括在调试模式和 DOZE 模式中</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>初始化 PORT 管脚给 LPSPI1</li>
+<li>循环：
+<ul>
+<li>等待 TDF 置位（示意 Tx FIFO 可用），然后写入一帧到 Tx FIFO 并且清除 TDF</li>
+<li>等待 RDF 置位（示意接收到数据），然后读取一帧并且清楚 RDF</li>
+<li>减少 counter</li>
+</ul>
+</li>
+</ul>
+<h3 id="代码">代码</h3>
+<p>为了减少大家的阅读疲劳，这次仅仅挑出几个与本此 LPSPI 配置较为密切的寄存器以供大家学习。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PORT_init</span> (<span style="color:#66d9ef">void</span>) {
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_PORTB_INDEX ]<span style="color:#f92672">|=</span>PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clock for PORTB */</span>
+PORTB<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">14</span>]<span style="color:#f92672">|=</span>PORT_PCR_MUX(<span style="color:#ae81ff">3</span>); <span style="color:#75715e">/* Port B14: MUX = ALT3, LPSPI1_SCK */</span>
+PORTB<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">15</span>]<span style="color:#f92672">|=</span>PORT_PCR_MUX(<span style="color:#ae81ff">3</span>); <span style="color:#75715e">/* Port B15: MUX = ALT3, LPSPI1_SIN */</span>
+PORTB<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">16</span>]<span style="color:#f92672">|=</span>PORT_PCR_MUX(<span style="color:#ae81ff">3</span>); <span style="color:#75715e">/* Port B16: MUX = ALT3, LPSPI1_SOUT */</span>
+PORTB<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">17</span>]<span style="color:#f92672">|=</span>PORT_PCR_MUX(<span style="color:#ae81ff">3</span>); <span style="color:#75715e">/* Port B17: MUX = ALT3, LPSPI1_PCS3 */</span>
+}
+</code></pre></div><p>这个是设置 PORT MUX 的，如果这个看不懂的话可以从我的 S32K 第一节的 hello world 例程开始看起。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">LPSPI1_init_master</span>(<span style="color:#66d9ef">void</span>) {
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_LPSPI1_INDEX] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* Disable clocks to modify PCS ( default) */</span>
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_LPSPI1_INDEX] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0xC6000000</span>; <span style="color:#75715e">/* Enable PCS=SPLL_DIV2 (40 MHz func&#39;l clock) */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>CR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* Disable module for configuration */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>IER <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* Interrupts not used */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>DER <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* DMA not used */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>CFGR0 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* Defaults: */</span>
+<span style="color:#75715e">/* RDM0=0: rec&#39;d data to FIFO as normal */</span>
+<span style="color:#75715e">/* CIRFIFO=0; Circular FIFO is disabled */</span>
+<span style="color:#75715e">/* HRSEL, HRPOL, HREN=0: Host request disabled */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>CFGR1 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* Configurations: master mode*/</span>
+<span style="color:#75715e">/* PCSCFG=0: PCS[3:2] are enabled */</span>
+<span style="color:#75715e">/* OUTCFG=0: Output data retains last value when CS negated */</span>
+<span style="color:#75715e">/* PINCFG=0: SIN is input, SOUT is output */</span>
+<span style="color:#75715e">/* MATCFG=0: Match disabled */</span>
+<span style="color:#75715e">/* PCSPOL=0: PCS is active low */</span>
+<span style="color:#75715e">/* NOSTALL=0: Stall if Tx FIFO empty or Rx FIFO full */</span>
+<span style="color:#75715e">/* AUTOPCS=0: does not apply for master mode */</span>
+<span style="color:#75715e">/* SAMPLE=0: input data sampled on SCK edge */</span>
+<span style="color:#75715e">/* MASTER=1: Master mode */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>TCR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x5300000F</span>; <span style="color:#75715e">/* Transmit cmd: PCS3, 16bits, prescale func&#39;l clk by 4. */</span>
+<span style="color:#75715e">/* CPOL=0: SCK inactive state is low */</span>
+<span style="color:#75715e">/* CPHA=1: Change data on SCK lead&#39;g, capture on trail&#39;g edge*/</span>
+<span style="color:#75715e">/* PRESCALE=2: Functional clock divided by 2**2 = 4 */</span>
+<span style="color:#75715e">/* PCS=3: Transfer using PCS3 */</span>
+<span style="color:#75715e">/* LSBF=0: Data is transferred MSB first */</span>
+<span style="color:#75715e">/* BYSW=0: Byte swap disabled */</span>
+<span style="color:#75715e">/* CONT, CONTC=0: Continuous transfer disabled */</span>
+<span style="color:#75715e">/* RXMSK=0: Normal transfer: rx data stored in rx FIFO */</span>
+<span style="color:#75715e">/* TXMSK=0: Normal transfer: data loaded from tx FIFO */</span>
+<span style="color:#75715e">/* WIDTH=0: Single bit transfer */</span>
+<span style="color:#75715e">/* FRAMESZ=15: # bits in frame = 15+1=16 */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>CCR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x04090808</span>; <span style="color:#75715e">/* Clk dividers based on prescaled func&#39;l clk of 100 nsec */</span>
+<span style="color:#75715e">/* SCKPCS=4: SCK to PCS delay = 4+1 = 5 (500 nsec) */</span>
+<span style="color:#75715e">/* PCSSCK=4: PCS to SCK delay = 9+1 = 10 (1 usec) */</span>
+<span style="color:#75715e">/* DBT=8: Delay between Transfers = 8+2 = 10 (1 usec) */</span>
+<span style="color:#75715e">/* SCKDIV=8: SCK divider =8+2 = 10 (1 usec: 1 MHz baud rate) */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>FCR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000003</span>; <span style="color:#75715e">/* RXWATER=0: Rx flags set when Rx FIFO &gt;0 */</span>
+<span style="color:#75715e">/* TXWATER=3: Tx flags set when Tx FIFO &lt;= 3 */</span>
+LPSPI1<span style="color:#f92672">-&gt;</span>CR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000009</span>; <span style="color:#75715e">/* Enable module for operation */</span>
+<span style="color:#75715e">/* DBGEN=1: module enabled in debug mode */</span>
+<span style="color:#75715e">/* DOZEN=0: module enabled in Doze mode */</span>
+<span style="color:#75715e">/* RST=0: Master logic not reset */</span>
+<span style="color:#75715e">/* MEN=1: Module is enabled */</span>
+}
+</code></pre></div><p>这个就是 LPSPI 的主要设置内容了，里面的东西虽然繁杂，但是都需要一点点全部啃透了才能算理解，因为在工程中遇到的 SPI 协议有很多不同的设置，包括数据的捕获方式和片选方式，如果到时候还要查数据手册会大大降低效率。</p>
+<p>我们就详细的从最开始的 S32K144 LPSPI 模块的基本特性开始介绍：</p>
+<h3 id="lpspi-特性">LPSPI 特性</h3>
+<ul>
+<li>Command/transmit FIFO 长度为 4 个 dwords (1 dword = 32 bits)</li>
+<li>Receive FIFO 为 4 个 words (1 dword = 32 bits)</li>
+<li>&ldquo;主机输出请求 (Host request input)&rdquo; 可以被用于控制 SPI 总线传输起始时间</li>
+</ul>
+<h3 id="lpspi-结构">LPSPI 结构</h3>
+<p><img src="/img/2017-10-20-S32K144_7/LPSPI.png" alt="LPSPI.png"></p>
+<h3 id="lpspi-工作模式">LPSPI 工作模式</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Chip Mode</th>
+<th style="text-align:left">LPSPI Operation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Run</td>
+<td style="text-align:left">正常</td>
+</tr>
+<tr>
+<td style="text-align:center">Stop/Wait</td>
+<td style="text-align:left">能够继续运行如果 <code>Doze Enable</code> 置 0 <!-- raw HTML omitted -->并且 LPSPI 使用一个能够保持运行的时钟</td>
+</tr>
+<tr>
+<td style="text-align:center">Low Leakage Stop</td>
+<td style="text-align:left"><code>Doze Enable</code> 被忽视，LPSPI 等待当前的传送任务完成<!-- raw HTML omitted --> 然后进入该模式</td>
+</tr>
+<tr>
+<td style="text-align:center">Debug</td>
+<td style="text-align:left">能够继续运行如果 <code>Debug Enable</code> 位被置位</td>
+</tr>
+</tbody>
+</table>
+<h3 id="用到的寄存器">用到的寄存器</h3>
+<p>由于实在太多了，大部分寄存器都是状态寄存器，所以就直接介绍一下设置寄存器，对于状态寄存器我们一概而过。</p>
+<h3 id="control-register-lpspix_cr">Control Register (LPSPIx_CR)</h3>
+<p>包含一些基本的寄存器操作。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">RRF</td>
+<td style="text-align:left"><strong>Reset Receive FIFO</strong> <!-- raw HTML omitted -->0 没有作用<!-- raw HTML omitted -->1 Rx FIFO 被清空</td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">RTF</td>
+<td style="text-align:left"><strong>Reset Transmit FIFO</strong> <!-- raw HTML omitted -->0 没有作用<!-- raw HTML omitted -->1 Tx FIFO 被清空</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td style="text-align:center">DBGEN</td>
+<td style="text-align:left"><strong>Debug Enable</strong> <!-- raw HTML omitted -->0 模块在 Debug 模式下关闭<!-- raw HTML omitted -->1 模块在 Debug 模式下开启</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">DOZEN</td>
+<td style="text-align:left"><strong>Doze mode enable</strong> <!-- raw HTML omitted -->0 模块在 Doze 模式下关闭<!-- raw HTML omitted -->1 模块在 Doze 模式下开启</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">RST</td>
+<td style="text-align:left"><strong>Software Reset</strong> <!-- raw HTML omitted -->重置所有的 SPI 内部寄存器（除了 CR）<!-- raw HTML omitted -->保持置位直到被软件清零<!-- raw HTML omitted -->0 不重置<!-- raw HTML omitted -->1 重置</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">MEN</td>
+<td style="text-align:left"><strong>Module Enable</strong> <!-- raw HTML omitted -->0 不使能<!-- raw HTML omitted -->1 使能模块</td>
+</tr>
+</tbody>
+</table>
+<h3 id="status-register-lpspix_sr">Status Register (LPSPIx_SR)</h3>
+<p>状态显示寄存器。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">24</td>
+<td style="text-align:center">MBF</td>
+<td style="text-align:left"><strong>Module Busy Flag</strong> <!-- raw HTML omitted -->0 LPSPI 空闲<!-- raw HTML omitted -->1 LPSPI 忙碌</td>
+</tr>
+<tr>
+<td style="text-align:center">13</td>
+<td style="text-align:center">DMF</td>
+<td style="text-align:left"><strong>Data Match Flag</strong> <!-- raw HTML omitted -->指示接收的数据是否有和 MATCFG 寄存器中设置的一致<!-- raw HTML omitted -->0 LPSPI 未接收到匹配数据<!-- raw HTML omitted -->1 LPSPI 已经接收到匹配数据</td>
+</tr>
+<tr>
+<td style="text-align:center">12</td>
+<td style="text-align:center">REF</td>
+<td style="text-align:left"><strong>Receive Error Flag</strong> <!-- raw HTML omitted -->指示 Rx FIFO overflow<!-- raw HTML omitted -->0 Rx FIFO 没有溢出<!-- raw HTML omitted -->1 Rx FIFO 溢出</td>
+</tr>
+<tr>
+<td style="text-align:center">11</td>
+<td style="text-align:center">TEF</td>
+<td style="text-align:left"><strong>Transmit Error Flag</strong> <!-- raw HTML omitted -->指示 Tx FIFO underrun<!-- raw HTML omitted -->0 Tx FIFO 没有 underrun<!-- raw HTML omitted -->1 Rx FIFO 发生 underrun</td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td style="text-align:center">TCF</td>
+<td style="text-align:left"><strong>Transfer Complete Flag</strong> <!-- raw HTML omitted -->0 所有传输完成<!-- raw HTML omitted -->1 传输未完成</td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">FCF</td>
+<td style="text-align:left"><strong>Frame Complete Flag</strong> <!-- raw HTML omitted -->0 当前接收/发送帧未传送完<!-- raw HTML omitted -->1 当前接收/发送帧已传送完</td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">WCF</td>
+<td style="text-align:left"><strong>Word Complete Flag</strong> <!-- raw HTML omitted -->0 当前接收/发送字未传送完<!-- raw HTML omitted -->1 当前接收/发送字已传送完</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">RDF</td>
+<td style="text-align:left"><strong>Receive Data Flag</strong> <!-- raw HTML omitted -->当 Rx FIFO中字多于 RXWATER 时置位<!-- raw HTML omitted -->0 接收数据准备好<!-- raw HTML omitted -->1 接收数据未准备好</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">TDF</td>
+<td style="text-align:left"><strong>Transmit Data Flag</strong> <!-- raw HTML omitted -->当 Tx FIFO中字少于 TXWATER 时置位<!-- raw HTML omitted -->0 发送数据未准备好<!-- raw HTML omitted -->1 请求发送数据</td>
+</tr>
+</tbody>
+</table>
+<h3 id="interrupt-enable-register-lpspix_ier">Interrupt Enable Register (LPSPIx_IER)</h3>
+<p>中断使能寄存器。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">13</td>
+<td style="text-align:center">DMIE</td>
+<td style="text-align:left"><strong>Data Match Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">12</td>
+<td style="text-align:center">DMIE</td>
+<td style="text-align:left"><strong>Receive Error Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">11</td>
+<td style="text-align:center">TEIE</td>
+<td style="text-align:left"><strong>Transmit Error Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td style="text-align:center">TCIE</td>
+<td style="text-align:left"><strong>Transfer Complete Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">TEIE</td>
+<td style="text-align:left"><strong>Transmit Error Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">WCIE</td>
+<td style="text-align:left"><strong>Word Complete Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">RDIE</td>
+<td style="text-align:left"><strong>Receive Data Interrupt Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">TDIE</td>
+<td style="text-align:left"><strong>Transmit Data Interrupt Enable</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="dma-enable-register-lpspix_der">DMA Enable Register (LPSPIx_DER)</h3>
+<p>DMA 使能寄存器。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">RDDE</td>
+<td style="text-align:left"><strong>Receive Data DMA Enable</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">TDDE</td>
+<td style="text-align:left"><strong>Transmit Data DMA Enable</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuration-register-0-lpspix_cfgr0">Configuration Register 0 (LPSPIx_CFGR0)</h3>
+<p>这个是一些基本的 SPI 设置，看到 0 了么，说明后面还有很多&hellip;</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">RDMO</td>
+<td style="text-align:left"><strong>Receive Data Match Only</strong><!-- raw HTML omitted -->0 正常存取接收的数据到 FIFO <!-- raw HTML omitted -->1 如果接收的数据不是匹配数据就丢弃</td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">CIRFIFO</td>
+<td style="text-align:left"><strong>Circular FIFO Enable</strong><!-- raw HTML omitted -->开启后当 Tx FIFO 清空后会回复原状循环发送<!-- raw HTML omitted -->0 关闭循环发送<!-- raw HTML omitted -->1 开启循环发送</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">HRSEL</td>
+<td style="text-align:left"><strong>Host Request Select</strong><!-- raw HTML omitted -->0 Host request 输入是 LPSPI_HREQ 管脚<!-- raw HTML omitted -->1 Host request 输入是触发器</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">HRPOL</td>
+<td style="text-align:left"><strong>Host Request Polarity</strong><!-- raw HTML omitted -->0 Active low<!-- raw HTML omitted -->1 Active high</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">HREN</td>
+<td style="text-align:left"><strong>Host Request Enable</strong><!-- raw HTML omitted -->当在主机模式下的时候<!-- raw HTML omitted -->LPSPI 只会当收到 host request 后发送数据</td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuration-register-1-lpspix_cfgr1">Configuration Register 1 (LPSPIx_CFGR1)</h3>
+<p>这个寄存器应当在 LPSPI 关闭的时候进行写入。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">27</td>
+<td style="text-align:center">PCSCFG</td>
+<td style="text-align:left"><strong>Peripheral Chip Select Configuration</strong><!-- raw HTML omitted -->如果在使用 4-bit 传输，此位必须置位<!-- raw HTML omitted -->0 PCS[3:2] 启用 <!-- raw HTML omitted -->1 PCS[3:2] 禁用</td>
+</tr>
+<tr>
+<td style="text-align:center">26</td>
+<td style="text-align:center">OUTCFG</td>
+<td style="text-align:left"><strong>Output Config</strong><!-- raw HTML omitted -->设置如果片选为无效态的话输出数据 <!-- raw HTML omitted -->0 输出的数据保留最后<!-- raw HTML omitted -->1 输出的数据是三态的</td>
+</tr>
+<tr>
+<td style="text-align:center">25-24</td>
+<td style="text-align:center">PINCFG</td>
+<td style="text-align:left"><strong>Pin Configuration</strong><!-- raw HTML omitted -->00 SIN 输入数据 SOUT 输出数据<!-- raw HTML omitted -->01 SOUT 既输入也输出<!-- raw HTML omitted -->10 SDI 既输入也输出<!-- raw HTML omitted -->11 SIN 输出数据 SOUT 输入数据</td>
+</tr>
+<tr>
+<td style="text-align:center">18-16</td>
+<td style="text-align:center">MATCFG</td>
+<td style="text-align:left"><strong>Match Configuration</strong><!-- raw HTML omitted -->设置能够引起 DMF 置位的情况<!-- raw HTML omitted -->000 Match disabled<!-- raw HTML omitted -->010 Match 启用 (第一个数据字和 MATCH0 或者 MATCH1 一致)<!-- raw HTML omitted -->011 Match 启用 (任何数据字和 MATCH0 或者 MATCH1 一致)<!-- raw HTML omitted -->100 Match 启用 (第一个数据字和 MATCH0 且 第二个和 MATCH1 一致)<!-- raw HTML omitted -->101 Match 启用 (任何数据字和 MATCH0 且 下一个和 MATCH1 一致)<!-- raw HTML omitted -->110 Match 启用 (第一个数据字和 MATCH0 按位与 和 MATCH0 和 MATCH1 按位与一致)<!-- raw HTML omitted -->111 Match 启用 (任何数据字和 MATCH0 按位与 和 MATCH0 和 MATCH1 按位与一致)</td>
+</tr>
+<tr>
+<td style="text-align:center">11-8</td>
+<td style="text-align:center">PCSPOL</td>
+<td style="text-align:left"><strong>Peripheral Chip Select Polarity</strong><!-- raw HTML omitted -->0 PCSx active low<!-- raw HTML omitted -->1 PCSx active high</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td style="text-align:center">NOSTALL</td>
+<td style="text-align:left"><strong>NO STALL</strong><!-- raw HTML omitted -->当 Tx FIFO 为空或者 Rx FIFO 为满时通常会停止<!-- raw HTML omitted -->0 停止<!-- raw HTML omitted -->1 不停止</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td style="text-align:center">AUTOPCS</td>
+<td style="text-align:left"><strong>Automatic PCS</strong><!-- raw HTML omitted -->自动被片选，主机模式下无效<!-- raw HTML omitted -->0 禁用<!-- raw HTML omitted -->1 启用</td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">SAMPLE</td>
+<td style="text-align:left"><strong>Sample Point</strong><!-- raw HTML omitted -->0 Input data sampled on SCK edge.<!-- raw HTML omitted -->0 禁用<!-- raw HTML omitted -->1 Input data sampled on delayed SCK edge</td>
+</tr>
+<tr>
+<td style="text-align:center">0</td>
+<td style="text-align:center">MASTER</td>
+<td style="text-align:left"><strong>Master Mode</strong><!-- raw HTML omitted -->0 Slave mode<!-- raw HTML omitted -->1 Master mode</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data-match-register-01-lpspix_dmr01">Data Match Register 0/1 (LPSPIx_DMR0/1)</h3>
+<p>之前说的 匹配值 寄存器，有两个分别是 0/1。</p>
+<h3 id="clock-configuration-register-lpspix_ccr">Clock Configuration Register (LPSPIx_CCR)</h3>
+<p>一些与时序有关的设置。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">31-24</td>
+<td style="text-align:center">SCKPCS</td>
+<td style="text-align:left"><strong>SCK to PCS Delay</strong><!-- raw HTML omitted -->主机模式下的最后一个 SCK 沿和 PCS 无效态的延时<!-- raw HTML omitted -->Delay=(SCKPCS+1)*波特率时钟周期</td>
+</tr>
+<tr>
+<td style="text-align:center">23-16</td>
+<td style="text-align:center">PCSSCK</td>
+<td style="text-align:left"><strong>PCS to SCK Delay</strong><!-- raw HTML omitted -->主机模式下的 PCS 有效态和 第一个 SCK 沿的延时<!-- raw HTML omitted -->Delay=(PCSSCK+1)*波特率时钟周期</td>
+</tr>
+<tr>
+<td style="text-align:center">15-8</td>
+<td style="text-align:center">DBT</td>
+<td style="text-align:left"><strong>Delay Between Transfers</strong><!-- raw HTML omitted -->PCS 无效态到下个有效态的间隔<!-- raw HTML omitted -->Delay=(DBT+2)*波特率时钟周期</td>
+</tr>
+<tr>
+<td style="text-align:center">7-0</td>
+<td style="text-align:center">SCKDIV</td>
+<td style="text-align:left"><strong>SCK Divider</strong><!-- raw HTML omitted -->设置 SCK 的分频时钟<!-- raw HTML omitted -->Divider=(SCKDIV+2)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fifo-control-register-lpspix_fcr">FIFO Control Register (LPSPIx_FCR)</h3>
+<p>控制 FIFO 的准备标志位。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">23-16</td>
+<td style="text-align:center">RXWATER</td>
+<td style="text-align:left"><strong>Receive FIFO Watermark</strong><!-- raw HTML omitted -->当 Rx FIFO 中装的字多于这个值就会使 RDF(Receive Data Flag) 置位</td>
+</tr>
+<tr>
+<td style="text-align:center">7-0</td>
+<td style="text-align:center">TXWATER</td>
+<td style="text-align:left"><strong>Transmit FIFO Watermark</strong><!-- raw HTML omitted -->当 Tx FIFO 中装的字少于这个值就会使 TDF(Transmit Data Flag) 置位</td>
+</tr>
+</tbody>
+</table>
+<h3 id="transmit-command-register-lpspix_tcr">Transmit Command Register (LPSPIx_TCR)</h3>
+<p>重头戏，这个寄存器控制发送数据的过程。这个叫做发送命令寄存器，好玩的是里面存的都是命令，当你写入命令的时候，这个命令会像数据一样被存入 Tx FIFO，当它被顶置到 FIFO 顶的时候，一般的数据帧会被发送出去，但它不会发送，相反的是，它会改变后续的发送数据的属性，这个特性使 LPSPI 可以在保持发送不断的情况下改变发送的属性（譬如片选和长度）。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Field</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">31</td>
+<td style="text-align:center">CPOL</td>
+<td style="text-align:left"><strong>Clock Polarity</strong><!-- raw HTML omitted -->0 不活跃 SCK 为 low<!-- raw HTML omitted -->1 不活跃 SCK 为 high</td>
+</tr>
+<tr>
+<td style="text-align:center">30</td>
+<td style="text-align:center">CPHA</td>
+<td style="text-align:left"><strong>Clock Phase</strong><!-- raw HTML omitted -->0 数据在前沿捕获在后沿改变<!-- raw HTML omitted -->1 数据在后沿捕获在前沿改变<!-- raw HTML omitted --><em>前沿是指从不活跃到活跃的跳变沿</em></td>
+</tr>
+<tr>
+<td style="text-align:center">29-27</td>
+<td style="text-align:center">PRESCALE</td>
+<td style="text-align:left"><strong>Prescaler Value</strong><!-- raw HTML omitted -->预分频时钟<!-- raw HTML omitted -->分频因子=2^(<code>PRESCALE</code>+1)</td>
+</tr>
+<tr>
+<td style="text-align:center">25-24</td>
+<td style="text-align:center">PCS</td>
+<td style="text-align:left"><strong>Peripheral Chip Select</strong><!-- raw HTML omitted -->片选<!-- raw HTML omitted -->使用 PCS[<code>PCS</code>]</td>
+</tr>
+<tr>
+<td style="text-align:center">23</td>
+<td style="text-align:center">LSBF</td>
+<td style="text-align:left"><strong>LSB First</strong><!-- raw HTML omitted -->定义发送数据的排序方式<!-- raw HTML omitted -->0 MSB 高字节优先<!-- raw HTML omitted -->1 LSB 低字节优先</td>
+</tr>
+<tr>
+<td style="text-align:center">22</td>
+<td style="text-align:center">BYSW</td>
+<td style="text-align:left"><strong>Byte Swap</strong><!-- raw HTML omitted -->内容置换，开启后将[31:24]和[7:0]互换，[23:16]与[15:8]互换<!-- raw HTML omitted -->0 内容置换关闭<!-- raw HTML omitted -->1 内容置换开启</td>
+</tr>
+<tr>
+<td style="text-align:center">21</td>
+<td style="text-align:center">CONT</td>
+<td style="text-align:left"><strong>Continuous Transfer</strong><!-- raw HTML omitted -->开启后一直保持 PCS 有效<!-- raw HTML omitted -->0 开启<!-- raw HTML omitted -->1 关闭</td>
+</tr>
+<tr>
+<td style="text-align:center">20</td>
+<td style="text-align:center">CONTC</td>
+<td style="text-align:left"><strong>Continuing Command</strong><!-- raw HTML omitted -->这个是开启了 <code>CONT=1</code> 后如果想要改变属性用的<!-- raw HTML omitted -->下一个命令必须和上一个命令规定的数据帧长度一样，并且将此位置 1<!-- raw HTML omitted -->0 开启一个新的传输过程<!-- raw HTML omitted -->1 继续不间断传输</td>
+</tr>
+<tr>
+<td style="text-align:center">19</td>
+<td style="text-align:center">RXMSK</td>
+<td style="text-align:left"><strong>Receive Data Mask</strong><!-- raw HTML omitted -->开启后不将接收到的数据存入FIFO<!-- raw HTML omitted -->0 禁用<!-- raw HTML omitted -->1 开启</td>
+</tr>
+<tr>
+<td style="text-align:center">18</td>
+<td style="text-align:center">TXMSK</td>
+<td style="text-align:left"><strong>Transmit Data Mask</strong><!-- raw HTML omitted -->开启后不能发送数据<!-- raw HTML omitted -->0 禁用<!-- raw HTML omitted -->1 开启</td>
+</tr>
+<tr>
+<td style="text-align:center">17-16</td>
+<td style="text-align:center">WIDTH</td>
+<td style="text-align:left"><strong>Transfer Width</strong><!-- raw HTML omitted -->传输的位宽<!-- raw HTML omitted -->00 单位传输<!-- raw HTML omitted -->01 两位传输<!-- raw HTML omitted -->10 四位传输<!-- raw HTML omitted --></td>
+</tr>
+<tr>
+<td style="text-align:center">11-0</td>
+<td style="text-align:center">FRAMESZ</td>
+<td style="text-align:left"><strong>Frame Size</strong><!-- raw HTML omitted -->帧的长度<!-- raw HTML omitted -->帧的长度=(<code>FRAMESZ</code>+1)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="transmit-data-register-lpspix_tdr">Transmit Data Register (LPSPIx_TDR)</h3>
+<p>32-bit 发送寄存器，当发送的数据不够 32 位时用 0 补齐。</p>
+<p>还有一些乱七八糟的寄存器像是 RDR 什么的，都和上面的类似，很好理解，就没有再给出了。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

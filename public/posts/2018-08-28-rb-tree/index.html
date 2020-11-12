@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    RB-Tree - Reading STL Source Code | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2018-08-28-rb-tree/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2018-08-28-rb-tree/" rel="bookmark">RB-Tree - Reading STL Source Code</a>
+  </h2>
+  
+  <time datetime="2018-08-28T00:00:00Z">
+    28 August, 2018
+  </time>
+  
+</header>
+
+  <p>红黑树的数据结构已经被研究了多年，最为最广泛应用的数据结构之一，因为其具有优良的特性，即自平衡性，所以无论在最坏或者是最好的输出中，红黑树的高度都十分稳定（<strong>红黑树可以能确保树的最长路径不大于两倍的最短路径的长度</strong>）。</p>
+<p>但是相对的，红黑树的操作也较为复杂，本文将会从 <strong>2-3 树出发</strong>，介绍 2-3 树到红黑树的演化，最后介绍目前 STL 模型中的红黑树模型实现，详细介绍红黑树的发展历程（红黑树算法还在不断地完善中，本文只是简要地叙述模型）。</p>
+<p>另外本文在未来还会补充 AA 树等其他的红黑树变种，但是更新看心情咯（当场去世）。AVL 树的内容我也会等未来慢慢添加进去的，不过 AVL 树没有红黑树应用广泛，而且实现方法其实和红黑树基本一样，所以就简单叙述了。</p>
+<p>首先说明一下，树和哈希表的对比，哈希表的读取插入性能强于树，但是哈希表在面对持续输入未知数据的情况下，无法做到每个键值都是唯一的，而且哈希表需要更大的空间来存放，所以树在针对动态数据的情况下，还是十分重要的。而对于已知的静态数据来说，通过不同的算法实现哈希表还是更为高效的。</p>
+<h2 id="二叉树的缺点">二叉树的缺点</h2>
+<p>为什么我们不使用二叉树作为各种容器的数据结构呢，因为二叉树的稳定性比较差。我们知道，二叉树的高度其实是没有保证的，也就是说，如果在遇到连续顺序输入的情况下，二叉树的高度会非常的高，这样查找的时间效率会近似于 O(N)，达不到使用的要求。</p>
+<p>所以，人们在一开始就思考，我们可以通过一些小小的变换使得二叉树成为平衡的树嘛，于是就产生了 AVL 树。AVL 树和红黑树类似，也是一种自平衡二叉树，实现过程也与红黑树类似，但是由于 AVL 树对于平衡的要求比较严格，所以在自平衡的过程中，旋转的次数比较多，虽然 AVL 树和红黑树的算法复杂度一样，但是统计出的性能不如红黑树。</p>
+<h2 id="2-3-查找树">2-3 查找树</h2>
+<p>我们使得一个标准的二叉查找树同时具有二叉节点和三叉节点。</p>
+<p><img src="/img/2018-8-28-RB-tree/2-3-1.png" alt=""></p>
+<p>2-3 查找树的查找行为，是与二叉树类似的，但是又有些不同，因为具有了三叉节点，所以查找的时候有可能遇到 3 节点或者 2 节点，需要根据情况判断：</p>
+<p><img src="/img/2018-8-28-RB-tree/2-3-2.png" alt=""></p>
+<p>具体的 2-3 树的插入，删除，替换细节不做过多介绍，但是在看下面的内容之前，最好还是先了解一下 2-3 树的变换过程：
+<a href="https://en.wikipedia.org/wiki/2%E2%80%933_tree#Operations">2-3 Tree Operation</a></p>
+<p>很简单，容易理解，2 节点插入就变为 3 节点，3 节点插入就变成 4 节点，然后转变成为三个 2 节点，其中的父节点和上层节点结合。通过仔细观察，这两种变换过程都保证了一个细节，也就是不管怎么插入，2-3 树都是平衡的，红黑树正是利用了这种性质，我们接下来会介绍红黑树的结构。</p>
+<h2 id="红黑树定义">红黑树定义</h2>
+<p>既然大家都有一样的性质，为什么不用 2-3 树而偏要用红黑树呢？通过之前的描述我们就能看出来，2-3 树具有两种节点，我们需要维护两种同类型的节点，再插入时需要在两种节点间进行类型转换，实现这些过程需要大量的代码，而且效率也不高。我们希望利用更少的代码和开销来实现这种功能，这就是红黑树。</p>
+<p>红黑树的基本思想是只利用标准的二叉查找树，和一些额外的信息（颜色）来表示 2-3 树。树中的链接被分为两类，一类是红链接，另外一类是黑链接。被红链接链接的两个节点相当于是一个三节点。红链接满足以下条件：</p>
+<ol>
+<li>红链接均为左链接</li>
+<li>没有任何一个节点同时和两条红链接相连</li>
+<li>树是完美平衡的，任意 NULL 链接通往根节点的路径上，黑链接的数量为定值。</li>
+</ol>
+<h2 id="红黑树的实现">红黑树的实现</h2>
+<p>这里红黑树的实现参考了 STL 函数库：</p>
+<h3 id="rb-tree-node">RB-Tree Node</h3>
+<p>红黑树分为红黑两种颜色，在我们之前的描述中，被红色链接链接的子节点为红色节点，被黑色链接链接的节点为黑色节点。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">bool</span> __rb_tree_color_type;
+<span style="color:#66d9ef">const</span> __rb_tree_color_type __rb_tree_red <span style="color:#f92672">=</span> false;
+<span style="color:#66d9ef">const</span> __rb_tree_color_type __rb_tree_red <span style="color:#f92672">=</span> true;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">__rb_tree_node_base</span>
+{
+	<span style="color:#66d9ef">typedef</span> __rb_tree_color_type color_type;
+	<span style="color:#66d9ef">typedef</span> __rb_tree_node_base<span style="color:#f92672">*</span> base_ptr;
+
+	color_type color; <span style="color:#75715e">// Color of the node, RED or BLACK
+</span><span style="color:#75715e"></span>	base_ptr parent; <span style="color:#75715e">// Child node can trace back to Root
+</span><span style="color:#75715e"></span>	base_ptr left; <span style="color:#75715e">// Left child ptr
+</span><span style="color:#75715e"></span>	base_ptr right; <span style="color:#75715e">// Right child ptr
+</span><span style="color:#75715e"></span>
+	<span style="color:#66d9ef">static</span> base_ptr <span style="color:#a6e22e">minimum</span>(base_ptr x)
+	{   <span style="color:#75715e">// Find the smallest value 
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">while</span> (x<span style="color:#f92672">-&gt;</span>left <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>) x <span style="color:#f92672">=</span> x<span style="color:#f92672">-&gt;</span>left; 
+		<span style="color:#66d9ef">return</span> x;
+	}
+
+	<span style="color:#66d9ef">static</span> base_ptr <span style="color:#a6e22e">maximum</span>(base_ptr x)
+	{
+		<span style="color:#66d9ef">while</span> (x<span style="color:#f92672">-&gt;</span>right <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)x <span style="color:#f92672">=</span> x<span style="color:#f92672">-&gt;</span>right;
+		<span style="color:#66d9ef">return</span> x;
+	}
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Value</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">__rb_tree_node</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> __rb_tree_node_base 
+{
+	<span style="color:#66d9ef">typedef</span> __rb_tree_node<span style="color:#f92672">&lt;</span>Value<span style="color:#f92672">&gt;*</span> link_type;
+	Value value_field;
+};
+</code></pre></div>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

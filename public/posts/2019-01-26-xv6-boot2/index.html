@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    xv6 Chapter 2 - Boot Loader | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2019-01-26-xv6-boot2/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2019-01-26-xv6-boot2/" rel="bookmark">xv6 Chapter 2 - Boot Loader</a>
+  </h2>
+  
+  <time datetime="2019-01-26T00:00:00Z">
+    26 January, 2019
+  </time>
+  
+</header>
+
+  <p>This post is based on materials from MIT class code 6.828, namely xv6. In the <a href="https://xiahua.blog/2019/01/25/2019-1-26-xv6-Boot1/">last section</a> we talked about the bootstrap for xv6, and after that we need to load the kernel into memory.</p>
+<p>Because the BIOS boot loader only loaded 512 bytes program on disk sector 1, we still need more program, to be read from disk, thus, we need a boot loader to call for this duty.</p>
+<h1 id="what-is-a-boot-loader">What is a boot loader</h1>
+<p>Boot loader do a simply task, transporting code from some place to main memory. In xv6, the boot loader read full elf of the kernel, then parsed the file, allocate different segments at different place in the memory. First thing, we need to know the elf file format that boot loader carried.</p>
+<p>Elf file consists a lot information that is not run by processor, including machine information, system information, and code segments. We can also check for this information to validate the elf file, whether it is executable.</p>
+<h1 id="elf-file-structure">ELF file structure</h1>
+<p>Elf files can be divided into two types, linkable elf files and executable elf files. They are of similar structure, except the second section, program header is optional in linkable elf and is necessary in executable elf.</p>
+<pre><code>     Executable ELF
+-----------------------
+|     ELF header      |
+-----------------------
+|   Program header    | &lt;-- *Optional in linkable ELF
+|        table        |     *Necessary in executable ELF
+-----------------------
+|        .text        |
+-----------------------
+|        .data        |
+-----------------------
+|// .bss/.stab/etc. //|
+-----------------------
+|   Segment header    |
+|        table        |
+-----------------------
+note: Program header table is called 
+      Section header table in a linkable elf.
+</code></pre><p><strong>ELF header</strong> stores the information about this elf file, it starts at offset 0 in elf.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Position (32 bit)</th>
+<th style="text-align:left">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">0-3</td>
+<td style="text-align:left"><strong>Magic number - 0x7F</strong>, then &lsquo;ELF&rsquo; in ASCII</td>
+</tr>
+<tr>
+<td style="text-align:left">4</td>
+<td style="text-align:left">1 = 32 bit, 2 = 64 bit</td>
+</tr>
+<tr>
+<td style="text-align:left">5</td>
+<td style="text-align:left">1 = little endian, 2 = big endian</td>
+</tr>
+<tr>
+<td style="text-align:left">6</td>
+<td style="text-align:left">ELF Version</td>
+</tr>
+<tr>
+<td style="text-align:left">7</td>
+<td style="text-align:left">OS ABI - usually 0 for System V</td>
+</tr>
+<tr>
+<td style="text-align:left">8-15</td>
+<td style="text-align:left">Unused/padding</td>
+</tr>
+<tr>
+<td style="text-align:left">16-17</td>
+<td style="text-align:left">1 = relocatable, 2 = executable, 3 = shared, 4 = core</td>
+</tr>
+<tr>
+<td style="text-align:left">18-19</td>
+<td style="text-align:left">Instruction set - see table below</td>
+</tr>
+<tr>
+<td style="text-align:left">20-23</td>
+<td style="text-align:left">ELF Version</td>
+</tr>
+<tr>
+<td style="text-align:left">24-27</td>
+<td style="text-align:left">Program entry position</td>
+</tr>
+<tr>
+<td style="text-align:left">28-31</td>
+<td style="text-align:left">Program header table position</td>
+</tr>
+<tr>
+<td style="text-align:left">32-35</td>
+<td style="text-align:left">Section header table position</td>
+</tr>
+<tr>
+<td style="text-align:left">36-39</td>
+<td style="text-align:left">Flags - architecture dependent; <strong>see note below</strong></td>
+</tr>
+<tr>
+<td style="text-align:left">40-41</td>
+<td style="text-align:left">Header size</td>
+</tr>
+<tr>
+<td style="text-align:left">42-43</td>
+<td style="text-align:left"><strong>Size of an entry in the program header table</strong></td>
+</tr>
+<tr>
+<td style="text-align:left">44-45</td>
+<td style="text-align:left"><strong>Number of entries in the program header table</strong></td>
+</tr>
+<tr>
+<td style="text-align:left">46-47</td>
+<td style="text-align:left">Size of an entry in the section header table</td>
+</tr>
+<tr>
+<td style="text-align:left">48-49</td>
+<td style="text-align:left">Number of entries in the section header table</td>
+</tr>
+<tr>
+<td style="text-align:left">50-51</td>
+<td style="text-align:left">Index in section header table with the section names</td>
+</tr>
+</tbody>
+</table>
+<p>Bold words are used later in the program, please take attention to them.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Architecture</th>
+<th style="text-align:left">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">No Specific</td>
+<td style="text-align:left">0</td>
+</tr>
+<tr>
+<td style="text-align:left">Sparc</td>
+<td style="text-align:left">2</td>
+</tr>
+<tr>
+<td style="text-align:left">x86</td>
+<td style="text-align:left">3</td>
+</tr>
+<tr>
+<td style="text-align:left">MIPS</td>
+<td style="text-align:left">8</td>
+</tr>
+<tr>
+<td style="text-align:left">PowerPC</td>
+<td style="text-align:left">0x14</td>
+</tr>
+<tr>
+<td style="text-align:left">ARM</td>
+<td style="text-align:left">0x28</td>
+</tr>
+<tr>
+<td style="text-align:left">SuperH</td>
+<td style="text-align:left">0x2A</td>
+</tr>
+<tr>
+<td style="text-align:left">IA-64</td>
+<td style="text-align:left">0x32</td>
+</tr>
+<tr>
+<td style="text-align:left">x86-64</td>
+<td style="text-align:left">0x3E</td>
+</tr>
+<tr>
+<td style="text-align:left">AArch64</td>
+<td style="text-align:left">0xB7</td>
+</tr>
+</tbody>
+</table>
+<p>Program table is following ELF header, for each entry, the format below:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Position</th>
+<th style="text-align:left">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">0-3</td>
+<td style="text-align:left">Type of segment (see below)</td>
+</tr>
+<tr>
+<td style="text-align:left">4-7</td>
+<td style="text-align:left">The offset in the file that the data for this segment can be found (p_offset)</td>
+</tr>
+<tr>
+<td style="text-align:left">8-11</td>
+<td style="text-align:left">Where you should start to put this segment in virtual memory (p_vaddr)</td>
+</tr>
+<tr>
+<td style="text-align:left">12-15</td>
+<td style="text-align:left">Undefined for the System V ABI</td>
+</tr>
+<tr>
+<td style="text-align:left">16-19</td>
+<td style="text-align:left">Size of the segment in the file (p_filesz)</td>
+</tr>
+<tr>
+<td style="text-align:left">20-23</td>
+<td style="text-align:left">Size of the segment in memory (p_memsz)</td>
+</tr>
+<tr>
+<td style="text-align:left">24-27</td>
+<td style="text-align:left">Flags (see below)</td>
+</tr>
+<tr>
+<td style="text-align:left">28-31</td>
+<td style="text-align:left">The required alignment for this section (must be a power of 2)</td>
+</tr>
+</tbody>
+</table>
+<p>Segment types:</p>
+<ul>
+<li>0 = null - ignore the entry;</li>
+<li>1 = load - clear p_memsz bytes at p_vaddr to 0, then copy p_filesz bytes from p_offset to p_vaddr;</li>
+<li>2 = dynamic - requires dynamic linking;</li>
+<li>3 = interp - contains a file path to an executable to use as an interpreter for the following segment;</li>
+<li>4 = note section.</li>
+</ul>
+<p>There are more numbers for segment types, but most of them are related with operation system and processor architecture, mainstream segment types are above ones.</p>
+<p>Flags:</p>
+<ul>
+<li>1 = executable,</li>
+<li>2 = writable,</li>
+<li>4 = readable.</li>
+</ul>
+<p>For our boot loader program, we care <code>.data</code> and <code>.text</code> segments most in elf file, so how to locate them in a elf file is the biggest problem for us.</p>
+<p><img src="https://wiki.osdev.org/images/f/fe/Elfdiagram.png" alt="ELF re-mapping"></p>
+<p>The boot loader need first to read value from ELF header and get the information about program header table. We can see in the bytes definition of elf header that bytes <strong>42-45</strong> is the size of program header table, so we search for every entry in the program header table, then get the information about every segment including offset and size. The final move is reading from the disk at specific offset and size and copy the segment into memory.</p>
+<p>Let us focusing on the codes.</p>
+<h1 id="bootmainc-code-notes">bootmain.c code notes</h1>
+<p>It is a good habit to start at reading the code header notes. <code>bootmain.c:1-6</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Boot loader.
+</span><span style="color:#75715e">// 
+</span><span style="color:#75715e">// Part of the boot sector, along with bootasm.S, which calls bootmain().
+</span><span style="color:#75715e">// bootasm.S has put the processor into protected 32-bit mode.
+</span><span style="color:#75715e">// bootmain() loads an ELF kernel image from the disk starting at
+</span><span style="color:#75715e">// sector 1 and then jumps to the kernel entry routine.
+</span></code></pre></div><p>elf 指针被强制指向了 <code>0x10000</code> 地址，这是因为我们接下来要将 elf 文件整个放到 <code>0x10000</code> 地址起始的后面的空间内。代码定位 <code>bootmain.c:20-28</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">  <span style="color:#66d9ef">struct</span> elfhdr <span style="color:#f92672">*</span>elf;
+  <span style="color:#66d9ef">struct</span> proghdr <span style="color:#f92672">*</span>ph, <span style="color:#f92672">*</span>eph;
+  <span style="color:#66d9ef">void</span> (<span style="color:#f92672">*</span>entry)(<span style="color:#66d9ef">void</span>);
+  uchar<span style="color:#f92672">*</span> va;
+
+  elf <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> elfhdr<span style="color:#f92672">*</span>)<span style="color:#ae81ff">0x10000</span>;  <span style="color:#75715e">// scratch space
+</span><span style="color:#75715e"></span>  
+  <span style="color:#75715e">// Read 1st page off disk
+</span><span style="color:#75715e"></span>  readseg((uchar<span style="color:#f92672">*</span>)elf, <span style="color:#ae81ff">4096</span>, <span style="color:#ae81ff">0</span>);
+</code></pre></div><p>These structs are defined in header file <code>elf.h</code>. The destination address is <code>0x10000</code>.</p>
+<p>There are two sub-functions that manage reading from disk, <code>readseg</code> and <code>readsect</code>. <code>bootmain.c:76-96</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Read &#39;count&#39; bytes at &#39;offset&#39; from kernel into virtual address &#39;va&#39;.
+</span><span style="color:#75715e">// Might copy more than asked.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">readseg</span>(uchar<span style="color:#f92672">*</span> va, uint count, uint offset)
+{
+  uchar<span style="color:#f92672">*</span> eva;
+
+  eva <span style="color:#f92672">=</span> va <span style="color:#f92672">+</span> count;
+
+  <span style="color:#75715e">// Round down to sector boundary.
+</span><span style="color:#75715e"></span>  va <span style="color:#f92672">-=</span> offset <span style="color:#f92672">%</span> SECTSIZE;
+
+  <span style="color:#75715e">// Translate from bytes to sectors; kernel starts at sector 1.
+</span><span style="color:#75715e"></span>  offset <span style="color:#f92672">=</span> (offset <span style="color:#f92672">/</span> SECTSIZE) <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+
+  <span style="color:#75715e">// If this is too slow, we could read lots of sectors at a time.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// We&#39;d write more to memory than asked, but it doesn&#39;t matter --
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// we load in increasing order.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">for</span>(; va <span style="color:#f92672">&lt;</span> eva; va <span style="color:#f92672">+=</span> SECTSIZE, offset<span style="color:#f92672">++</span>)
+    readsect(va, offset);
+}
+</code></pre></div><p><code>readsect()</code> is an low-level function, it reads a sector of given sector number. <code>SECTSIZE/4</code> is because the asm <code>insl</code> reads data in double words (4 bytes).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">waitdisk</span>(<span style="color:#66d9ef">void</span>)
+{
+  <span style="color:#75715e">// Wait for disk ready.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">while</span>((inb(<span style="color:#ae81ff">0x1F7</span>) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">0xC0</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0x40</span>)
+    ;
+}
+
+<span style="color:#75715e">// Read a single sector at offset into dst.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">readsect</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>dst, uint offset)
+{
+  <span style="color:#75715e">// Issue command.
+</span><span style="color:#75715e"></span>  waitdisk();
+  outb(<span style="color:#ae81ff">0x1F2</span>, <span style="color:#ae81ff">1</span>);   <span style="color:#75715e">// count = 1
+</span><span style="color:#75715e"></span>  outb(<span style="color:#ae81ff">0x1F3</span>, offset);
+  outb(<span style="color:#ae81ff">0x1F4</span>, offset <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">8</span>);
+  outb(<span style="color:#ae81ff">0x1F5</span>, offset <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">16</span>);
+  outb(<span style="color:#ae81ff">0x1F6</span>, (offset <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">24</span>) <span style="color:#f92672">|</span> <span style="color:#ae81ff">0xE0</span>);
+  outb(<span style="color:#ae81ff">0x1F7</span>, <span style="color:#ae81ff">0x20</span>);  <span style="color:#75715e">// cmd 0x20 - read sectors
+</span><span style="color:#75715e"></span>
+  <span style="color:#75715e">// Read data.
+</span><span style="color:#75715e"></span>  waitdisk();
+  insl(<span style="color:#ae81ff">0x1F0</span>, dst, SECTSIZE<span style="color:#f92672">/</span><span style="color:#ae81ff">4</span>);
+}
+</code></pre></div><p>Because the mechanics of hard disk, we can only get access to a full sector once. When we want to get data from specified offset, we need to read all the sectors that contains the data. That means we have to read more data than we need, and the redundant data is trash data we need to sweep away.</p>
+<ul>
+<li>Round down the offset to the sector beginning.</li>
+<li>Read until the end of the final sector.</li>
+</ul>
+<p>The first elf header data comes from the beginning sector 2, so there will not be any round down, but after the first read,  there is no guarantee about segments always meet the boundaries of disk sectors.</p>
+<p>Magic number lies in the fixed offset in an elf, so we can check Magic number to validate the elf. <code>bootmain.c:30-32</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">  <span style="color:#75715e">// Is this an ELF executable?
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span>(elf<span style="color:#f92672">-&gt;</span>magic <span style="color:#f92672">!=</span> ELF_MAGIC)
+    <span style="color:#66d9ef">return</span>;  <span style="color:#75715e">// let bootasm.S handle error
+</span></code></pre></div><p><code>return</code>? where does processor go? Actually it returns to <code>bootasm.S</code> and execute the error handler, which will transmit an error to the virtual machine we are using through an special I/O port.</p>
+<p>Now we have checked the elf, next we start carrying things into memory. <code>bootmain.c:34-42</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">  <span style="color:#75715e">// Load each program segment (ignores ph flags).
+</span><span style="color:#75715e"></span>  ph <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> proghdr<span style="color:#f92672">*</span>)((uchar<span style="color:#f92672">*</span>)elf <span style="color:#f92672">+</span> elf<span style="color:#f92672">-&gt;</span>phoff);
+  eph <span style="color:#f92672">=</span> ph <span style="color:#f92672">+</span> elf<span style="color:#f92672">-&gt;</span>phnum;
+  <span style="color:#66d9ef">for</span>(; ph <span style="color:#f92672">&lt;</span> eph; ph<span style="color:#f92672">++</span>) {
+    va <span style="color:#f92672">=</span> (uchar<span style="color:#f92672">*</span>)(ph<span style="color:#f92672">-&gt;</span>va <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">0xFFFFFF</span>);
+    readseg(va, ph<span style="color:#f92672">-&gt;</span>filesz, ph<span style="color:#f92672">-&gt;</span>offset);
+    <span style="color:#66d9ef">if</span>(ph<span style="color:#f92672">-&gt;</span>memsz <span style="color:#f92672">&gt;</span> ph<span style="color:#f92672">-&gt;</span>filesz)
+      stosb(va <span style="color:#f92672">+</span> ph<span style="color:#f92672">-&gt;</span>filesz, <span style="color:#ae81ff">0</span>, ph<span style="color:#f92672">-&gt;</span>memsz <span style="color:#f92672">-</span> ph<span style="color:#f92672">-&gt;</span>filesz);
+  }
+</code></pre></div><p>The first 4096 bytes was loaded, we assumed both the elf header and program header table are in the 4096 bytes. Next we checked the Magic number, then we searched for every entry in the program table and copy segments into memory.</p>
+<p>Here we used <code>stosb</code> function to padding the segment, in fact, to clear the accompanying trash code between sectors and the code. <code>x86.h:42-49</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> <span style="color:#66d9ef">void</span> <span style="color:#75715e">// store some(cnt) bytes(data) to addr(addr)
+</span><span style="color:#75715e"></span>stosb(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>addr, <span style="color:#66d9ef">int</span> data, <span style="color:#66d9ef">int</span> cnt)
+{
+  <span style="color:#66d9ef">asm</span> <span style="color:#66d9ef">volatile</span>(<span style="color:#e6db74">&#34;cld; rep stosb&#34;</span> <span style="color:#f92672">:</span>
+               <span style="color:#e6db74">&#34;=D&#34;</span> (addr), <span style="color:#e6db74">&#34;=c&#34;</span> (cnt) <span style="color:#f92672">:</span>
+               <span style="color:#e6db74">&#34;0&#34;</span> (addr), <span style="color:#e6db74">&#34;1&#34;</span> (cnt), <span style="color:#e6db74">&#34;a&#34;</span> (data) <span style="color:#f92672">:</span>
+               <span style="color:#e6db74">&#34;memory&#34;</span>, <span style="color:#e6db74">&#34;cc&#34;</span>);
+}
+</code></pre></div><p>In the end, we cast entry into a function pointer and call the function, all done!</p>
+<h1 id="read-world">Read World</h1>
+<p>The boot loader described in this chapter compiles to around 470 bytes of machine code, depending on the optimizations used when compiling the C code. In order to fit in that small amount of space, the xv6 boot loader makes a major simplifying assumption, that the kernel has been written to the boot disk contiguously starting at sector 1. More commonly, kernels are stored in ordinary file system, where they may not be contiguous, or are loaded over a network. These complications require the boot loader to be able to drive a variety of disk and network controllers and understand various file system and network protocols. In other words, the boot loader itself must be a small operation system. Since such complicated boot loader certainly won&rsquo;t fit in 512 bytes, most PC operating systems use a two-step boot process.</p>
+<p>First, a simple boot loader like the one in this appendix loads a full-featured boot loader from a known disk location, often relying on the less space-constrained BIOS for disk access rather than trying to drive the disk itself. The full loader, relieved of the 512-byte limit, can implement the complexity needed to locate, load, and execute the desired kernel. Modern PCs avoid many of the above complexities, because they support the Unified Extensible Firmware Interface (UEFI), which allows PC to read a larger boot loader from the disk (and start in protected and 32-bit mode).</p>
+<p>The Chapter 1 and Chapter 2 is written as if the only thing that happens between power on and the execution of boot loader is that the BIOS loads the boot sector. In fact the BIOS does a huge amount of initialization in order to make the complex hardware of a modern computer look like a traditional standard PC. The BIOS is really a small operating system embedded in the hardware, which is present after the computer has booted.</p>
+<h1 id="exercises--answer">Exercises &amp; Answer</h1>
+<ol>
+<li>Due to sector granularity, the call to <code>readseg</code> in the text is equivalent to <code>readseg((uchar*)0x100000, 0xb500, 0x1000)</code>. In practice, this sloppy behavior turns out not to be a problem. Why doesn&rsquo;t the sloppy readsect cause problems?</li>
+</ol>
+<blockquote>
+<p>Very easy if you carefully read the code, <code>readseg</code> performs a offset round down before reading, so the actual offset transferred to <code>readsect</code> is always aligned to the border of sectors.</p>
+</blockquote>
+<ol start="2">
+<li>Suppose you wanted <code>bootmain()</code> to load the kernel at 0x20000 instead of 0x100000, and you did so by modifying <code>bootmain()</code> to add 0x100000 to the va of each ELF section. Something would go wrong. What?</li>
+</ol>
+<blockquote>
+<p>This question is tricky. It won&rsquo;t cause any problems until we call <code>p-&gt;entry</code>. The entry in memory has been move backwards by 0x100000, whereas the <code>p-&gt;entry</code> points to the original va.</p>
+</blockquote>
+<ol start="3">
+<li>It seems potentially dangerous for the boot loader to copy the ELF header to memory at the arbitray location 0x10000. Why doesn&rsquo;t it call <code>malloc</code> to obtain the memory it needs?</li>
+</ol>
+<blockquote>
+<p>This question is stupid. <code>malloc</code> need system call <code>sbrk()</code> to implement. We cannot use <code>malloc</code> because we haven&rsquo;t imported the kernel yet.</p>
+</blockquote>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>

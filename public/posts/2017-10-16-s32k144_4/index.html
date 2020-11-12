@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.78.0-DEV" />
+  
+  
+  
+  <title>
+    
+    S32K144EVB Notes 4 | Xiahua
+    
+  </title>
+  <link rel="canonical" href="/posts/2017-10-16-s32k144_4/">
+  
+  
+  
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/base.min.a325db5a8beaa47e0541e6117eb67c3bc54cf8945100141e8a9defb2533f7344.css" integrity="sha256-oyXbWovqpH4FQeYRfrZ8O8VM&#43;JRRABQeip3vslM/c0Q=" crossorigin="anonymous">
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <nav class="u-background">
+  <div class="u-wrapper">
+    <ul class="Banner">
+      <li class="Banner-item Banner-item--title">
+        <a class="Banner-link u-clickable" href="">Xiahua</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="https://github.com/xiahualiu">About</a>
+      </li>
+      
+      <li class="Banner-item">
+        <a class="Banner-link u-clickable" href="index.xml">RSS</a>
+      </li>
+      
+    </ul>
+  </div>
+</nav>
+
+  <main>
+    <div class="u-wrapper">
+      <div class="u-padding">
+        
+
+<article>
+  <header class="Heading">
+  <h2 class="Heading-title">
+    <a class="Heading-link u-clickable" href="/posts/2017-10-16-s32k144_4/" rel="bookmark">S32K144EVB Notes 4</a>
+  </h2>
+  
+  <time datetime="2017-10-16T00:00:00Z">
+    16 October, 2017
+  </time>
+  
+</header>
+
+  <p>这一节的主要内容是在（三）的基础上实现 NVIC 中断控制和处理</p>
+<h1 id="本节程序包含的步骤">本节程序包含的步骤：</h1>
+<ol>
+<li>
+<p>初始化 NVIC 需要写入三次：</p>
+<ul>
+<li>清楚所有的悬置中断（以防有）, 写 1 到 ICPR(Interrupt Clear Pending Register)</li>
+<li>开启需要的中断位, 写 1 到需要的 ISER(Interrupt Set Enable Register) 位</li>
+<li>设置中断优先级, 在 IP(Interrupt Priority register) 中写 0 - 15 优先级，该芯片的IP</li>
+</ul>
+</li>
+<li>
+<p>初始化 PORT D 使之成为 GPIO output 状态</p>
+</li>
+<li>
+<p>初始化 SOSC 为 8MHz：
+-初始化需要的 SOSC 分频器</p>
+<ul>
+<li>设置范围，低增益，参考晶振为内部输入</li>
+<li>确认 SOSC 状态寄存器解锁</li>
+<li>在 SOSCCSR 中使能</li>
+<li>等待 SOSCCSR_SOSCVLD 有效位等于 1</li>
+</ul>
+</li>
+<li>
+<p>初始化 SPLL 到 160MHz 使用 8MHz 的 SOSC</p>
+<ul>
+<li>确认 SPLL 处于关闭状态</li>
+<li>初始化 SPLL 的分频器</li>
+<li>初始化 SPLL Pef 分频器和 SPLL 倍率</li>
+<li>确认 SPLLCSR 解锁</li>
+<li>使能 SPLL</li>
+<li>等待 SPLL 有效</li>
+</ul>
+</li>
+<li>
+<p>初始化 LPIT0 通道 0:</p>
+<ul>
+<li>在 PCC 中选择时钟为 SPLL_DIV2_CLK</li>
+<li>在 PCC 中开启 LPIT0 Gate</li>
+<li>在 MCR 中开启 M_EN 开启 LPIT0 模块</li>
+<li>在 MIER 寄存器中开启中断功能</li>
+<li>在 TMR[n].TVAL 和 TMR[n].TCTRL (也可以在 TVAL0 或者 TCTRL0) 中设置初值和工作模式并开启T_EN</li>
+</ul>
+</li>
+<li>
+<p>开启 RUN 模式给 SPLL</p>
+<ul>
+<li>初始化 COREDIV, BUSDIV, SLOWDIV 给目标频率</li>
+<li>将系统时钟源输出至 SPLL</li>
+</ul>
+</li>
+<li>
+<p>LPIT_0 通道 0 NVIC 中断处理程序：</p>
+<ul>
+<li>增加中断计数器</li>
+<li>翻转 GPIO PTD0 输出</li>
+<li>清空通道中断标志位 MSR 中的 TIF0 位</li>
+</ul>
+</li>
+</ol>
+<h1 id="代码">代码:</h1>
+<h3 id="主体">主体：</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34; /* include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;clocks_and_modes.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> idle_counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* main loop idle counter */</span>
+<span style="color:#66d9ef">int</span> lpit0_ch0_flag_counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* LPIT0 chan 0 timeout counter */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">NVIC_init_IRQs</span> (<span style="color:#66d9ef">void</span>) {
+FSL_NVIC<span style="color:#f92672">-&gt;</span>ICPR[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> (<span style="color:#ae81ff">48</span> <span style="color:#f92672">%</span> <span style="color:#ae81ff">32</span>); <span style="color:#75715e">/* IRQ48-LPIT0 ch0: clr any pending IRQ*/</span>
+FSL_NVIC<span style="color:#f92672">-&gt;</span>ISER[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> (<span style="color:#ae81ff">48</span> <span style="color:#f92672">%</span> <span style="color:#ae81ff">32</span>); <span style="color:#75715e">/* IRQ48-LPIT0 ch0: enable IRQ */</span>
+FSL_NVIC<span style="color:#f92672">-&gt;</span>IP[<span style="color:#ae81ff">48</span>] <span style="color:#f92672">=</span><span style="color:#ae81ff">0x0A</span>; <span style="color:#75715e">/* IRQ48-LPIT0 ch0: priority 10 of 0-15*/</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PORT_init</span> (<span style="color:#66d9ef">void</span>) {
+PCC<span style="color:#f92672">-&gt;</span> PCCn[PCC_PORTD_INDEX] <span style="color:#f92672">=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clock for PORT D */</span>
+PTD<span style="color:#f92672">-&gt;</span>PDDR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* Port D0: Data Direction= output */</span>
+PORTD<span style="color:#f92672">-&gt;</span>PCR[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000100</span>; <span style="color:#75715e">/* Port D0: MUX = ALT1, GPIO (to blue LED on EVB) */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">LPIT0_init</span> (<span style="color:#66d9ef">void</span>) {
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_LPIT0_INDEX] <span style="color:#f92672">=</span> PCC_PCCn_PCS(<span style="color:#ae81ff">6</span>); <span style="color:#75715e">/* Clock Src = 6 (SPLL2_DIV2_CLK)*/</span>
+PCC<span style="color:#f92672">-&gt;</span>PCCn[PCC_LPIT0_INDEX] <span style="color:#f92672">|=</span> PCC_PCCn_CGC_MASK; <span style="color:#75715e">/* Enable clk to LPIT0 regs */</span>
+LPIT0<span style="color:#f92672">-&gt;</span>MCR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* DBG_EN-0: Timer chans stop in Debug mode */</span>
+<span style="color:#75715e">/* DOZE_EN=0: Timer chans are stopped in DOZE mode */</span>
+<span style="color:#75715e">/* SW_RST=0: SW reset does not reset timer chans, regs */</span>
+<span style="color:#75715e">/* M_CEN=1: enable module clk (allow writing other LPIT0 regs) */</span>
+LPIT0<span style="color:#f92672">-&gt;</span>MIER <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* TIE0=1: Timer Interrupt Enabled fot Chan 0 */</span>
+LPIT0<span style="color:#f92672">-&gt;</span>TVAL0 <span style="color:#f92672">=</span> <span style="color:#ae81ff">80000000</span>; <span style="color:#75715e">/* Chan 0 Timeout period: 80M clocks */</span>
+LPIT0<span style="color:#f92672">-&gt;</span>TCTRL0 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* T_EN=1: Timer channel is enabled */</span>
+<span style="color:#75715e">/* CHAIN=0: channel chaining is disabled */</span>
+<span style="color:#75715e">/* MODE=0: 32 periodic counter mode */</span>
+<span style="color:#75715e">/* TSOT=0: Timer decrements immediately based on restart */</span>
+<span style="color:#75715e">/* TSOI=0: Timer does not stop after timeout */</span>
+<span style="color:#75715e">/* TROT=0 Timer will not reload on trigger */</span>
+<span style="color:#75715e">/* TRG_SRC=0: External trigger source */</span>
+<span style="color:#75715e">/* TRG_SEL=0: Timer chan 0 trigger source is selected*/</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">WDOG_disable</span> (<span style="color:#66d9ef">void</span>){
+WDOG<span style="color:#f92672">-&gt;</span>CNT<span style="color:#f92672">=</span><span style="color:#ae81ff">0xD928C520</span>; <span style="color:#75715e">/*Unlock watchdog*/</span>
+WDOG<span style="color:#f92672">-&gt;</span>TOVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0x0000FFFF</span>; <span style="color:#75715e">/*Maximum timeout value*/</span>
+WDOG<span style="color:#f92672">-&gt;</span>CS <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00002100</span>; <span style="color:#75715e">/*Disable watchdog*/</span>
+}
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>) {
+WDOG_disable();
+PORT_init(); <span style="color:#75715e">/* Configure ports */</span>
+SOSC_init_8MHz(); <span style="color:#75715e">/* Initialize system oscillator for 8 MHz xtal */</span>
+SPLL_init_160MHz(); <span style="color:#75715e">/* Initialize SPLL to 160 MHz with 8 MHz SOSC */</span>
+NormalRUNmode_80MHz(); <span style="color:#75715e">/* Init clocks: 80 MHz sysclk &amp; core, 40 MHz bus, 20 MHz flash */</span>
+NVIC_init_IRQs(); <span style="color:#75715e">/* Enable desired interrupts and priorities */</span>
+LPIT0_init(); <span style="color:#75715e">/* Initialize PIT0 for 1 second timeout */</span>
+<span style="color:#66d9ef">for</span> (;;) {
+idle_counter<span style="color:#f92672">++</span>;
+}
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">LPIT0_Ch0_IRQHandler</span> (<span style="color:#66d9ef">void</span>) {
+lpit0_ch0_flag_counter<span style="color:#f92672">++</span>; <span style="color:#75715e">/* Increment LPIT0 timeout counter */</span>
+PTD<span style="color:#f92672">-&gt;</span>PTOR <span style="color:#f92672">|=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">0</span>; <span style="color:#75715e">/* Toggle output on port D0 (blue LED) */</span>
+LPIT0<span style="color:#f92672">-&gt;</span>MSR <span style="color:#f92672">|=</span> LPIT_MSR_TIF0_MASK; <span style="color:#75715e">/* Clear LPIT0 timer flag 0 */</span>
+}
+</code></pre></div><h3 id="使用的子函数文件">使用的子函数文件：</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;S32K144.h&#34; /* include peripheral declarations S32K144 */</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;clocks_and_modes.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SOSC_init_8MHz</span>(<span style="color:#66d9ef">void</span>) {
+SCG<span style="color:#f92672">-&gt;</span>SOSCDIV<span style="color:#f92672">=</span><span style="color:#ae81ff">0x00000101</span>; <span style="color:#75715e">/* SOSCDIV1 &amp; SOSCDIV2 =1: divide by 1 */</span>
+SCG<span style="color:#f92672">-&gt;</span>SOSCCFG<span style="color:#f92672">=</span><span style="color:#ae81ff">0x00000024</span>; <span style="color:#75715e">/* Range=2: Medium freq (SOSC between 1MHz-8MHz)*/</span>
+<span style="color:#75715e">/* HGO=0: Config xtal osc for low power */</span>
+<span style="color:#75715e">/* EREFS=1: Input is external XTAL */</span>
+<span style="color:#66d9ef">while</span>(SCG<span style="color:#f92672">-&gt;</span>SOSCCSR <span style="color:#f92672">&amp;</span> SCG_SOSCCSR_LK_MASK); <span style="color:#75715e">/* Ensure SOSCCSR unlocked */</span>
+SCG<span style="color:#f92672">-&gt;</span>SOSCCSR<span style="color:#f92672">=</span><span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* LK=0: SOSCCSR can be written */</span>
+<span style="color:#75715e">/* SOSCCMRE=0: OSC CLK monitor IRQ if enabled */</span>
+<span style="color:#75715e">/* SOSCCM=0: OSC CLK monitor disabled */</span>
+<span style="color:#75715e">/* SOSCERCLKEN=0: Sys OSC 3V ERCLK output clk disabled */</span>
+<span style="color:#75715e">/* SOSCLPEN=0: Sys OSC disabled in VLP modes */</span>
+<span style="color:#75715e">/* SOSCSTEN=0: Sys OSC disabled in Stop modes */</span>
+<span style="color:#75715e">/* SOSCEN=1: Enable oscillator */</span>
+<span style="color:#66d9ef">while</span>(<span style="color:#f92672">!</span>(SCG<span style="color:#f92672">-&gt;</span>SOSCCSR <span style="color:#f92672">&amp;</span> SCG_SOSCCSR_SOSCVLD_MASK)); <span style="color:#75715e">/* Wait for sys OSC clk valid */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SPLL_init_160MHz</span>(<span style="color:#66d9ef">void</span>) {
+<span style="color:#66d9ef">while</span>(SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">&amp;</span> SCG_SPLLCSR_LK_MASK); <span style="color:#75715e">/* Ensure SPLLCSR unlocked */</span>
+SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000000</span>; <span style="color:#75715e">/* SPLLEN=0: SPLL is disabled (default) */</span>
+SCG<span style="color:#f92672">-&gt;</span>SPLLDIV <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000302</span>; <span style="color:#75715e">/* SPLLDIV1 divide by 2; SPLLDIV2 divide by 4 */</span>
+SCG<span style="color:#f92672">-&gt;</span>SPLLCFG <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00180000</span>; <span style="color:#75715e">/* PREDIV=0: Divide SOSC_CLK by 0+1=1 */</span>
+<span style="color:#75715e">/* MULT=24: Multiply sys pll by 4+24=40 */</span>
+<span style="color:#75715e">/* SPLL_CLK = 8MHz / 1 * 40 / 2 = 160 MHz */</span>
+<span style="color:#66d9ef">while</span>(SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">&amp;</span> SCG_SPLLCSR_LK_MASK); <span style="color:#75715e">/* Ensure SPLLCSR unlocked */</span>
+SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x00000001</span>; <span style="color:#75715e">/* LK=0: SPLLCSR can be written */</span>
+<span style="color:#75715e">/* SPLLCMRE=0: SPLL CLK monitor IRQ if enabled */</span>
+<span style="color:#75715e">/* SPLLCM=0: SPLL CLK monitor disabled */</span>
+<span style="color:#75715e">/* SPLLSTEN=0: SPLL disabled in Stop modes */</span>
+<span style="color:#75715e">/* SPLLEN=1: Enable SPLL */</span>
+<span style="color:#66d9ef">while</span>(<span style="color:#f92672">!</span>(SCG<span style="color:#f92672">-&gt;</span>SPLLCSR <span style="color:#f92672">&amp;</span> SCG_SPLLCSR_SPLLVLD_MASK)); <span style="color:#75715e">/* Wait for SPLL valid */</span>
+}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">NormalRUNmode_80MHz</span> (<span style="color:#66d9ef">void</span>) { <span style="color:#75715e">/* Change to normal RUN mode with 8MHz SOSC, 80 MHz PLL*/</span>
+SCG<span style="color:#f92672">-&gt;</span>RCCR<span style="color:#f92672">=</span>SCG_RCCR_SCS(<span style="color:#ae81ff">6</span>) <span style="color:#75715e">/* PLL as clock source*/</span>
+<span style="color:#f92672">|</span>SCG_RCCR_DIVCORE(<span style="color:#ae81ff">0</span>b01) <span style="color:#75715e">/* DIVCORE=1, div. by 2: Core clock = 160/2 MHz = 80 MHz*/</span>
+<span style="color:#f92672">|</span>SCG_RCCR_DIVBUS(<span style="color:#ae81ff">0</span>b01) <span style="color:#75715e">/* DIVBUS=1, div. by 2: bus clock = 40 MHz*/</span>
+<span style="color:#f92672">|</span>SCG_RCCR_DIVSLOW(<span style="color:#ae81ff">0</span>b10); <span style="color:#75715e">/* DIVSLOW=2, div. by 3: SCG slow, flash clock= 26 2/3 MHz*/</span>
+<span style="color:#66d9ef">while</span> (((SCG<span style="color:#f92672">-&gt;</span>CSR <span style="color:#f92672">&amp;</span> SCG_CSR_SCS_MASK) <span style="color:#f92672">&gt;&gt;</span> SCG_CSR_SCS_SHIFT ) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">6</span>) {}
+<span style="color:#75715e">/* Wait for sys clk src = SPLL */</span>
+}
+</code></pre></div><h3 id="代码详解">代码详解：</h3>
+<p>这个程序代码和上一个例程给出的代码非常类似，只增加了 LPIT0 模块中的 MIER 寄存器修改和 NVIC 的一个初始化和 IRQ Handler 函数。</p>
+<p>在这里我想详细介绍一下本款芯片内置的 <strong>NVIC</strong>(Nested Vectored Interrupt Controller) 的工作原理，该模块被内置于内核之中，在 S32K 的参考手册中，而且在最新的参考手册中，这部分内容被删去了，不知道是为什么，导致我根本无法找到相关资料，浪费了我好几个小时的时间，最后还是在老版本的参考手册中找到了相关的内容。</p>
+<p>NVIC 全名是<strong>中断向量嵌套控制器</strong>，从这个名字上我们可以看出来，这是个控制中断的优先级的模块，它的主要功能是接收其他中断请求，判断各个中断的优先级，然后向内核发起中断服务。在 ARM Cortex M4 这个芯片中，NVIC 一共有 256 路，支持外接 256 个中断源，但是在 S32K 中，仅仅用到了 123 个中断通道，而每一个中断发生端口，都对应着一个 IRQ 值，这个值是固定的，就像是 IP 地址一样，用于区分各个中断请求的来源，而每一个 IRQ 值呢，又对应一个中断的优先级，但是优先级对应的 IPR 寄存器，只有高四位对应优先级，也就是优先级只有 16 个等级（0 - 15），优先级数值越低优先级越高，高优先级的中断可以打断低的优先级中断，从而实现中断嵌套，而优先级相等的两个中断请求，则无法打断中断。</p>
+<p>这个地方有点意思啊，在 S32K 中的 IPR 只有高四位对应优先级，那低四位是干嘛的呢，这里就要谈一谈优先级组别的问题了。以下内容仅供想要深入理解的人查看，在 S32 IDE 中，修改 IPR 只能给其赋值 0 - 15。</p>
+<ul>
+<li>其实在 IPR 寄存器中，每个中断对应 <strong>8</strong> 个位，这 8 个位可以分割成为<strong>两个</strong>位段（[1;7]或者[2;6]或者[3;5]或者[4;4]一直到[7;1]）其中，高的位段，被称之为<strong>组优先级</strong>，低的位段，被称之为<strong>子优先级</strong>。最常见的做法就是如 S32K 这样，4 位对应组优先级，4 位对应子优先级，这样会获得 <strong>16 个组中断等级和 16 个子中断等级</strong>。</li>
+</ul>
+<p><img src="/img/2017-10-02-S32K144_4/ipr.png" alt="ipr.png"></p>
+<h5 id="组优先级和子优先级的作用">组优先级和子优先级的作用：</h5>
+<ol>
+<li>即高的组优先级中断（数值低）可以中断低的组优先级（数值高）中断的，实现中断嵌套。</li>
+<li>组优先级一样的中断，子优先级高的不能中断低的组优先级中断，新中断等待。</li>
+<li>两个中断同时发生，组优先级高的可以优先进行；组优先级相同的中断同时发生，根据子优先级的高低排队进行中断。</li>
+</ol>
+<h5 id="nvic-中断向量表">NVIC 中断向量表：</h5>
+<p>NVIC 的每个中断都有一个向量值，和 IRQ 一样，一个中断的 IRQ 值加 16 就是该中断的向量值。在 IDE 中，中断有关的 <code>ICPR</code> <code>ISER</code> 寄存器都是一个数组，每个元素都是 32 位的无符号整形，数组有 4 个，一共是 128 位，也就是说，要打开 IRQ 值为 48 的 LPIT Channel 0 中断通道，要 <code>FSL_NVIC-&gt;ISER[1] |= 1&lt;&lt; (48 % 32);</code> 很反人类的设定，要注意。</p>
+<p>内核中断的 IRQ，在表中并没有给出，但是在实际运用中要使用内核中断该怎么办呢，这时候我们可以按照 向量值减去 16 的法则进行计算 IRQ，最后的实际 IRQ 值都是负的，譬如 Systick 中断，对应的 IRQ 值为 -1。在配置的时候，对应的数组下标为负。</p>
+<p>最后，在中断服务程序结束后，一定要清中断标志位，中断标志位不在 NVIC 的寄存器中，而在各个中断发生源的寄存器中，大家要注意。</p>
+<h3 id="附录-s32k144-的-irq-表">附录: S32K144 的 IRQ 表：</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/**
+</span><span style="color:#75715e"> * @brief Defines the Interrupt Numbers definitions
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * This enumeration is used to configure the interrupts.
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * Implements : IRQn_Type_Class
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">enum</span>
+{
+  <span style="color:#75715e">/* Auxiliary constants */</span>
+  NotAvail_IRQn                <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">128</span>,             <span style="color:#75715e">/**&lt; Not available device specific interrupt */</span>
+
+  <span style="color:#75715e">/* Core interrupts */</span>
+  NonMaskableInt_IRQn          <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">14</span>,              <span style="color:#75715e">/**&lt; Non Maskable Interrupt */</span>
+  HardFault_IRQn               <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">13</span>,              <span style="color:#75715e">/**&lt; Cortex-M4 SV Hard Fault Interrupt */</span>
+  MemoryManagement_IRQn        <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">12</span>,              <span style="color:#75715e">/**&lt; Cortex-M4 Memory Management Interrupt */</span>
+  BusFault_IRQn                <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">11</span>,              <span style="color:#75715e">/**&lt; Cortex-M4 Bus Fault Interrupt */</span>
+  UsageFault_IRQn              <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">10</span>,              <span style="color:#75715e">/**&lt; Cortex-M4 Usage Fault Interrupt */</span>
+  SVCall_IRQn                  <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">5</span>,               <span style="color:#75715e">/**&lt; Cortex-M4 SV Call Interrupt */</span>
+  DebugMonitor_IRQn            <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">4</span>,               <span style="color:#75715e">/**&lt; Cortex-M4 Debug Monitor Interrupt */</span>
+  PendSV_IRQn                  <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>,               <span style="color:#75715e">/**&lt; Cortex-M4 Pend SV Interrupt */</span>
+  SysTick_IRQn                 <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>,               <span style="color:#75715e">/**&lt; Cortex-M4 System Tick Interrupt */</span>
+
+  <span style="color:#75715e">/* Device specific interrupts */</span>
+  DMA0_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">0u</span>,               <span style="color:#75715e">/**&lt; DMA channel 0 transfer complete */</span>
+  DMA1_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">1u</span>,               <span style="color:#75715e">/**&lt; DMA channel 1 transfer complete */</span>
+  DMA2_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">2u</span>,               <span style="color:#75715e">/**&lt; DMA channel 2 transfer complete */</span>
+  DMA3_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">3u</span>,               <span style="color:#75715e">/**&lt; DMA channel 3 transfer complete */</span>
+  DMA4_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">4u</span>,               <span style="color:#75715e">/**&lt; DMA channel 4 transfer complete */</span>
+  DMA5_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">5u</span>,               <span style="color:#75715e">/**&lt; DMA channel 5 transfer complete */</span>
+  DMA6_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">6u</span>,               <span style="color:#75715e">/**&lt; DMA channel 6 transfer complete */</span>
+  DMA7_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">7u</span>,               <span style="color:#75715e">/**&lt; DMA channel 7 transfer complete */</span>
+  DMA8_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">8u</span>,               <span style="color:#75715e">/**&lt; DMA channel 8 transfer complete */</span>
+  DMA9_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">9u</span>,               <span style="color:#75715e">/**&lt; DMA channel 9 transfer complete */</span>
+  DMA10_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">10u</span>,              <span style="color:#75715e">/**&lt; DMA channel 10 transfer complete */</span>
+  DMA11_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">11u</span>,              <span style="color:#75715e">/**&lt; DMA channel 11 transfer complete */</span>
+  DMA12_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">12u</span>,              <span style="color:#75715e">/**&lt; DMA channel 12 transfer complete */</span>
+  DMA13_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">13u</span>,              <span style="color:#75715e">/**&lt; DMA channel 13 transfer complete */</span>
+  DMA14_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">14u</span>,              <span style="color:#75715e">/**&lt; DMA channel 14 transfer complete */</span>
+  DMA15_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">15u</span>,              <span style="color:#75715e">/**&lt; DMA channel 15 transfer complete */</span>
+  DMA_Error_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">16u</span>,              <span style="color:#75715e">/**&lt; DMA error interrupt channels 0-15 */</span>
+  MCM_IRQn                     <span style="color:#f92672">=</span> <span style="color:#ae81ff">17u</span>,              <span style="color:#75715e">/**&lt; FPU sources */</span>
+  FTFC_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">18u</span>,              <span style="color:#75715e">/**&lt; FTFC Command complete */</span>
+  Read_Collision_IRQn          <span style="color:#f92672">=</span> <span style="color:#ae81ff">19u</span>,              <span style="color:#75715e">/**&lt; FTFC Read collision */</span>
+  LVD_LVW_IRQn                 <span style="color:#f92672">=</span> <span style="color:#ae81ff">20u</span>,              <span style="color:#75715e">/**&lt; PMC Low voltage detect interrupt */</span>
+  FTFC_Fault_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">21u</span>,              <span style="color:#75715e">/**&lt; FTFC Double bit fault detect */</span>
+  WDOG_EWM_IRQn                <span style="color:#f92672">=</span> <span style="color:#ae81ff">22u</span>,              <span style="color:#75715e">/**&lt; Single interrupt vector for WDOG and EWM */</span>
+  RCM_IRQn                     <span style="color:#f92672">=</span> <span style="color:#ae81ff">23u</span>,              <span style="color:#75715e">/**&lt; RCM Asynchronous Interrupt */</span>
+  LPI2C0_Master_IRQn           <span style="color:#f92672">=</span> <span style="color:#ae81ff">24u</span>,              <span style="color:#75715e">/**&lt; LPI2C0 Master Interrupt */</span>
+  LPI2C0_Slave_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">25u</span>,              <span style="color:#75715e">/**&lt; LPI2C0 Slave Interrupt */</span>
+  LPSPI0_IRQn                  <span style="color:#f92672">=</span> <span style="color:#ae81ff">26u</span>,              <span style="color:#75715e">/**&lt; LPSPI0 Interrupt */</span>
+  LPSPI1_IRQn                  <span style="color:#f92672">=</span> <span style="color:#ae81ff">27u</span>,              <span style="color:#75715e">/**&lt; LPSPI1 Interrupt */</span>
+  LPSPI2_IRQn                  <span style="color:#f92672">=</span> <span style="color:#ae81ff">28u</span>,              <span style="color:#75715e">/**&lt; LPSPI2 Interrupt */</span>
+  LPUART0_RxTx_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">31u</span>,              <span style="color:#75715e">/**&lt; LPUART0 Transmit / Receive Interrupt */</span>
+  LPUART1_RxTx_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">33u</span>,              <span style="color:#75715e">/**&lt; LPUART1 Transmit / Receive  Interrupt */</span>
+  LPUART2_RxTx_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">35u</span>,              <span style="color:#75715e">/**&lt; LPUART2 Transmit / Receive  Interrupt */</span>
+  ADC0_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">39u</span>,              <span style="color:#75715e">/**&lt; ADC0 interrupt request. */</span>
+  ADC1_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">40u</span>,              <span style="color:#75715e">/**&lt; ADC1 interrupt request. */</span>
+  CMP0_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">41u</span>,              <span style="color:#75715e">/**&lt; CMP0 interrupt request */</span>
+  ERM_single_fault_IRQn        <span style="color:#f92672">=</span> <span style="color:#ae81ff">44u</span>,              <span style="color:#75715e">/**&lt; ERM single bit error correction */</span>
+  ERM_double_fault_IRQn        <span style="color:#f92672">=</span> <span style="color:#ae81ff">45u</span>,              <span style="color:#75715e">/**&lt; ERM double bit error non-correctable */</span>
+  RTC_IRQn                     <span style="color:#f92672">=</span> <span style="color:#ae81ff">46u</span>,              <span style="color:#75715e">/**&lt; RTC alarm interrupt */</span>
+  RTC_Seconds_IRQn             <span style="color:#f92672">=</span> <span style="color:#ae81ff">47u</span>,              <span style="color:#75715e">/**&lt; RTC seconds interrupt */</span>
+  LPIT0_Ch0_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">48u</span>,              <span style="color:#75715e">/**&lt; LPIT0 channel 0 overflow interrupt */</span>
+  LPIT0_Ch1_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">49u</span>,              <span style="color:#75715e">/**&lt; LPIT0 channel 1 overflow interrupt */</span>
+  LPIT0_Ch2_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">50u</span>,              <span style="color:#75715e">/**&lt; LPIT0 channel 2 overflow interrupt */</span>
+  LPIT0_Ch3_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">51u</span>,              <span style="color:#75715e">/**&lt; LPIT0 channel 3 overflow interrupt */</span>
+  PDB0_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">52u</span>,              <span style="color:#75715e">/**&lt; PDB0 interrupt */</span>
+  SCG_IRQn                     <span style="color:#f92672">=</span> <span style="color:#ae81ff">57u</span>,              <span style="color:#75715e">/**&lt; SCG bus interrupt request */</span>
+  LPTMR0_IRQn                  <span style="color:#f92672">=</span> <span style="color:#ae81ff">58u</span>,              <span style="color:#75715e">/**&lt; LPTIMER interrupt request */</span>
+  PORTA_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">59u</span>,              <span style="color:#75715e">/**&lt; Port A pin detect interrupt */</span>
+  PORTB_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">60u</span>,              <span style="color:#75715e">/**&lt; Port B pin detect interrupt */</span>
+  PORTC_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">61u</span>,              <span style="color:#75715e">/**&lt; Port C pin detect interrupt */</span>
+  PORTD_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">62u</span>,              <span style="color:#75715e">/**&lt; Port D pin detect interrupt */</span>
+  PORTE_IRQn                   <span style="color:#f92672">=</span> <span style="color:#ae81ff">63u</span>,              <span style="color:#75715e">/**&lt; Port E pin detect interrupt */</span>
+  SWI_IRQn                     <span style="color:#f92672">=</span> <span style="color:#ae81ff">64u</span>,              <span style="color:#75715e">/**&lt; Software interrupt */</span>
+  PDB1_IRQn                    <span style="color:#f92672">=</span> <span style="color:#ae81ff">68u</span>,              <span style="color:#75715e">/**&lt; PDB1 interrupt */</span>
+  FLEXIO_IRQn                  <span style="color:#f92672">=</span> <span style="color:#ae81ff">69u</span>,              <span style="color:#75715e">/**&lt; FlexIO Interrupt */</span>
+  CAN0_ORed_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">78u</span>,              <span style="color:#75715e">/**&lt; CAN0 OR&#39;ed [Bus Off OR Transmit Warning OR Receive Warning] */</span>
+  CAN0_Error_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">79u</span>,              <span style="color:#75715e">/**&lt; CAN0 Interrupt indicating that errors were detected on the CAN bus */</span>
+  CAN0_Wake_Up_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">80u</span>,              <span style="color:#75715e">/**&lt; CAN0 Interrupt asserted when Pretended Networking operation is enabled, and a valid message matches the selected filter criteria during Low Power mode */</span>
+  CAN0_ORed_0_15_MB_IRQn       <span style="color:#f92672">=</span> <span style="color:#ae81ff">81u</span>,              <span style="color:#75715e">/**&lt; CAN0 OR&#39;ed Message buffer (0-15) */</span>
+  CAN0_ORed_16_31_MB_IRQn      <span style="color:#f92672">=</span> <span style="color:#ae81ff">82u</span>,              <span style="color:#75715e">/**&lt; CAN0 OR&#39;ed Message buffer (16-31) */</span>
+  CAN1_ORed_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">85u</span>,              <span style="color:#75715e">/**&lt; CAN1 OR&#39;ed [Bus Off OR Transmit Warning OR Receive Warning] */</span>
+  CAN1_Error_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">86u</span>,              <span style="color:#75715e">/**&lt; CAN1 Interrupt indicating that errors were detected on the CAN bus */</span>
+  CAN1_ORed_0_15_MB_IRQn       <span style="color:#f92672">=</span> <span style="color:#ae81ff">88u</span>,              <span style="color:#75715e">/**&lt; CAN1 OR&#39;ed Interrupt for Message buffer (0-15) */</span>
+  CAN2_ORed_IRQn               <span style="color:#f92672">=</span> <span style="color:#ae81ff">92u</span>,              <span style="color:#75715e">/**&lt; CAN2 OR&#39;ed [Bus Off OR Transmit Warning OR Receive Warning] */</span>
+  CAN2_Error_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">93u</span>,              <span style="color:#75715e">/**&lt; CAN2 Interrupt indicating that errors were detected on the CAN bus */</span>
+  CAN2_ORed_0_15_MB_IRQn       <span style="color:#f92672">=</span> <span style="color:#ae81ff">95u</span>,              <span style="color:#75715e">/**&lt; CAN2 OR&#39;ed Message buffer (0-15) */</span>
+  FTM0_Ch0_Ch1_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">99u</span>,              <span style="color:#75715e">/**&lt; FTM0 Channel 0 and 1 interrupt */</span>
+  FTM0_Ch2_Ch3_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">100u</span>,             <span style="color:#75715e">/**&lt; FTM0 Channel 2 and 3 interrupt */</span>
+  FTM0_Ch4_Ch5_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">101u</span>,             <span style="color:#75715e">/**&lt; FTM0 Channel 4 and 5 interrupt */</span>
+  FTM0_Ch6_Ch7_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">102u</span>,             <span style="color:#75715e">/**&lt; FTM0 Channel 6 and 7 interrupt */</span>
+  FTM0_Fault_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">103u</span>,             <span style="color:#75715e">/**&lt; FTM0 Fault interrupt */</span>
+  FTM0_Ovf_Reload_IRQn         <span style="color:#f92672">=</span> <span style="color:#ae81ff">104u</span>,             <span style="color:#75715e">/**&lt; FTM0 Counter overflow and Reload interrupt */</span>
+  FTM1_Ch0_Ch1_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">105u</span>,             <span style="color:#75715e">/**&lt; FTM1 Channel 0 and 1 interrupt */</span>
+  FTM1_Ch2_Ch3_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">106u</span>,             <span style="color:#75715e">/**&lt; FTM1 Channel 2 and 3 interrupt */</span>
+  FTM1_Ch4_Ch5_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">107u</span>,             <span style="color:#75715e">/**&lt; FTM1 Channel 4 and 5 interrupt */</span>
+  FTM1_Ch6_Ch7_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">108u</span>,             <span style="color:#75715e">/**&lt; FTM1 Channel 6 and 7 interrupt */</span>
+  FTM1_Fault_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">109u</span>,             <span style="color:#75715e">/**&lt; FTM1 Fault interrupt */</span>
+  FTM1_Ovf_Reload_IRQn         <span style="color:#f92672">=</span> <span style="color:#ae81ff">110u</span>,             <span style="color:#75715e">/**&lt; FTM1 Counter overflow and Reload interrupt */</span>
+  FTM2_Ch0_Ch1_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">111u</span>,             <span style="color:#75715e">/**&lt; FTM2 Channel 0 and 1 interrupt */</span>
+  FTM2_Ch2_Ch3_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">112u</span>,             <span style="color:#75715e">/**&lt; FTM2 Channel 2 and 3 interrupt */</span>
+  FTM2_Ch4_Ch5_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">113u</span>,             <span style="color:#75715e">/**&lt; FTM2 Channel 4 and 5 interrupt */</span>
+  FTM2_Ch6_Ch7_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">114u</span>,             <span style="color:#75715e">/**&lt; FTM2 Channel 6 and 7 interrupt */</span>
+  FTM2_Fault_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">115u</span>,             <span style="color:#75715e">/**&lt; FTM2 Fault interrupt */</span>
+  FTM2_Ovf_Reload_IRQn         <span style="color:#f92672">=</span> <span style="color:#ae81ff">116u</span>,             <span style="color:#75715e">/**&lt; FTM2 Counter overflow and Reload interrupt */</span>
+  FTM3_Ch0_Ch1_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">117u</span>,             <span style="color:#75715e">/**&lt; FTM3 Channel 0 and 1 interrupt */</span>
+  FTM3_Ch2_Ch3_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">118u</span>,             <span style="color:#75715e">/**&lt; FTM3 Channel 2 and 3 interrupt */</span>
+  FTM3_Ch4_Ch5_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">119u</span>,             <span style="color:#75715e">/**&lt; FTM3 Channel 4 and 5 interrupt */</span>
+  FTM3_Ch6_Ch7_IRQn            <span style="color:#f92672">=</span> <span style="color:#ae81ff">120u</span>,             <span style="color:#75715e">/**&lt; FTM3 Channel 6 and 7 interrupt */</span>
+  FTM3_Fault_IRQn              <span style="color:#f92672">=</span> <span style="color:#ae81ff">121u</span>,             <span style="color:#75715e">/**&lt; FTM3 Fault interrupt */</span>
+  FTM3_Ovf_Reload_IRQn         <span style="color:#f92672">=</span> <span style="color:#ae81ff">122u</span>              <span style="color:#75715e">/**&lt; FTM3 Counter overflow and Reload interrupt */</span>
+} IRQn_Type;
+
+<span style="color:#75715e">/*!
+</span><span style="color:#75715e"> * @}
+</span><span style="color:#75715e"> */</span> <span style="color:#75715e">/* end of group Interrupt_vector_numbers_S32K144 */</span>
+</code></pre></div><p>之前找内核那几个中断的 IRQn 找的好久，最后在头文件里面发现了这个表，在这里就先记录下来方便以后的查阅。</p>
+  
+
+
+
+
+
+
+
+  
+
+
+
+</article>
+
+
+      </div>
+    </div>
+  </main>
+  
+<footer class="Footer">
+  <div class="u-wrapper">
+    <div class="u-padding">
+      Enjoy yourself! All contents are under CC0-1.0 license!
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>
