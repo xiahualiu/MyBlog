@@ -1,5 +1,5 @@
 ---
-title: "Raspi-Powerchair - Dev Journal One"
+title: "Raspi-Powerchair - 1st Dev Journal"
 date: "2020-11-12"
 draft: false
 ---
@@ -43,4 +43,29 @@ This protocol manual shall update if new commands are found by me.
 
 ### Messages
 
-![Protocol Manual](/img/raspi-wheel-dev1/protocol_manual.svg)
+#### Power On
+
+* Controller sent: `0x52` `0xAD`.
+* Motor replied: `0x72` `0x10` `0x00` `0x7D`.
+
+#### Standard Messaging: (Every 5ms interval)
+
+* Controller sent: `0x4A` `0x10` `SP` `FB` `LR` `CS`.
+* Motor replied: `0xFE` `0x54` `EB` `0xA0` `BC` `UN` `CS`.
+
+| Symbol | Name | Data Type | Range |
+| :---: | :--- | ---: | :---: |
+| SP | Speed Level | Unsigned char | `0x00`-`0x0E` |
+| FB | Go Forward/Backward | Signed char | `0x9C`-`0x64` |
+| LR | Go Left/Right | Signed char | `0x9C`-`0x64` |
+| EB | Error Byte | Raw | `0x82`: Error |
+| EB | Error Byte | Raw | `0x02`: Good |
+| BC | Battery Charge | Unknown | Unknown |
+| UN | Unknown | Unknown | Unknown |
+| CS | Check Sum Byte | Raw | `0x00`-`0xFF` |
+
+#### Check Sum Byte Calculation Rule
+
+1. Transform all preceeding bytes into signed char type.
+2. Sum all signed chars.
+3. Do a bitwise negation(~) on the sum to get `CS`.
