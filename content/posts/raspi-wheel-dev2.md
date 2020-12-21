@@ -22,4 +22,4 @@ Never think something is sure to work until understand how does it work. Because
 
 Plan B is designing the motor controller myself, it will take more time but it is sure to work because I just directly control the motors.
 
-The schematics have been finished, see [raspi-powerchair](https://circuitmaker.com/Projects/Details/XiahuaLiu/Raspi-powerchair).
+The schematics have been finished, see my circuitmaker project [raspi-powerchair](https://circuitmaker.com/Projects/Details/XiahuaLiu/Raspi-powerchair).
