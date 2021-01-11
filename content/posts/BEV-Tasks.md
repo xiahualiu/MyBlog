@@ -128,6 +128,7 @@ In this state, the driver is able to drive the car.
 * Brake system plausibility device
 * Battery management system
 * Motor controller
+* Speaker
 
 ## Signal Table
 
