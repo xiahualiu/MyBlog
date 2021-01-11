@@ -4,7 +4,7 @@ date: "2021-01-10"
 draft: false
 ---
 
-This file is the TODO list for the Bearcat EV software team, and all I/O document. 
+This file is the TODO list for the Bearcat EV software team, and also the I/O document. 
 
 ## State machine
 
