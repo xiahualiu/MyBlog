@@ -61,7 +61,7 @@ ECU enters this state when:
 * The watchdog timer ran off. *Timer Interrupt*
 * The reset was not successful.
 
-In this state, `ECU_OK` stays **LOW**. `PRECHARGE_FINISHED-` stays **HIGH**. If there is a IMD problem, `IMD_IND` stays **HIGH**.
+In this state, `ECU_OK` stays **LOW**. `PRECHARGE_FINISHED-` stays **HIGH**.
 
 ECU leave this state, (to `RESET_CONFIRM` state) only when the shutdown reset button was pressed **DOWN**. *Input Falling-Edge Interrupt*
 
@@ -73,7 +73,7 @@ ECU enters this state when:
 
 In this state:
 
-* ECU collects data from BMS, or other peripherals devices, and signals such as `IMD_TTL_OK`, `BMS_TTL_OK`, `IS_TTL_OK`, `BSPD_TTL_OK`.
+* ECU collects data from BMS, BSPD and motor controller.
 * ECU checks itself for any memory errors. 
 * the ECU **should NOT** change output signals. 
 
@@ -132,11 +132,6 @@ In this state, the driver is able to drive the car.
 | NAME | DIRECTION | OUTPUT TYPE | VOLTAGE LEVEL | COMMENTS |
 | :--- | :---: | :---: | :---: | :--- |
 | ECU\_OK | OUTPUT | PUSH PULL | TTL | Should be **LOW** ASAP once error is found. |
-| IMD\_TTL\_OK | INPUT | - | TTL | IMD\_OK signal, but at TTL level. |
-| IMD\_IND | OUTPUT | PUSH PULL | TTL | High means IMD fault. |
-| BMS\_TTL\_OK | INPUT | - | TTL | BMS\_OK signal, but at TTL level. |
-| IS\_TTL\_OK | INPUT | - | TTL | IS\_OK signal, but at TTL level. |
-| BSPD\_TTL\_OK | INPUT | - | TTL | BSPD\_OK signal, but at TTL level. |
 | PRECHARGE\_FINISHED- | OUTPUT | PUSH PULL | TTL | **Low** means precharge finished. |
 | READY\_TO\_GO | OUTPUT | PUSH PULL | TTL | High means car is able to move. |
 | SHUTDOWN\_TTL\_OK | INPUT | - | TTL | SHUTDOWN\_OK- signal's inverse, but at TTL level. |
