@@ -39,7 +39,7 @@ In this state:
 * `ECU_OK` stays **LOW**. `PRECHARGE_FINISHED-` stays **HIGH**.
 * ECU resets all memory blocks.
 
-#### RESETi\_CONFIRM state
+#### RESET\_CONFIRM state
 
 ECU enter this state when:
 
