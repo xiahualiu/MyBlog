@@ -53,6 +53,8 @@ A count down timer is assigned in this state, when the reset button is released 
 
 If the time `RESET_HOLD_DURATION` runs out, and the reset botton is still pressed **DOWN**. The ECU enters `RESET` state. This is intended to prevent any accidental press.
 
+**Note**: During the confirm, ECU still does routine check, if routine check fails, ECU immediately returns to ERROR state.
+ 
 #### ERROR state
 
 ECU enters this state when:
@@ -63,7 +65,7 @@ ECU enters this state when:
 
 In this state, `ECU_OK` stays **LOW**. `PRECHARGE_FINISHED-` stays **HIGH**.
 
-ECU leave this state, (to `RESET_CONFIRM` state) only when the shutdown reset button was pressed **DOWN**. *Input Falling-Edge Interrupt*
+Upon entering this state, ECU is trapped here for 10 seconds or more at a least (to ensure the state does not bounce back), after that in order to leave this state, (to `RESET_CONFIRM` state) the shutdown reset button has to be pressed **DOWN**. *Input Falling-Edge Interrupt*
 
 #### ROUTINE\_CHECK state
 
